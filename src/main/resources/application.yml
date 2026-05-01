@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: webshop-core
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/webshop
+    username: postgres
+    password: nopressure8
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+jwt:
+  secret: 66f8140ee8ac6984b1ec79b84e941da90a2b7e57e9319798f4839e964ad6db7e
+  expiration: 86400000
