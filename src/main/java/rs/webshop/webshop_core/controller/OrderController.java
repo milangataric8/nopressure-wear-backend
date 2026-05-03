@@ -3,6 +3,7 @@ package rs.webshop.webshop_core.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.webshop.webshop_core.constants.OrderStatus;
 import rs.webshop.webshop_core.dto.order.OrderResponse;
@@ -22,6 +23,12 @@ public class OrderController {
     @PostMapping("/{userId}/checkout")
     public ResponseEntity<OrderResponse> checkout(@PathVariable Long userId) {
         return ResponseEntity.status(CREATED).body(orderService.checkout(userId));
+    }
+
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<OrderResponse>> getAll() {
+        return ResponseEntity.ok(orderService.getAll());
     }
 
     @GetMapping("/{userId}")

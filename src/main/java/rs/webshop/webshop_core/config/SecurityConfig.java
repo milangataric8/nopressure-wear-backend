@@ -51,7 +51,15 @@ public class SecurityConfig {
                         .requestMatchers(POST, "/api/categories/**").hasRole("ADMIN")
                         .requestMatchers(PUT, "/api/categories/**").hasRole("ADMIN")
                         .requestMatchers(DELETE, "/api/categories/**").hasRole("ADMIN")
-                        .requestMatchers("/api/users/**").hasRole("ADMIN")
+                        .requestMatchers(GET, "/api/users/**").hasAnyRole("ADMIN", "CUSTOMER")
+                        .requestMatchers(PUT, "/api/users/**").hasAnyRole("ADMIN", "CUSTOMER")
+                        .requestMatchers(DELETE, "/api/users/**").hasRole("ADMIN")
+                        .requestMatchers(PATCH, "/api/users/**").hasRole("ADMIN")
+                        .requestMatchers(POST, "/api/users/**").hasRole("ADMIN")
+                        .requestMatchers(GET, "/api/addresses/**").hasAnyRole("ADMIN", "CUSTOMER")
+                        .requestMatchers(POST, "/api/addresses/**").hasAnyRole("ADMIN", "CUSTOMER")
+                        .requestMatchers(PUT, "/api/addresses/**").hasAnyRole("ADMIN", "CUSTOMER")
+                        .requestMatchers(DELETE, "/api/addresses/**").hasAnyRole("ADMIN", "CUSTOMER")
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
@@ -83,16 +91,12 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(
-                "http://localhost:3000"  // React dev server
+                "http://localhost:5173"
         ));
         configuration.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
         ));
-        configuration.setAllowedHeaders(List.of(
-                "Authorization",
-                "Content-Type",
-                "Accept"
-        ));
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);

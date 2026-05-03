@@ -12,6 +12,8 @@ import rs.webshop.webshop_core.dto.product.ProductRequest;
 import rs.webshop.webshop_core.dto.product.ProductResponse;
 import rs.webshop.webshop_core.service.ProductService;
 
+import java.math.BigDecimal;
+
 import static org.springframework.http.HttpStatus.CREATED;
 
 @RestController
@@ -37,6 +39,14 @@ public class ProductController {
         return ResponseEntity.ok(productService.getAll(pageable));
     }
 
+    @GetMapping("/filter")
+    public ResponseEntity<Page<ProductResponse>> getByPriceRange(
+            @RequestParam BigDecimal minPrice,
+            @RequestParam BigDecimal maxPrice,
+            @PageableDefault(size = 8, sort = "price") Pageable pageable) {
+        return ResponseEntity.ok(productService.getByPriceRange(minPrice, maxPrice, pageable));
+    }
+
     @GetMapping("/active")
     public ResponseEntity<Page<ProductResponse>> getActive(
             @PageableDefault(sort = "name") Pageable pageable) {
@@ -48,6 +58,13 @@ public class ProductController {
             @PathVariable Long categoryId,
             @PageableDefault(sort = "name") Pageable pageable) {
         return ResponseEntity.ok(productService.getByCategory(categoryId, pageable));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<ProductResponse>> search(
+            @RequestParam String query,
+            @PageableDefault(size = 10, sort = "name") Pageable pageable) {
+        return ResponseEntity.ok(productService.search(query, pageable));
     }
 
     @PutMapping("/{id}")

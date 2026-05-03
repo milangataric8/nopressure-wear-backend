@@ -14,6 +14,8 @@ import rs.webshop.webshop_core.model.Product;
 import rs.webshop.webshop_core.repository.CategoryRepository;
 import rs.webshop.webshop_core.repository.ProductRepository;
 
+import java.math.BigDecimal;
+
 import static java.util.Objects.nonNull;
 
 @Service
@@ -64,6 +66,16 @@ public class ProductService {
 
     public Page<ProductResponse> getByCategory(Long categoryId, Pageable pageable) {
         return productRepository.findByCategoryId(categoryId, pageable).map(this::toResponse);
+    }
+
+    public Page<ProductResponse> getByPriceRange(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
+        return productRepository.findByIsActiveTrueAndPriceBetween(minPrice, maxPrice, pageable)
+                .map(this::toResponse);
+    }
+
+    public Page<ProductResponse> search(String query, Pageable pageable) {
+        return productRepository.findByNameContainingIgnoreCaseAndIsActiveTrue(query, pageable)
+                .map(this::toResponse);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
