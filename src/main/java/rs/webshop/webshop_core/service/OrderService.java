@@ -1,6 +1,8 @@
 package rs.webshop.webshop_core.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -116,12 +118,10 @@ public class OrderService {
                 .toList();
     }
 
-    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
-    public List<OrderResponse> getByUser(Long userId) {
-        return orderRepository.findByUserId(userId)
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    @PreAuthorize("hasRole('ADMIN') or @authUtil.getCurrentUserId().equals(#userId)")
+    public Page<OrderResponse> getByUser(Long userId, Pageable pageable) {
+        return orderRepository.findByUserId(userId, pageable)
+                .map(this::toResponse);
     }
 
     @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")

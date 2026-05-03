@@ -1,7 +1,10 @@
 package rs.webshop.webshop_core.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -32,8 +35,10 @@ public class OrderController {
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<List<OrderResponse>> getByUser(@PathVariable Long userId) {
-        return ResponseEntity.ok(orderService.getByUser(userId));
+    public ResponseEntity<Page<OrderResponse>> getByUser(
+            @PathVariable Long userId,
+            @PageableDefault(size = 5, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(orderService.getByUser(userId, pageable));
     }
 
     @GetMapping("/{userId}/{orderId}")
