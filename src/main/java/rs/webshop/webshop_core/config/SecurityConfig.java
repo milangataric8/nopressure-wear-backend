@@ -42,6 +42,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers(GET, "/api/products/**").permitAll()
                         .requestMatchers(GET, "/api/categories/**").permitAll()
                         .requestMatchers(POST, "/api/products/**").hasRole("ADMIN")
@@ -60,6 +61,7 @@ public class SecurityConfig {
                         .requestMatchers(POST, "/api/addresses/**").hasAnyRole("ADMIN", "CUSTOMER")
                         .requestMatchers(PUT, "/api/addresses/**").hasAnyRole("ADMIN", "CUSTOMER")
                         .requestMatchers(DELETE, "/api/addresses/**").hasAnyRole("ADMIN", "CUSTOMER")
+                        .requestMatchers(POST, "/api/upload/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
