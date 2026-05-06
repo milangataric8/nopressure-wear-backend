@@ -29,6 +29,7 @@ public class OrderService {
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
 
     @Transactional
     public OrderResponse checkout(Long userId) {
@@ -136,12 +137,27 @@ public class OrderService {
         return toResponse(order);
     }
 
+
+
     @PreAuthorize("hasRole('ADMIN')")
     public OrderResponse updateStatus(Long orderId, OrderStatus status) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
         order.setStatus(status);
-        return toResponse(orderRepository.save(order));
+        Order savedOrder = orderRepository.save(order);
+
+        try {
+            emailService.sendOrderStatusEmail(
+                    order.getUser().getEmail(),
+                    orderId,
+                    status.name()
+            );
+        } catch (Exception e) {
+            System.out.println("Failed to send email: " + e.getMessage());
+        }
+
+        return toResponse(savedOrder);
     }
 
     private OrderResponse toResponse(Order order) {
