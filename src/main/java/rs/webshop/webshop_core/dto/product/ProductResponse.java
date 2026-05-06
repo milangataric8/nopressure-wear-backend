@@ -19,7 +19,7 @@ public class ProductResponse {
     private Integer stockQuantity;
     private String sku;
     private String imageUrl;
-    private boolean isActive;
+    private Boolean active;
     private Long categoryId;
     private String categoryName;
     private LocalDateTime createdAt;

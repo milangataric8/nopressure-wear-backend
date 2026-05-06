@@ -3,7 +3,6 @@ package rs.webshop.webshop_core.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,6 +13,7 @@ import rs.webshop.webshop_core.service.OrderService;
 
 import java.util.List;
 
+import static org.springframework.data.domain.Sort.Direction.DESC;
 import static org.springframework.http.HttpStatus.CREATED;
 
 @RestController
@@ -24,8 +24,11 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping("/{userId}/checkout")
-    public ResponseEntity<OrderResponse> checkout(@PathVariable Long userId) {
-        return ResponseEntity.status(CREATED).body(orderService.checkout(userId));
+    public ResponseEntity<OrderResponse> checkout(
+            @PathVariable Long userId,
+            @RequestParam(required = false) String couponCode) {
+        return ResponseEntity.status(CREATED)
+                .body(orderService.checkout(userId, couponCode));
     }
 
     @GetMapping("/all")
@@ -37,7 +40,7 @@ public class OrderController {
     @GetMapping("/{userId}")
     public ResponseEntity<Page<OrderResponse>> getByUser(
             @PathVariable Long userId,
-            @PageableDefault(size = 5, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 5, sort = "createdAt", direction = DESC) Pageable pageable) {
         return ResponseEntity.ok(orderService.getByUser(userId, pageable));
     }
 

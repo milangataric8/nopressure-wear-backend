@@ -66,7 +66,11 @@ public class Order {
     })
     private ShippingAddress shippingAddress;
 
+    @Column
+    private String couponCode;
 
+    @Column(precision = 10, scale = 2)
+    private BigDecimal discountAmount = BigDecimal.ZERO;
 
     @PrePersist
     protected void onCreate() {

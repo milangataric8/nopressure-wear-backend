@@ -43,6 +43,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers("/api/coupons/**").hasRole("ADMIN")
                         .requestMatchers(GET, "/api/products/**").permitAll()
                         .requestMatchers(GET, "/api/categories/**").permitAll()
                         .requestMatchers(POST, "/api/products/**").hasRole("ADMIN")
@@ -62,6 +63,7 @@ public class SecurityConfig {
                         .requestMatchers(PUT, "/api/addresses/**").hasAnyRole("ADMIN", "CUSTOMER")
                         .requestMatchers(DELETE, "/api/addresses/**").hasAnyRole("ADMIN", "CUSTOMER")
                         .requestMatchers(POST, "/api/upload/**").hasRole("ADMIN")
+                        .requestMatchers(POST, "/api/coupons/validate").authenticated()
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())

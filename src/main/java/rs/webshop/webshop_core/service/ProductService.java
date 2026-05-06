@@ -132,7 +132,7 @@ public class ProductService {
                 .stockQuantity(product.getStockQuantity())
                 .sku(product.getSku())
                 .imageUrl(product.getImageUrl())
-                .isActive(product.isActive())
+                .active(product.isActive())
                 .categoryId(nonNull(product.getCategory()) ? product.getCategory().getId() : null)
                 .categoryName(nonNull(product.getCategory()) ? product.getCategory().getName() : null)
                 .createdAt(product.getCreatedAt())

@@ -11,15 +11,14 @@ import rs.webshop.webshop_core.dto.order.OrderItemResponse;
 import rs.webshop.webshop_core.dto.order.OrderResponse;
 import rs.webshop.webshop_core.exception.ResourceNotFoundException;
 import rs.webshop.webshop_core.model.*;
-import rs.webshop.webshop_core.repository.CartRepository;
-import rs.webshop.webshop_core.repository.OrderRepository;
-import rs.webshop.webshop_core.repository.ProductRepository;
-import rs.webshop.webshop_core.repository.UserRepository;
+import rs.webshop.webshop_core.repository.*;
 
 import java.math.BigDecimal;
 import java.util.List;
 
+import static java.math.BigDecimal.ZERO;
 import static java.util.Objects.nonNull;
+import static rs.webshop.webshop_core.constants.OrderStatus.PENDING;
 
 @Service
 @RequiredArgsConstructor
@@ -29,10 +28,11 @@ public class OrderService {
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final CouponRepository couponRepository;
     private final EmailService emailService;
 
     @Transactional
-    public OrderResponse checkout(Long userId) {
+    public OrderResponse checkout(Long userId, String couponCode) {
         Cart cart = cartRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
 
@@ -44,20 +44,14 @@ public class OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         ShippingAddress shippingAddress = getShippingAddress(user);
-        Order order = createOrder(user, shippingAddress);
 
-        if (shippingAddress != null) {
-            order.setShippingAddress(shippingAddress);
-        }
+        Order order = createOrder(user, shippingAddress);
 
         List<OrderItem> orderItems = cart.getCartItems().stream().map(cartItem -> {
             Product product = cartItem.getProduct();
-
             if (product.getStockQuantity() < cartItem.getQuantity()) {
-                throw new RuntimeException(
-                        "Insufficient stock for product: " + product.getName());
+                throw new RuntimeException("Insufficient stock for product: " + product.getName());
             }
-
             product.setStockQuantity(product.getStockQuantity() - cartItem.getQuantity());
             productRepository.save(product);
 
@@ -71,22 +65,56 @@ public class OrderService {
 
         order.setOrderItems(orderItems);
 
-        BigDecimal total = orderItems.stream()
-                .map(item -> item.getPriceAtPurchase()
-                        .multiply(BigDecimal.valueOf(item.getQuantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal total = calculateTotalOrderValue(orderItems);
+
+        if (nonNull(couponCode) && !couponCode.isBlank()) {
+            Coupon coupon = couponRepository.findByCode(couponCode.toUpperCase())
+                    .orElseThrow(() -> new ResourceNotFoundException("Coupon not found"));
+
+            if (!coupon.isActive() || coupon.getUsageCount() >= coupon.getUsageLimit()) {
+                throw new RuntimeException("Coupon is not valid");
+            }
+
+            BigDecimal discountAmount = CouponService.applyCouponDiscount(coupon, total);
+
+            order.setDiscountAmount(discountAmount);
+            order.setCouponCode(couponCode.toUpperCase());
+            total = total.subtract(discountAmount);
+
+            coupon.setUsageCount(coupon.getUsageCount() + 1);
+            couponRepository.save(coupon);
+        }
 
         order.setTotalAmount(total);
-
         cart.getCartItems().clear();
         cartRepository.save(cart);
 
         return toResponse(orderRepository.save(order));
     }
 
+    private static BigDecimal calculateTotalOrderValue(List<OrderItem> orderItems) {
+        return orderItems.stream()
+                .map(item -> item.getPriceAtPurchase()
+                        .multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(ZERO, BigDecimal::add);
+    }
+
+    private static Order createOrder(User user, ShippingAddress shippingAddress) {
+        return Order.builder()
+                .user(user)
+                .status(PENDING)
+                .totalAmount(ZERO)
+                .discountAmount(ZERO)
+                .customerFirstName(user.getFirstName())
+                .customerLastName(user.getLastName())
+                .customerEmail(user.getEmail())
+                .shippingAddress(shippingAddress)
+                .build();
+    }
+
     private static ShippingAddress getShippingAddress(User user) {
         ShippingAddress shippingAddress = null;
-        if (user.getAddresses() != null && !user.getAddresses().isEmpty()) {
+        if (nonNull(user.getAddresses()) && !user.getAddresses().isEmpty()) {
             Address firstAddress = user.getAddresses().get(0);
             shippingAddress = ShippingAddress.builder()
                     .street(firstAddress.getStreet())
@@ -96,19 +124,6 @@ public class OrderService {
                     .build();
         }
         return shippingAddress;
-    }
-
-    private static Order createOrder(User user, ShippingAddress shippingAddress) {
-        Order order = Order.builder()
-                .user(user)
-                .status(OrderStatus.PENDING)
-                .totalAmount(BigDecimal.ZERO)
-                .customerFirstName(user.getFirstName())
-                .customerLastName(user.getLastName())
-                .customerEmail(user.getEmail())
-                .shippingAddress(shippingAddress)
-                .build();
-        return order;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -136,8 +151,6 @@ public class OrderService {
 
         return toResponse(order);
     }
-
-
 
     @PreAuthorize("hasRole('ADMIN')")
     public OrderResponse updateStatus(Long orderId, OrderStatus status) {
