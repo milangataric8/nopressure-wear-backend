@@ -8,6 +8,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import rs.webshop.webshop_core.dto.coupon.CouponResponse;
 import rs.webshop.webshop_core.dto.product.ProductRequest;
 import rs.webshop.webshop_core.dto.product.ProductResponse;
 import rs.webshop.webshop_core.service.ProductService;
@@ -73,14 +74,9 @@ public class ProductController {
         return ResponseEntity.ok(productService.update(id, request));
     }
 
-    @PatchMapping("/{id}/deactivate")
-    public ResponseEntity<ProductResponse> deactivate(@PathVariable Long id) {
-        return ResponseEntity.ok(productService.deactivate(id));
-    }
-
-    @PatchMapping("/{id}/activate")
-    public ResponseEntity<ProductResponse> activate(@PathVariable Long id) {
-        return ResponseEntity.ok(productService.activate(id));
+    @PatchMapping("/{id}/toggle")
+    public ResponseEntity<ProductResponse> toggleActive(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.toggleActive(id));
     }
 
     @DeleteMapping("/{id}")

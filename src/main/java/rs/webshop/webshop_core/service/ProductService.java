@@ -5,11 +5,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import rs.webshop.webshop_core.dto.coupon.CouponResponse;
 import rs.webshop.webshop_core.dto.product.ProductRequest;
 import rs.webshop.webshop_core.dto.product.ProductResponse;
 import rs.webshop.webshop_core.exception.DuplicateResourceException;
 import rs.webshop.webshop_core.exception.ResourceNotFoundException;
 import rs.webshop.webshop_core.model.Category;
+import rs.webshop.webshop_core.model.Coupon;
 import rs.webshop.webshop_core.model.Product;
 import rs.webshop.webshop_core.repository.CategoryRepository;
 import rs.webshop.webshop_core.repository.ProductRepository;
@@ -101,18 +103,10 @@ public class ProductService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    public ProductResponse deactivate(Long id) {
+    public ProductResponse toggleActive(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-        product.setActive(false);
-        return toResponse(productRepository.save(product));
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    public ProductResponse activate(Long id) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-        product.setActive(true);
+                .orElseThrow(() -> new ResourceNotFoundException("Coupon not found"));
+        product.setActive(!product.isActive());
         return toResponse(productRepository.save(product));
     }
 
