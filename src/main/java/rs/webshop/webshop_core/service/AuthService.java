@@ -15,6 +15,8 @@ import rs.webshop.webshop_core.security.JwtUtil;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import static rs.webshop.webshop_core.constants.Role.CUSTOMER;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -35,7 +37,7 @@ public class AuthService {
                 .lastName(request.getLastName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(request.getRole())
+                .role(CUSTOMER)
                 .isActive(true)
                 .build();
 
@@ -47,6 +49,8 @@ public class AuthService {
                 .token(token)
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
                 .build();
     }
 

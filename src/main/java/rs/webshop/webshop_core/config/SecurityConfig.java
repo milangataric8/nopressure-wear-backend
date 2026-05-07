@@ -18,6 +18,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import rs.webshop.webshop_core.security.JwtFilter;
+import rs.webshop.webshop_core.security.OAuth2AuthenticationSuccessHandler;
+import rs.webshop.webshop_core.security.OAuth2UserService;
 import rs.webshop.webshop_core.security.UserDetailsServiceImpl;
 
 import java.util.List;
@@ -32,6 +34,8 @@ public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
     private final UserDetailsServiceImpl userDetailsService;
+    private final OAuth2UserService oAuth2UserService;
+    private final OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -65,6 +69,12 @@ public class SecurityConfig {
                         .requestMatchers(POST, "/api/upload/**").hasRole("ADMIN")
                         .requestMatchers(POST, "/api/coupons/validate").authenticated()
                         .anyRequest().authenticated()
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(oAuth2UserService)
+                        )
+                        .successHandler(oAuth2SuccessHandler)
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
