@@ -1,0 +1,123 @@
+package rs.webshop.webshop_core.service;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import rs.webshop.webshop_core.dto.auth.AuthResponse;
+import rs.webshop.webshop_core.dto.auth.LoginRequest;
+import rs.webshop.webshop_core.dto.auth.RegisterRequest;
+import rs.webshop.webshop_core.exception.DuplicateResourceException;
+import rs.webshop.webshop_core.model.User;
+import rs.webshop.webshop_core.repository.UserRepository;
+import rs.webshop.webshop_core.security.JwtUtil;
+
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+import static rs.webshop.webshop_core.constants.Role.CUSTOMER;
+
+@ExtendWith(MockitoExtension.class)
+class AuthServiceTest {
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private JwtUtil jwtUtil;
+
+    @Mock
+    private AuthenticationManager authenticationManager;
+
+    @InjectMocks
+    private AuthService authService;
+
+    private User user;
+    private RegisterRequest registerRequest;
+    private LoginRequest loginRequest;
+
+    @BeforeEach
+    void setUp() {
+        user = User.builder()
+                .id(1L)
+                .firstName("Milan")
+                .lastName("Gataric")
+                .email("milan@webshop.com")
+                .password("encodedPassword")
+                .role(CUSTOMER)
+                .isActive(true)
+                .build();
+
+        registerRequest = new RegisterRequest();
+        registerRequest.setFirstName("Milan");
+        registerRequest.setLastName("Gataric");
+        registerRequest.setEmail("milan@webshop.com");
+        registerRequest.setPassword("password123");
+        registerRequest.setRole(CUSTOMER);
+
+        loginRequest = new LoginRequest();
+        loginRequest.setEmail("milan@webshop.com");
+        loginRequest.setPassword("password123");
+    }
+
+    @Test
+    void register_ShouldReturnAuthResponse_WhenValidRequest() {
+        when(userRepository.existsByEmail(anyString())).thenReturn(false);
+        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenReturn(user);
+        when(jwtUtil.generateToken(any())).thenReturn("jwt-token");
+
+        AuthResponse response = authService.register(registerRequest);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getToken()).isEqualTo("jwt-token");
+        assertThat(response.getEmail()).isEqualTo("milan@webshop.com");
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    @Test
+    void register_ShouldThrowDuplicateException_WhenEmailExists() {
+        when(userRepository.existsByEmail(anyString())).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.register(registerRequest))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessageContaining("email already exists");
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void login_ShouldReturnAuthResponse_WhenValidCredentials() {
+        when(authenticationManager.authenticate(any())).thenReturn(
+                new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities())
+        );
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(jwtUtil.generateToken(any())).thenReturn("jwt-token");
+
+        AuthResponse response = authService.login(loginRequest);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getToken()).isEqualTo("jwt-token");
+        assertThat(response.getRole()).isEqualTo("CUSTOMER");
+    }
+
+    @Test
+    void login_ShouldThrowException_WhenInvalidCredentials() {
+        when(authenticationManager.authenticate(any()))
+                .thenThrow(new BadCredentialsException("Bad credentials"));
+
+        assertThatThrownBy(() -> authService.login(loginRequest))
+                .isInstanceOf(BadCredentialsException.class);
+    }
+}
