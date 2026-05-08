@@ -20,7 +20,6 @@ public class FileStorageService {
     public String storeFile(MultipartFile file) {
         try {
             Path uploadPath = Paths.get(uploadDir);
-            System.out.println("Upload path: " + uploadPath.toAbsolutePath());
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }

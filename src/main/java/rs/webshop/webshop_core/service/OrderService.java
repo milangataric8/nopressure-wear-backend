@@ -1,6 +1,8 @@
 package rs.webshop.webshop_core.service;
 
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,6 +25,8 @@ import static rs.webshop.webshop_core.constants.OrderStatus.PENDING;
 @Service
 @RequiredArgsConstructor
 public class OrderService {
+
+    Logger log = LoggerFactory.getLogger(OrderService.class);
 
     private final OrderRepository orderRepository;
     private final CartRepository cartRepository;
@@ -161,16 +165,53 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
 
         try {
+            StringBuilder productRows = new StringBuilder();
+            for (OrderItem item : order.getOrderItems()) {
+                productRows.append("""
+                <div class="item-row">
+                    <div>
+                        <p class="item-name">%s</p>
+                        <p class="item-qty">Qty: %d × $%s</p>
+                    </div>
+                    <span class="item-price">$%s</span>
+                </div>
+                """.formatted(
+                                item.getProduct().getName(),
+                                item.getQuantity(),
+                                item.getPriceAtPurchase(),
+                                item.getPriceAtPurchase().multiply(
+                                        java.math.BigDecimal.valueOf(item.getQuantity())
+                                )
+                        )
+                );
+            }
+
+            String shippingStreet = getShippingAddressPart(order, order.getShippingAddress().getStreet());
+            String shippingCity = getShippingAddressPart(order, order.getShippingAddress().getCity());
+            String shippingPostalCode = getShippingAddressPart(order, order.getShippingAddress().getPostalCode());
+            String shippingCountry = getShippingAddressPart(order, order.getShippingAddress().getCountry());
+
             emailService.sendOrderStatusEmail(
                     order.getUser().getEmail(),
                     orderId,
-                    status.name()
+                    status.name(),
+                    order.getCustomerFirstName(),
+                    productRows.toString(),
+                    order.getTotalAmount().toString(),
+                    shippingStreet,
+                    shippingCity,
+                    shippingPostalCode,
+                    shippingCountry
             );
         } catch (Exception e) {
-            System.out.println("Failed to send email: " + e.getMessage());
+            log.error("Failed to send email: " + e.getMessage());
         }
 
         return toResponse(savedOrder);
+    }
+
+    private static String getShippingAddressPart(Order order, String addressPart) {
+        return nonNull(order.getShippingAddress()) ? addressPart : "";
     }
 
     private OrderResponse toResponse(Order order) {
