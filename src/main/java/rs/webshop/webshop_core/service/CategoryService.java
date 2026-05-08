@@ -20,7 +20,7 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public CategoryResponse create(CategoryRequest request) {
         if (categoryRepository.existsByName(request.getName())) {
             throw new DuplicateResourceException("Category with this name already exists");
@@ -60,7 +60,7 @@ public class CategoryService {
                 .toList();
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public CategoryResponse update(Long id, CategoryRequest request) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
@@ -79,7 +79,7 @@ public class CategoryService {
         return toResponse(categoryRepository.save(category));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public void delete(Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));

@@ -32,7 +32,7 @@ public class OrderController {
     }
 
     @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public ResponseEntity<List<OrderResponse>> getAll() {
         return ResponseEntity.ok(orderService.getAll());
     }

@@ -17,7 +17,7 @@ public class FileUploadController {
     private final FileStorageService fileStorageService;
 
     @PostMapping("/image")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public ResponseEntity<Map<String, String>> uploadImage(
             @RequestParam("file") MultipartFile file) {
 

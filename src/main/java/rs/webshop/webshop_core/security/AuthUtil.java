@@ -33,6 +33,11 @@ public class AuthUtil {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 
+    public boolean isEmployee() {
+        return getCurrentUser().getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_EMPLOYEE"));
+    }
+
     public boolean isOwnerOfAddress(Long addressId, Long userId) {
         return addressRepository.findById(addressId)
                 .map(address -> address.getUser().getId().equals(userId))

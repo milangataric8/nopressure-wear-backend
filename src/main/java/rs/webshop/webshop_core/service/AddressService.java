@@ -21,7 +21,7 @@ public class AddressService {
     private final AddressRepository addressRepository;
     private final UserRepository userRepository;
 
-    @PreAuthorize("hasRole('ADMIN') or #request.userId == authentication.principal.id")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or #request.userId == authentication.principal.id")
     public AddressResponse create(AddressRequest request) {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -43,7 +43,7 @@ public class AddressService {
         return toResponse(address);
     }
 
-    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or #userId == authentication.principal.id")
     public List<AddressResponse> getByUser(Long userId) {
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("User not found");
@@ -61,7 +61,7 @@ public class AddressService {
                 .toList();
     }
 
-    @PreAuthorize("hasRole('ADMIN') or @authUtil.isOwnerOfAddress(#id, authentication.principal.id)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or @authUtil.isOwnerOfAddress(#id, authentication.principal.id)")
     public AddressResponse update(Long id, AddressRequest request) {
         Address address = addressRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Address not found"));
@@ -74,7 +74,7 @@ public class AddressService {
         return toResponse(addressRepository.save(address));
     }
 
-    @PreAuthorize("hasRole('ADMIN') or @authUtil.isOwnerOfAddress(#id, authentication.principal.id)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or @authUtil.isOwnerOfAddress(#id, authentication.principal.id)")
     public void delete(Long id) {
         Address address = addressRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Address not found"));

@@ -6,9 +6,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import rs.webshop.webshop_core.dto.user.UserRequest;
 import rs.webshop.webshop_core.dto.user.UserResponse;
-import rs.webshop.webshop_core.dto.user.UserUpdateRequest;
 import rs.webshop.webshop_core.exception.DuplicateResourceException;
 import rs.webshop.webshop_core.exception.ResourceNotFoundException;
+import rs.webshop.webshop_core.constants.Role;
 import rs.webshop.webshop_core.model.User;
 import rs.webshop.webshop_core.repository.UserRepository;
 
@@ -16,11 +16,12 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class UserService {
+public class EmployeeService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @PreAuthorize("hasRole('ADMIN')")
     public UserResponse create(UserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("User with this email already exists");
@@ -31,39 +32,21 @@ public class UserService {
                 .lastName(request.getLastName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(request.getRole())
+                .role(Role.EMPLOYEE)
                 .isActive(true)
                 .build();
 
         return toResponse(userRepository.save(user));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or #id == authentication.principal.id")
-    public UserResponse getById(Long id) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserResponse update(Long id, UserRequest request) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        return toResponse(user);
-    }
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public List<UserResponse> getAll() {
-        return userRepository.findAll()
-                .stream()
-                .map(this::toResponse)
-                .toList();
-    }
-
-    public List<UserResponse> getActiveUsers() {
-        return userRepository.findByIsActiveTrue()
-                .stream()
-                .map(this::toResponse)
-                .toList();
-    }
-
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or #id == authentication.principal.id")
-    public UserResponse update(Long id, UserUpdateRequest request) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (user.getRole() != Role.EMPLOYEE) {
+            throw new RuntimeException("User is not an employee");
+        }
 
         if (!user.getEmail().equals(request.getEmail()) &&
                 userRepository.existsByEmail(request.getEmail())) {
@@ -81,27 +64,40 @@ public class UserService {
         return toResponse(userRepository.save(user));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<UserResponse> getAll() {
+        return userRepository.findByRole(Role.EMPLOYEE)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public void delete(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
+
+        if (user.getRole() != Role.EMPLOYEE) {
+            throw new RuntimeException("User is not an employee");
+        }
+
+        userRepository.delete(user);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     public UserResponse deactivate(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
         user.setActive(false);
         return toResponse(userRepository.save(user));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public UserResponse activate(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
         user.setActive(true);
         return toResponse(userRepository.save(user));
-    }
-
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public void delete(Long id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        userRepository.delete(user);
     }
 
     private UserResponse toResponse(User user) {

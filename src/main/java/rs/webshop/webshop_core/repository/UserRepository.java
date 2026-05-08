@@ -2,6 +2,7 @@ package rs.webshop.webshop_core.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import rs.webshop.webshop_core.constants.Role;
 import rs.webshop.webshop_core.model.User;
 
 import java.util.List;
@@ -17,4 +18,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByIsActiveTrue();
 
     Optional<User> findByResetToken(String resetToken);
+
+    List<User> findByRole(Role role);
 }

@@ -130,7 +130,7 @@ public class OrderService {
         return shippingAddress;
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public List<OrderResponse> getAll() {
         return orderRepository.findAll()
                 .stream()
@@ -138,13 +138,13 @@ public class OrderService {
                 .toList();
     }
 
-    @PreAuthorize("hasRole('ADMIN') or @authUtil.getCurrentUserId().equals(#userId)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or @authUtil.getCurrentUserId().equals(#userId)")
     public Page<OrderResponse> getByUser(Long userId, Pageable pageable) {
         return orderRepository.findByUserId(userId, pageable)
                 .map(this::toResponse);
     }
 
-    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or #userId == authentication.principal.id")
     public OrderResponse getById(Long userId, Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
@@ -156,7 +156,7 @@ public class OrderService {
         return toResponse(order);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public OrderResponse updateStatus(Long orderId, OrderStatus status) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
