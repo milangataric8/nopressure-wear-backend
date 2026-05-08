@@ -213,6 +213,7 @@ public class OrderService {
                 .priceAtPurchase(item.getPriceAtPurchase())
                 .subtotal(item.getPriceAtPurchase()
                         .multiply(BigDecimal.valueOf(item.getQuantity())))
+                .imageUrl(item.getProduct().getImageUrl())
                 .build();
     }
 }

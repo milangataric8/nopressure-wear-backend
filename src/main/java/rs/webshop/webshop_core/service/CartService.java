@@ -162,6 +162,7 @@ public class CartService {
                 .productSku(item.getProduct().getSku())
                 .productPrice(item.getProduct().getPrice())
                 .quantity(item.getQuantity())
+                .imageUrl(item.getProduct().getImageUrl())
                 .subtotal(subtotal)
                 .build();
     }
