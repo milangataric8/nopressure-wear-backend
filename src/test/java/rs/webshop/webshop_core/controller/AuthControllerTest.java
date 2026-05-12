@@ -48,7 +48,6 @@ class AuthControllerTest {
         request.setLastName("Gataric");
         request.setEmail("milan@webshop.com");
         request.setPassword("password123");
-        request.setRole(CUSTOMER);
 
         AuthResponse response = AuthResponse.builder()
                 .id(1L)

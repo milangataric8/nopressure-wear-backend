@@ -3,6 +3,7 @@ package rs.webshop.webshop_core.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -17,10 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import rs.webshop.webshop_core.security.JwtFilter;
-import rs.webshop.webshop_core.security.OAuth2AuthenticationSuccessHandler;
-import rs.webshop.webshop_core.security.OAuth2UserService;
-import rs.webshop.webshop_core.security.UserDetailsServiceImpl;
+import rs.webshop.webshop_core.security.*;
 
 import java.util.List;
 
@@ -36,19 +34,22 @@ public class SecurityConfig {
     private final UserDetailsServiceImpl userDetailsService;
     private final OAuth2UserService oAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler;
-
+    private final JwtAuthEntryPoint jwtAuthEntryPoint;
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
         http
+                .securityMatcher("/api/**")
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(jwtAuthEntryPoint)
+                )
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
-                        .requestMatchers("/oauth2/**").permitAll()
-                        .requestMatchers("/login/oauth2/**").permitAll()
                         .requestMatchers(GET, "/api/products/**").permitAll()
                         .requestMatchers(GET, "/api/categories/**").permitAll()
                         .requestMatchers(POST, "/api/products/**").hasAnyRole("ADMIN", "EMPLOYEE")
@@ -58,8 +59,8 @@ public class SecurityConfig {
                         .requestMatchers(POST, "/api/categories/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(PUT, "/api/categories/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(DELETE, "/api/categories/**").hasAnyRole("ADMIN", "EMPLOYEE")
-                        .requestMatchers(GET, "/api/users/**").hasAnyRole("ADMIN", "EMPLOYEE")
-                        .requestMatchers(PUT, "/api/users/**").hasAnyRole("ADMIN", "CUSTOMER")
+                        .requestMatchers(GET, "/api/users/**").hasAnyRole("ADMIN", "EMPLOYEE", "CUSTOMER")
+                        .requestMatchers(PUT, "/api/users/**").hasAnyRole("ADMIN", "EMPLOYEE", "CUSTOMER")
                         .requestMatchers(DELETE, "/api/users/**").hasRole("ADMIN")
                         .requestMatchers(PATCH, "/api/users/**").hasRole("ADMIN")
                         .requestMatchers(POST, "/api/users/**").hasRole("ADMIN")
@@ -71,6 +72,26 @@ public class SecurityConfig {
                         .requestMatchers(POST, "/api/coupons/validate").authenticated()
                         .requestMatchers("/api/coupons/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers("/api/employees/**").hasRole("ADMIN")
+                        .requestMatchers("/api/orders/**").authenticated()
+                        .anyRequest().authenticated()
+                )
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
+    public SecurityFilterChain oauth2FilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/oauth2/**", "/login/oauth2/**")
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/oauth2/**").permitAll()
+                        .requestMatchers("/login/oauth2/**").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
@@ -78,9 +99,10 @@ public class SecurityConfig {
                                 .userService(oAuth2UserService)
                         )
                         .successHandler(oAuth2SuccessHandler)
-                )
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                        .authorizationEndpoint(auth -> auth
+                                .baseUri("/oauth2/authorization")
+                        )
+                );
 
         return http.build();
     }

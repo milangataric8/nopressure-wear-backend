@@ -11,6 +11,7 @@ import rs.webshop.webshop_core.exception.DuplicateResourceException;
 import rs.webshop.webshop_core.exception.ResourceNotFoundException;
 import rs.webshop.webshop_core.model.User;
 import rs.webshop.webshop_core.repository.UserRepository;
+import rs.webshop.webshop_core.security.AuthUtil;
 
 import java.util.List;
 
@@ -20,6 +21,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthUtil authUtil;
 
     public UserResponse create(UserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -38,8 +40,11 @@ public class UserService {
         return toResponse(userRepository.save(user));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or #id == authentication.principal.id")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or @authUtil.getCurrentUserId().equals(#id)")
     public UserResponse getById(Long id) {
+        System.out.println("getCurrentUserId: " + authUtil.getCurrentUserId());
+        System.out.println("requested id: " + id);
+        System.out.println("equals: " + authUtil.getCurrentUserId().equals(id));
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         return toResponse(user);
@@ -60,7 +65,7 @@ public class UserService {
                 .toList();
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or #id == authentication.principal.id")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or @authUtil.getCurrentUserId().equals(#id)")
     public UserResponse update(Long id, UserUpdateRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));

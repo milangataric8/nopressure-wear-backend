@@ -144,6 +144,13 @@ public class OrderService {
                 .map(this::toResponse);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public OrderResponse getByIdAdmin(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+        return toResponse(order);
+    }
+
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or #userId == authentication.principal.id")
     public OrderResponse getById(Long userId, Long orderId) {
         Order order = orderRepository.findById(orderId)
