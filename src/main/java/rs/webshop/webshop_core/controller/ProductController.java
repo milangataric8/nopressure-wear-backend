@@ -5,15 +5,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import rs.webshop.webshop_core.dto.coupon.CouponResponse;
 import rs.webshop.webshop_core.dto.product.ProductRequest;
 import rs.webshop.webshop_core.dto.product.ProductResponse;
 import rs.webshop.webshop_core.service.ProductService;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.springframework.http.HttpStatus.CREATED;
 
@@ -59,6 +58,13 @@ public class ProductController {
             @PathVariable Long categoryId,
             @PageableDefault(sort = "name") Pageable pageable) {
         return ResponseEntity.ok(productService.getByCategory(categoryId, pageable));
+    }
+
+    @GetMapping("/by-categories")
+    public ResponseEntity<Page<ProductResponse>> getByCategories(
+            @RequestParam List<Long> categoryIds,
+            @PageableDefault(size = 8) Pageable pageable) {
+        return ResponseEntity.ok(productService.getByCategories(categoryIds, pageable));
     }
 
     @GetMapping("/search")

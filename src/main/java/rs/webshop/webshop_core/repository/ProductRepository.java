@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import rs.webshop.webshop_core.model.Product;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -23,4 +24,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     boolean existsBySku(String sku);
 
     Page<Product> findByIsActiveTrueAndPriceBetween(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable);
+
+    Page<Product> findByIsActiveTrueAndCategoryIdIn(List<Long> categoryIds, Pageable pageable);
 }

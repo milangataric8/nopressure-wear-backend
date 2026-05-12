@@ -5,18 +5,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-import rs.webshop.webshop_core.dto.coupon.CouponResponse;
 import rs.webshop.webshop_core.dto.product.ProductRequest;
 import rs.webshop.webshop_core.dto.product.ProductResponse;
 import rs.webshop.webshop_core.exception.DuplicateResourceException;
 import rs.webshop.webshop_core.exception.ResourceNotFoundException;
 import rs.webshop.webshop_core.model.Category;
-import rs.webshop.webshop_core.model.Coupon;
 import rs.webshop.webshop_core.model.Product;
 import rs.webshop.webshop_core.repository.CategoryRepository;
 import rs.webshop.webshop_core.repository.ProductRepository;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static java.util.Objects.nonNull;
 
@@ -68,6 +67,11 @@ public class ProductService {
 
     public Page<ProductResponse> getByCategory(Long categoryId, Pageable pageable) {
         return productRepository.findByCategoryId(categoryId, pageable).map(this::toResponse);
+    }
+
+    public Page<ProductResponse> getByCategories(List<Long> categoryIds, Pageable pageable) {
+        return productRepository.findByIsActiveTrueAndCategoryIdIn(categoryIds, pageable)
+                .map(this::toResponse);
     }
 
     public Page<ProductResponse> getByPriceRange(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
