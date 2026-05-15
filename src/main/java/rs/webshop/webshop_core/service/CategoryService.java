@@ -1,6 +1,8 @@
 package rs.webshop.webshop_core.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import rs.webshop.webshop_core.dto.category.CategoryRequest;
@@ -40,19 +42,25 @@ public class CategoryService {
         return toResponse(categoryRepository.save(category));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public CategoryResponse getById(Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
         return toResponse(category);
     }
 
-    public List<CategoryResponse> getAll() {
-        return categoryRepository.findAll()
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public Page<CategoryResponse> getAll(Pageable pageable) {
+        return categoryRepository.findAll(pageable).map(this::toResponse);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public Page<CategoryResponse> search(String query, Pageable pageable) {
+        return categoryRepository.findByNameContainingIgnoreCase(query, pageable)
+                .map(this::toResponse);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public List<CategoryResponse> getRootCategories() {
         return categoryRepository.findByParentIsNull()
                 .stream()

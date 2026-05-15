@@ -48,14 +48,14 @@ public class Order {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    @Column(name = "customer_first_name")
-    private String customerFirstName;
-
-    @Column(name = "customer_last_name")
-    private String customerLastName;
+    @Column
+    private String customerFullName;
 
     @Column(name = "customer_email")
     private String customerEmail;
+
+    @Column(unique = true)
+    private String orderCode;
 
     @Embedded
     @AttributeOverrides({

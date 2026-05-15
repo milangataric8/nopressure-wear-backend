@@ -33,4 +33,22 @@ public class FileUploadController {
         String fileUrl = fileStorageService.storeFile(file);
         return ResponseEntity.ok(Map.of("url", fileUrl));
     }
+
+    @PostMapping("/video")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public ResponseEntity<Map<String, String>> uploadVideo(
+            @RequestParam("file") MultipartFile file) {
+
+        if (file.isEmpty()) {
+            throw new RuntimeException("File is empty");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("video/")) {
+            throw new RuntimeException("Only video files are allowed");
+        }
+
+        String fileUrl = fileStorageService.storeFile(file);
+        return ResponseEntity.ok(Map.of("url", fileUrl));
+    }
 }

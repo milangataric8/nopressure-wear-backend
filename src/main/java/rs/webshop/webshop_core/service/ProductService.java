@@ -5,13 +5,16 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
-import rs.webshop.webshop_core.dto.product.ProductRequest;
-import rs.webshop.webshop_core.dto.product.ProductResponse;
+import rs.webshop.webshop_core.dto.product.*;
 import rs.webshop.webshop_core.exception.DuplicateResourceException;
 import rs.webshop.webshop_core.exception.ResourceNotFoundException;
 import rs.webshop.webshop_core.model.Category;
 import rs.webshop.webshop_core.model.Product;
+import rs.webshop.webshop_core.model.ProductColorVariant;
+import rs.webshop.webshop_core.model.ProductImage;
 import rs.webshop.webshop_core.repository.CategoryRepository;
+import rs.webshop.webshop_core.repository.ProductColorVariantRepository;
+import rs.webshop.webshop_core.repository.ProductImageRepository;
 import rs.webshop.webshop_core.repository.ProductRepository;
 
 import java.math.BigDecimal;
@@ -25,12 +28,11 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final ProductImageRepository productImageRepository;
+    private final ProductColorVariantRepository colorVariantRepository;
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public ProductResponse create(ProductRequest request) {
-        if (productRepository.existsBySku(request.getSku())) {
-            throw new DuplicateResourceException("Product with this SKU already exists");
-        }
 
         Product product = Product.builder()
                 .name(request.getName())
@@ -40,6 +42,7 @@ public class ProductService {
                 .sku(request.getSku())
                 .imageUrl(request.getImageUrl())
                 .isActive(true)
+                .videoUrl(request.getVideoUrl())
                 .build();
 
         if (nonNull(request.getCategoryId())) {
@@ -48,7 +51,10 @@ public class ProductService {
             product.setCategory(category);
         }
 
-        return toResponse(productRepository.save(product));
+        Product saved = productRepository.save(product);
+        linkColorVariants(saved);
+        return toResponse(saved);
+
     }
 
     public ProductResponse getById(Long id) {
@@ -79,8 +85,9 @@ public class ProductService {
                 .map(this::toResponse);
     }
 
-    public Page<ProductResponse> search(String query, Pageable pageable) {
-        return productRepository.findByNameContainingIgnoreCaseAndIsActiveTrue(query, pageable)
+    public Page<ProductResponse> search(Long categoryId, String search, Pageable pageable) {
+        String searchParam = (search != null && !search.isBlank()) ? search : null;
+        return productRepository.findByFilters(categoryId, searchParam, pageable)
                 .map(this::toResponse);
     }
 
@@ -94,6 +101,7 @@ public class ProductService {
         product.setPrice(request.getPrice());
         product.setStockQuantity(request.getStockQuantity());
         product.setImageUrl(request.getImageUrl());
+        product.setSku(request.getSku());
 
         if (nonNull(request.getCategoryId())) {
             Category category = categoryRepository.findById(request.getCategoryId())
@@ -103,7 +111,13 @@ public class ProductService {
             product.setCategory(null);
         }
 
-        return toResponse(productRepository.save(product));
+        product.setColorName(request.getColorName());
+        product.setColorHex(request.getColorHex());
+        product.setVideoUrl(request.getVideoUrl());
+
+        Product saved = productRepository.save(product);
+        linkColorVariants(saved);
+        return toResponse(saved);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
@@ -121,7 +135,113 @@ public class ProductService {
         productRepository.delete(product);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public ProductImageResponse addImage(Long productId, ProductImageRequest request) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        if (productImageRepository.countByProductIdAndIsPrimaryFalse(productId) >= 5) {
+            throw new RuntimeException("Maximum 5 images per product");
+        }
+
+        ProductImage image = ProductImage.builder()
+                .product(product)
+                .imageUrl(request.getImageUrl())
+                .displayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : 0)
+                .isPrimary(request.isPrimary())
+                .build();
+
+        ProductImage saved = productImageRepository.save(image);
+        return ProductImageResponse.builder()
+                .id(saved.getId())
+                .imageUrl(saved.getImageUrl())
+                .displayOrder(saved.getDisplayOrder())
+                .isPrimary(saved.isPrimary())
+                .build();
+    }
+
+    public ProductColorVariantResponse addColorVariant(Long productId, ProductColorVariantRequest request) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        Product variant = productRepository.findById(request.getVariantId())
+                .orElseThrow(() -> new ResourceNotFoundException("Variant product not found"));
+
+        if (colorVariantRepository.existsByProductIdAndVariantId(productId, request.getVariantId())) {
+            throw new DuplicateResourceException("Variant already exists");
+        }
+
+        ProductColorVariant colorVariant = ProductColorVariant.builder()
+                .product(product)
+                .variant(variant)
+                .build();
+
+        colorVariantRepository.save(colorVariant);
+
+        return ProductColorVariantResponse.builder()
+                .variantId(variant.getId())
+                .imageUrl(variant.getImageUrl())
+                .build();
+    }
+
+    private void linkColorVariants(Product product) {
+        if (product.getColorHex() == null || product.getColorHex().isBlank()) return;
+
+        String baseSku = product.getSku();
+        List<Product> variants = productRepository.findBySkuContainingAndIdNot(baseSku, product.getId());
+
+        for (Product variant : variants) {
+            if (variant.getColorHex() != null && !variant.getColorHex().isBlank()) {
+                if (!colorVariantRepository.existsByProductIdAndVariantId(product.getId(), variant.getId())) {
+                    colorVariantRepository.save(ProductColorVariant.builder()
+                            .product(product)
+                            .variant(variant)
+                            .build());
+                }
+                if (!colorVariantRepository.existsByProductIdAndVariantId(variant.getId(), product.getId())) {
+                    colorVariantRepository.save(ProductColorVariant.builder()
+                            .product(variant)
+                            .variant(product)
+                            .build());
+                }
+            }
+        }
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public void deleteImage(Long imageId) {
+        ProductImage image = productImageRepository.findById(imageId)
+                .orElseThrow(() -> new ResourceNotFoundException("Image not found"));
+        productImageRepository.delete(image);
+    }
+
+    public void deleteColorVariant(Long variantId) {
+        ProductColorVariant variant = colorVariantRepository.findById(variantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Variant not found"));
+        colorVariantRepository.delete(variant);
+    }
+
     private ProductResponse toResponse(Product product) {
+        List<ProductImageResponse> images = productImageRepository
+                .findByProductIdOrderByDisplayOrderAsc(product.getId())
+                .stream()
+                .map(img -> ProductImageResponse.builder()
+                        .id(img.getId())
+                        .imageUrl(img.getImageUrl())
+                        .displayOrder(img.getDisplayOrder())
+                        .isPrimary(img.isPrimary())
+                        .build())
+                .toList();
+
+        List<ProductColorVariantResponse> colorVariants = colorVariantRepository
+                .findByProductId(product.getId())
+                .stream()
+                .map(cv -> ProductColorVariantResponse.builder()
+                        .variantId(cv.getVariant().getId())
+                        .imageUrl(cv.getVariant().getImageUrl())
+                        .build())
+                .toList();
+
         return ProductResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
@@ -130,11 +250,16 @@ public class ProductService {
                 .stockQuantity(product.getStockQuantity())
                 .sku(product.getSku())
                 .imageUrl(product.getImageUrl())
+                .videoUrl(product.getVideoUrl())
                 .active(product.isActive())
-                .categoryId(nonNull(product.getCategory()) ? product.getCategory().getId() : null)
-                .categoryName(nonNull(product.getCategory()) ? product.getCategory().getName() : null)
+                .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
+                .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
                 .createdAt(product.getCreatedAt())
                 .updatedAt(product.getUpdatedAt())
+                .images(images)
+                .colorName(product.getColorName())
+                .colorHex(product.getColorHex())
+                .colorVariants(colorVariants)
                 .build();
     }
 }

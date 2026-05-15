@@ -70,6 +70,12 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        setUserData(request, user);
+
+        return toResponse(userRepository.save(user));
+    }
+
+    public void setUserData(UserUpdateRequest request, User user) {
         if (!user.getEmail().equals(request.getEmail()) &&
                 userRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("Email already in use");
@@ -82,8 +88,6 @@ public class UserService {
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
-
-        return toResponse(userRepository.save(user));
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")

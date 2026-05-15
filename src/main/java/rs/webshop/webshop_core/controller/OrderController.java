@@ -11,8 +11,7 @@ import rs.webshop.webshop_core.constants.OrderStatus;
 import rs.webshop.webshop_core.dto.order.OrderResponse;
 import rs.webshop.webshop_core.service.OrderService;
 
-import java.util.List;
-
+import static java.util.Objects.nonNull;
 import static org.springframework.data.domain.Sort.Direction.DESC;
 import static org.springframework.http.HttpStatus.CREATED;
 
@@ -33,8 +32,23 @@ public class OrderController {
 
     @GetMapping("/all")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public ResponseEntity<List<OrderResponse>> getAll() {
-        return ResponseEntity.ok(orderService.getAll());
+    public ResponseEntity<Page<OrderResponse>> getAll(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            Pageable pageable) {
+        if ((nonNull(search) && !search.isBlank()) || (nonNull(status) && !status.isBlank())) {
+            return search(search, status, pageable);
+        }
+        return findAll(pageable);
+    }
+
+    private ResponseEntity<Page<OrderResponse>> search(String search, String status, @PageableDefault Pageable pageable){
+        return ResponseEntity.ok(orderService.search(search, status, pageable));
+    }
+
+    private ResponseEntity<Page<OrderResponse>> findAll(
+            @PageableDefault(sort = "createdAt", direction = DESC) Pageable pageable) {
+        return ResponseEntity.ok(orderService.getAll(pageable));
     }
 
     @GetMapping("/{userId}")

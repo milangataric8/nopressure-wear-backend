@@ -16,13 +16,13 @@ public class OrderResponse {
 
     private Long id;
     private Long userId;
-    private String customerFirstName;
-    private String customerLastName;
+    private String customerFullName;
     private String customerEmail;
     private String shippingStreet;
     private String shippingCity;
     private String shippingPostalCode;
     private String shippingCountry;
+    private String orderCode;
     private List<OrderItemResponse> orderItems;
     private OrderStatus status;
     private BigDecimal totalAmount;

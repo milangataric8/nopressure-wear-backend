@@ -5,6 +5,8 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import static jakarta.persistence.FetchType.LAZY;
 import static jakarta.persistence.GenerationType.IDENTITY;
@@ -34,11 +36,24 @@ public class Product {
     @Column(nullable = false)
     private Integer stockQuantity;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String sku;
 
     @Column
     private String imageUrl;
+
+    @Column
+    private String colorName;
+
+    @Column
+    private String colorHex;
+
+    @Column
+    private String videoUrl;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC")
+    private List<ProductImage> images = new ArrayList<>();
 
     @Column(nullable = false)
     private boolean isActive = true;

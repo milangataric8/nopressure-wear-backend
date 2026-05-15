@@ -9,8 +9,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rs.webshop.webshop_core.constants.OrderStatus;
+import rs.webshop.webshop_core.constants.Role;
 import rs.webshop.webshop_core.dto.order.OrderItemResponse;
 import rs.webshop.webshop_core.dto.order.OrderResponse;
+import rs.webshop.webshop_core.dto.user.UserResponse;
 import rs.webshop.webshop_core.exception.ResourceNotFoundException;
 import rs.webshop.webshop_core.model.*;
 import rs.webshop.webshop_core.repository.*;
@@ -47,9 +49,7 @@ public class OrderService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        ShippingAddress shippingAddress = getShippingAddress(user);
-
-        Order order = createOrder(user, shippingAddress);
+        Order order = createOrder(user);
 
         List<OrderItem> orderItems = cart.getCartItems().stream().map(cartItem -> {
             Product product = cartItem.getProduct();
@@ -103,16 +103,16 @@ public class OrderService {
                 .reduce(ZERO, BigDecimal::add);
     }
 
-    private static Order createOrder(User user, ShippingAddress shippingAddress) {
+    private static Order createOrder(User user) {
         return Order.builder()
                 .user(user)
                 .status(PENDING)
                 .totalAmount(ZERO)
                 .discountAmount(ZERO)
-                .customerFirstName(user.getFirstName())
-                .customerLastName(user.getLastName())
+                .customerFullName(user.getFirstName() + " " + user.getLastName())
                 .customerEmail(user.getEmail())
-                .shippingAddress(shippingAddress)
+                .shippingAddress(getShippingAddress(user))
+                .orderCode(generateOrderCode())
                 .build();
     }
 
@@ -131,11 +131,22 @@ public class OrderService {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public List<OrderResponse> getAll() {
-        return orderRepository.findAll()
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    public Page<OrderResponse> getAll(Pageable pageable) {
+        return orderRepository.findAll(pageable)
+                .map(this::toResponse);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public Page<OrderResponse> search(String search, String status, Pageable pageable) {
+        String orderStatus = (nonNull(status) && !status.isBlank())
+                ? status
+                : null;
+        String searchParam = (nonNull(search) && !search.isBlank())
+                ? search
+                : null;
+
+        return orderRepository.findByFilters(orderStatus, searchParam, pageable)
+                .map(this::toResponse);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or @authUtil.getCurrentUserId().equals(#userId)")
@@ -202,7 +213,7 @@ public class OrderService {
                     order.getUser().getEmail(),
                     orderId,
                     status.name(),
-                    order.getCustomerFirstName(),
+                    order.getCustomerFullName(),
                     productRows.toString(),
                     order.getTotalAmount().toString(),
                     shippingStreet,
@@ -221,6 +232,11 @@ public class OrderService {
         return nonNull(order.getShippingAddress()) ? addressPart : "";
     }
 
+    private static String generateOrderCode() {
+        String uuid = java.util.UUID.randomUUID().toString().replace("-", "").toUpperCase();
+        return uuid.substring(0, 8);
+    }
+
     private OrderResponse toResponse(Order order) {
         List<OrderItemResponse> items = order.getOrderItems().stream()
                 .map(this::toItemResponse)
@@ -229,8 +245,7 @@ public class OrderService {
         return OrderResponse.builder()
                 .id(order.getId())
                 .userId(order.getUser().getId())
-                .customerFirstName(order.getCustomerFirstName())
-                .customerLastName(order.getCustomerLastName())
+                .customerFullName(order.getCustomerFullName())
                 .customerEmail(order.getCustomerEmail())
                 .shippingStreet(nonNull(order.getShippingAddress())
                         ? order.getShippingAddress().getStreet()
@@ -245,6 +260,7 @@ public class OrderService {
                         ? order.getShippingAddress().getCountry()
                         : null)
                 .orderItems(items)
+                .orderCode(order.getOrderCode())
                 .status(order.getStatus())
                 .totalAmount(order.getTotalAmount())
                 .createdAt(order.getCreatedAt())

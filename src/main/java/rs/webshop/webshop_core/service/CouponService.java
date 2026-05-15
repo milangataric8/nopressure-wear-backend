@@ -1,8 +1,11 @@
 package rs.webshop.webshop_core.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import rs.webshop.webshop_core.dto.category.CategoryResponse;
 import rs.webshop.webshop_core.dto.coupon.*;
 import rs.webshop.webshop_core.exception.DuplicateResourceException;
 import rs.webshop.webshop_core.exception.ResourceNotFoundException;
@@ -27,7 +30,7 @@ public class CouponService {
     private final CouponRepository couponRepository;
     private final CartRepository cartRepository;
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public CouponResponse create(CouponRequest request) {
         if (couponRepository.existsByCode(request.getCode().toUpperCase())) {
             throw new DuplicateResourceException("Coupon with this code already exists");
@@ -46,22 +49,26 @@ public class CouponService {
         return toResponse(couponRepository.save(coupon));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    public List<CouponResponse> getAll() {
-        return couponRepository.findAll()
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public Page<CouponResponse> getAll(Pageable pageable) {
+        return couponRepository.findAll(pageable)
+                .map(this::toResponse);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public Page<CouponResponse> search(String query, Pageable pageable) {
+        return couponRepository.findByCodeContainingIgnoreCase(query, pageable)
+                .map(this::toResponse);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public void delete(Long id) {
         Coupon coupon = couponRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Coupon not found"));
         couponRepository.delete(coupon);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public CouponResponse toggleActive(Long id) {
         Coupon coupon = couponRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Coupon not found"));

@@ -7,13 +7,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import rs.webshop.webshop_core.dto.product.ProductRequest;
-import rs.webshop.webshop_core.dto.product.ProductResponse;
+import rs.webshop.webshop_core.dto.product.*;
 import rs.webshop.webshop_core.service.ProductService;
 
 import java.math.BigDecimal;
 import java.util.List;
 
+import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpStatus.CREATED;
 
 @RestController
@@ -28,6 +28,28 @@ public class ProductController {
         return ResponseEntity.status(CREATED).body(productService.create(request));
     }
 
+    @PostMapping("/{id}/images")
+    public ResponseEntity<ProductImageResponse> addImage(
+            @PathVariable Long id,
+            @Valid @RequestBody ProductImageRequest request) {
+        return ResponseEntity.status(CREATED)
+                .body(productService.addImage(id, request));
+    }
+
+    @DeleteMapping("/images/{imageId}")
+    public ResponseEntity<Void> deleteImage(@PathVariable Long imageId) {
+        productService.deleteImage(imageId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/color-variants")
+    public ResponseEntity<ProductColorVariantResponse> addColorVariant(
+            @PathVariable Long id,
+            @Valid @RequestBody ProductColorVariantRequest request) {
+        return ResponseEntity.status(CREATED)
+                .body(productService.addColorVariant(id, request));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getById(id));
@@ -35,7 +57,12 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity<Page<ProductResponse>> getAll(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String search,
             @PageableDefault(sort = "name") Pageable pageable) {
+        if ((nonNull(search) && !search.isBlank()) || nonNull(categoryId)) {
+            return ResponseEntity.ok(productService.search(categoryId, search, pageable));
+        }
         return ResponseEntity.ok(productService.getAll(pageable));
     }
 
@@ -69,9 +96,10 @@ public class ProductController {
 
     @GetMapping("/search")
     public ResponseEntity<Page<ProductResponse>> search(
+            @RequestParam(required = false) Long categoryId,
             @RequestParam String query,
-            @PageableDefault(size = 10, sort = "name") Pageable pageable) {
-        return ResponseEntity.ok(productService.search(query, pageable));
+            @PageableDefault(sort = "name") Pageable pageable) {
+        return ResponseEntity.ok(productService.search(categoryId, query, pageable));
     }
 
     @PutMapping("/{id}")
@@ -88,6 +116,12 @@ public class ProductController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         productService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/color-variants/{variantId}")
+    public ResponseEntity<Void> deleteColorVariant(@PathVariable Long variantId) {
+        productService.deleteColorVariant(variantId);
         return ResponseEntity.noContent().build();
     }
 }

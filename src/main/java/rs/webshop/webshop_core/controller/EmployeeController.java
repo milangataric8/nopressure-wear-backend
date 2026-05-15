@@ -2,14 +2,18 @@ package rs.webshop.webshop_core.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import rs.webshop.webshop_core.dto.user.UserRequest;
 import rs.webshop.webshop_core.dto.user.UserResponse;
+import rs.webshop.webshop_core.dto.user.UserUpdateRequest;
 import rs.webshop.webshop_core.service.EmployeeService;
 
-import java.util.List;
+import static java.util.Objects.nonNull;
 
 @RestController
 @RequestMapping("/api/employees")
@@ -25,13 +29,18 @@ public class EmployeeController {
 
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> update(@PathVariable Long id,
-                                               @Valid @RequestBody UserRequest request) {
+                                               @Valid @RequestBody UserUpdateRequest request) {
         return ResponseEntity.ok(employeeService.update(id, request));
     }
 
     @GetMapping
-    public ResponseEntity<List<UserResponse>> getAll() {
-        return ResponseEntity.ok(employeeService.getAll());
+    public ResponseEntity<Page<UserResponse>> getAll(
+            @RequestParam(required = false) String search,
+            @PageableDefault(sort = "firstName") Pageable pageable) {
+        if (nonNull(search) && !search.isBlank()) {
+            return ResponseEntity.ok(employeeService.search(search, pageable));
+        }
+        return ResponseEntity.ok(employeeService.getAll(pageable));
     }
 
     @DeleteMapping("/{id}")

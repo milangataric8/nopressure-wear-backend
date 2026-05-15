@@ -3,27 +3,51 @@ package rs.webshop.webshop_core.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import rs.webshop.webshop_core.model.Product;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
-
-    Optional<Product> findBySku(String sku);
 
     Page<Product> findByIsActiveTrue(Pageable pageable);
 
     Page<Product> findByCategoryId(Long categoryId, Pageable pageable);
 
-    Page<Product> findByNameContainingIgnoreCaseAndIsActiveTrue(String name, Pageable pageable);
-
-    boolean existsBySku(String sku);
-
     Page<Product> findByIsActiveTrueAndPriceBetween(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable);
 
     Page<Product> findByIsActiveTrueAndCategoryIdIn(List<Long> categoryIds, Pageable pageable);
+
+    List<Product> findBySkuContainingAndIdNot(String sku, Long id);
+
+    @Query(value = """
+        SELECT * FROM product p
+        WHERE (:categoryId IS NULL OR p.category_id = :categoryId
+               OR p.category_id IN (
+                   SELECT id FROM category WHERE parent_id = :categoryId
+               ))
+        AND (:search IS NULL
+                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
+                    OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%')))
+        ORDER BY p.name ASC
+        """,
+            countQuery = """
+        SELECT COUNT(*) FROM product p
+        WHERE (:categoryId IS NULL OR p.category_id = :categoryId
+               OR p.category_id IN (
+                   SELECT id FROM category WHERE parent_id = :categoryId
+               ))
+        AND (:search IS NULL
+                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
+                    OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%')))
+        """,
+            nativeQuery = true)
+    Page<Product> findByFilters(
+            @Param("categoryId") Long categoryId,
+            @Param("search") String search,
+            Pageable pageable);
 }

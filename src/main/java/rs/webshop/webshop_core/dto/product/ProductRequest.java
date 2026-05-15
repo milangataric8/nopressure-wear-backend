@@ -30,4 +30,10 @@ public class ProductRequest {
     private String imageUrl;
 
     private Long categoryId;
+
+    private String colorName;
+
+    private String colorHex;
+
+    private String videoUrl;
 }

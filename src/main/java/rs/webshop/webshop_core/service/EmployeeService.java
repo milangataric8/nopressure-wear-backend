@@ -1,18 +1,19 @@
 package rs.webshop.webshop_core.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import rs.webshop.webshop_core.dto.user.UserRequest;
 import rs.webshop.webshop_core.dto.user.UserResponse;
+import rs.webshop.webshop_core.dto.user.UserUpdateRequest;
 import rs.webshop.webshop_core.exception.DuplicateResourceException;
 import rs.webshop.webshop_core.exception.ResourceNotFoundException;
 import rs.webshop.webshop_core.constants.Role;
 import rs.webshop.webshop_core.model.User;
 import rs.webshop.webshop_core.repository.UserRepository;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +21,7 @@ public class EmployeeService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserService userService;
 
     @PreAuthorize("hasRole('ADMIN')")
     public UserResponse create(UserRequest request) {
@@ -40,7 +42,7 @@ public class EmployeeService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    public UserResponse update(Long id, UserRequest request) {
+    public UserResponse update(Long id, UserUpdateRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
 
@@ -48,28 +50,21 @@ public class EmployeeService {
             throw new RuntimeException("User is not an employee");
         }
 
-        if (!user.getEmail().equals(request.getEmail()) &&
-                userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("Email already in use");
-        }
-
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setEmail(request.getEmail());
-
-        if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            user.setPassword(passwordEncoder.encode(request.getPassword()));
-        }
+        userService.setUserData(request, user);
 
         return toResponse(userRepository.save(user));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    public List<UserResponse> getAll() {
-        return userRepository.findByRole(Role.EMPLOYEE)
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    public Page<UserResponse> getAll(Pageable pageable) {
+        return userRepository.findByRole(Role.EMPLOYEE, pageable)
+                .map(this::toResponse);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    public Page<UserResponse> search(String query, Pageable pageable) {
+        return userRepository.findByFirstNameContainingIgnoreCaseOrEmailContainingIgnoreCase(query, query, pageable)
+                .map(this::toResponse);
     }
 
     @PreAuthorize("hasRole('ADMIN')")

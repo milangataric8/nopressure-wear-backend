@@ -18,4 +18,5 @@ public class OrderItemResponse {
     private BigDecimal priceAtPurchase;
     private BigDecimal subtotal;
     private String imageUrl;
+    private String orderCode;
 }

@@ -6,6 +6,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -19,6 +20,11 @@ public class ProductResponse {
     private Integer stockQuantity;
     private String sku;
     private String imageUrl;
+    private String videoUrl;
+    private List<ProductImageResponse> images;
+    private String colorName;
+    private String colorHex;
+    private List<ProductColorVariantResponse> colorVariants;
     private Boolean active;
     private Long categoryId;
     private String categoryName;

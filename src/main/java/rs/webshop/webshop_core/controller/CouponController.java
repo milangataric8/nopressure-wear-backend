@@ -2,13 +2,15 @@ package rs.webshop.webshop_core.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import rs.webshop.webshop_core.dto.coupon.*;
 import rs.webshop.webshop_core.service.CouponService;
 
-import java.util.List;
-
+import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpStatus.CREATED;
 
 @RestController
@@ -24,8 +26,13 @@ public class CouponController {
     }
 
     @GetMapping
-    public ResponseEntity<List<CouponResponse>> getAll() {
-        return ResponseEntity.ok(couponService.getAll());
+    public ResponseEntity<Page<CouponResponse>> getAll(
+            @RequestParam(required = false) String search,
+            @PageableDefault(sort = "code") Pageable pageable) {
+        if (nonNull(search) && !search.isBlank()) {
+            return ResponseEntity.ok(couponService.search(search, pageable));
+        }
+        return ResponseEntity.ok(couponService.getAll(pageable));
     }
 
     @DeleteMapping("/{id}")
