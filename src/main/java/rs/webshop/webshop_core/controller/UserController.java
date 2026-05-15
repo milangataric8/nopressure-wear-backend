@@ -2,6 +2,9 @@ package rs.webshop.webshop_core.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import rs.webshop.webshop_core.dto.user.UserRequest;
@@ -11,6 +14,7 @@ import rs.webshop.webshop_core.service.UserService;
 
 import java.util.List;
 
+import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpStatus.CREATED;
 
 @RestController
@@ -38,6 +42,31 @@ public class UserController {
     @GetMapping("/active")
     public ResponseEntity<List<UserResponse>> getActiveUsers() {
         return ResponseEntity.ok(userService.getActiveUsers());
+    }
+
+    @GetMapping("/customers")
+    public ResponseEntity<Page<UserResponse>> getCustomers(
+            @RequestParam(required = false) String search,
+            @PageableDefault(sort = "firstName") Pageable pageable) {
+
+        if (nonNull(search) && !search.isBlank()) {
+            return searchCustomers(search, pageable);
+        }
+
+        return getAllCustomers(pageable);
+    }
+
+    private ResponseEntity<Page<UserResponse>> searchCustomers(
+            @RequestParam(required = false) String search,
+            Pageable pageable) {
+
+        return ResponseEntity.ok(userService.searchCustomers(search, pageable));
+    }
+
+    private ResponseEntity<Page<UserResponse>> getAllCustomers(
+            @PageableDefault(sort = "firstName") Pageable pageable) {
+
+        return ResponseEntity.ok(userService.getCustomers(pageable));
     }
 
     @PutMapping("/{id}")

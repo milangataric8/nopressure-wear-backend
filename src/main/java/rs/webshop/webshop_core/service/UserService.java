@@ -1,6 +1,8 @@
 package rs.webshop.webshop_core.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,9 @@ import rs.webshop.webshop_core.repository.UserRepository;
 import rs.webshop.webshop_core.security.AuthUtil;
 
 import java.util.List;
+
+import static java.util.Objects.nonNull;
+import static rs.webshop.webshop_core.constants.Role.CUSTOMER;
 
 @Service
 @RequiredArgsConstructor
@@ -88,6 +93,20 @@ public class UserService {
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public Page<UserResponse> getCustomers(Pageable pageable) {
+        return userRepository.findByRole(CUSTOMER, pageable)
+                .map(this::toResponse);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public Page<UserResponse> searchCustomers(String search, Pageable pageable) {
+        String searchParam = (nonNull(search) && !search.isBlank()) ? search : null;
+
+        return userRepository.findCustomersByFilters(searchParam, pageable)
+                .map(this::toResponse);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")

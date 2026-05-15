@@ -42,6 +42,14 @@ public class OrderController {
         return findAll(pageable);
     }
 
+    @GetMapping("/user/{userId}/all")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public ResponseEntity<Page<OrderResponse>> getByUserId(
+            @PathVariable Long userId,
+            @PageableDefault() Pageable pageable) {
+        return ResponseEntity.ok(orderService.getByUserId(userId, pageable));
+    }
+
     private ResponseEntity<Page<OrderResponse>> search(String search, String status, @PageableDefault Pageable pageable){
         return ResponseEntity.ok(orderService.search(search, status, pageable));
     }

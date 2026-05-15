@@ -156,6 +156,12 @@ public class OrderService {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public Page<OrderResponse> getByUserId(Long userId, Pageable pageable) {
+        return orderRepository.findByUserId(userId, pageable)
+                .map(this::toResponse);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public OrderResponse getByIdAdmin(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
