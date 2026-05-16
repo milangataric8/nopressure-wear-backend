@@ -54,6 +54,9 @@ app:
   upload:
     dir: uploads/products
 
+  removebg:
+    api-key: ${REMOVEBG_API_KEY:SHucNLs42vYjzuLoLD6jkPca}
+
 server:
   port: 8080
 
