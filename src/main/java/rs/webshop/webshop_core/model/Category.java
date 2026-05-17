@@ -34,4 +34,7 @@ public class Category {
 
     @OneToMany(mappedBy = "parent", cascade = ALL)
     private List<Category> subcategories;
+
+    @Column(nullable = false)
+    private boolean isActive = true;
 }

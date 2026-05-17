@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import rs.webshop.webshop_core.constants.Role;
 import rs.webshop.webshop_core.dto.user.UserRequest;
 import rs.webshop.webshop_core.dto.user.UserResponse;
 import rs.webshop.webshop_core.dto.user.UserUpdateRequest;
@@ -96,16 +97,16 @@ public class UserService {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public Page<UserResponse> getCustomers(Pageable pageable) {
+    public Page<UserResponse> getAllByRole(Pageable pageable) {
         return userRepository.findByRole(CUSTOMER, pageable)
                 .map(this::toResponse);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public Page<UserResponse> searchCustomers(String search, Pageable pageable) {
+    public Page<UserResponse> search(String search, Boolean active, Pageable pageable) {
         String searchParam = (nonNull(search) && !search.isBlank()) ? search : null;
 
-        return userRepository.findCustomersByFilters(searchParam, pageable)
+        return userRepository.findByFilters(searchParam, active, CUSTOMER.name(), pageable)
                 .map(this::toResponse);
     }
 

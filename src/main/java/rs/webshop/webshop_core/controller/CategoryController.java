@@ -36,9 +36,11 @@ public class CategoryController {
     @GetMapping
     public ResponseEntity<Page<CategoryResponse>> getAll(
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active,
             @PageableDefault(sort = "name") Pageable pageable) {
-        if (nonNull(search) && !search.isBlank()) {
-            return ResponseEntity.ok(categoryService.search(search, pageable));
+        if ((nonNull(search) && !search.isBlank())
+                || nonNull(active)) {
+            return ResponseEntity.ok(categoryService.search(search, active, pageable));
         }
         return ResponseEntity.ok(categoryService.getAll(pageable));
     }
@@ -46,6 +48,16 @@ public class CategoryController {
     @GetMapping("/roots")
     public ResponseEntity<List<CategoryResponse>> getRoots() {
         return ResponseEntity.ok(categoryService.getRootCategories());
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<List<CategoryResponse>> getActive() {
+        return ResponseEntity.ok(categoryService.getActive());
+    }
+
+    @PatchMapping("/{id}/toggle")
+    public ResponseEntity<CategoryResponse> toggleActive(@PathVariable Long id) {
+        return ResponseEntity.ok(categoryService.toggleActive(id));
     }
 
     @PutMapping("/{id}")

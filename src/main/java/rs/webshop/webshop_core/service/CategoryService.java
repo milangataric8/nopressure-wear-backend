@@ -10,6 +10,7 @@ import rs.webshop.webshop_core.dto.category.CategoryResponse;
 import rs.webshop.webshop_core.exception.DuplicateResourceException;
 import rs.webshop.webshop_core.exception.ResourceNotFoundException;
 import rs.webshop.webshop_core.model.Category;
+import rs.webshop.webshop_core.model.Product;
 import rs.webshop.webshop_core.repository.CategoryRepository;
 
 import java.util.List;
@@ -21,6 +22,7 @@ import static java.util.Objects.nonNull;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final ProductService productService;
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public CategoryResponse create(CategoryRequest request) {
@@ -49,14 +51,20 @@ public class CategoryService {
         return toResponse(category);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public Page<CategoryResponse> getAll(Pageable pageable) {
         return categoryRepository.findAll(pageable).map(this::toResponse);
     }
 
+    public List<CategoryResponse> getActive() {
+        return categoryRepository.findByIsActiveTrueOrderByNameAsc()
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public Page<CategoryResponse> search(String query, Pageable pageable) {
-        return categoryRepository.findByNameContainingIgnoreCase(query, pageable)
+    public Page<CategoryResponse> search(String search, Boolean active, Pageable pageable) {
+        return categoryRepository.findByFilters(search, active, pageable)
                 .map(this::toResponse);
     }
 
@@ -66,6 +74,37 @@ public class CategoryService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public CategoryResponse toggleActive(Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+
+        category.setActive(!category.isActive());
+        categoryRepository.save(category);
+
+        toggleActiveSubcategories(id);
+        toggleActiveCategoryProducts(id);
+
+        return toResponse(category);
+    }
+
+    private void toggleActiveSubcategories(Long parentCategoryId) {
+        List<Category> subcategories = categoryRepository.findAllByParentId(parentCategoryId);
+        for (Category subcategory : subcategories) {
+            subcategory.setActive(!subcategory.isActive());
+            categoryRepository.save(subcategory);
+
+            toggleActiveCategoryProducts(subcategory.getId());
+        }
+    }
+
+    private void toggleActiveCategoryProducts(Long id) {
+        List<Product> products = productService.getByCategory(id);
+        for (Product product : products) {
+            productService.toggleActive(product.getId());
+        }
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
@@ -106,6 +145,7 @@ public class CategoryService {
                                 ? category.getSubcategories().stream().map(this::toResponse).toList()
                                 : List.of()
                 )
+                .active(category.isActive())
                 .build();
     }
 }

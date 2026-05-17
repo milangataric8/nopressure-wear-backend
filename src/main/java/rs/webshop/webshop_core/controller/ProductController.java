@@ -59,9 +59,12 @@ public class ProductController {
     public ResponseEntity<Page<ProductResponse>> getAll(
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active,
             @PageableDefault(sort = "name") Pageable pageable) {
-        if ((nonNull(search) && !search.isBlank()) || nonNull(categoryId)) {
-            return ResponseEntity.ok(productService.search(categoryId, search, pageable));
+        if ((nonNull(search) && !search.isBlank())
+                || nonNull(categoryId)
+                || nonNull(active)) {
+            return ResponseEntity.ok(productService.search(categoryId, search, active, pageable));
         }
         return ResponseEntity.ok(productService.getAll(pageable));
     }
@@ -97,9 +100,10 @@ public class ProductController {
     @GetMapping("/search")
     public ResponseEntity<Page<ProductResponse>> search(
             @RequestParam(required = false) Long categoryId,
-            @RequestParam String query,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active,
             @PageableDefault(sort = "name") Pageable pageable) {
-        return ResponseEntity.ok(productService.search(categoryId, query, pageable));
+        return ResponseEntity.ok(productService.search(categoryId, search, active, pageable));
     }
 
     @PutMapping("/{id}")

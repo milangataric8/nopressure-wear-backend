@@ -71,6 +71,10 @@ public class ProductService {
         return productRepository.findByIsActiveTrue(pageable).map(this::toResponse);
     }
 
+    public List<Product> getByCategory(Long categoryId) {
+        return productRepository.findByCategoryId(categoryId).stream().toList();
+    }
+
     public Page<ProductResponse> getByCategory(Long categoryId, Pageable pageable) {
         return productRepository.findByCategoryId(categoryId, pageable).map(this::toResponse);
     }
@@ -85,9 +89,9 @@ public class ProductService {
                 .map(this::toResponse);
     }
 
-    public Page<ProductResponse> search(Long categoryId, String search, Pageable pageable) {
+public Page<ProductResponse> search(Long categoryId, String search, Boolean active, Pageable pageable) {
         String searchParam = (search != null && !search.isBlank()) ? search : null;
-        return productRepository.findByFilters(categoryId, searchParam, pageable)
+        return productRepository.findByFilters(categoryId, searchParam, active, pageable)
                 .map(this::toResponse);
     }
 

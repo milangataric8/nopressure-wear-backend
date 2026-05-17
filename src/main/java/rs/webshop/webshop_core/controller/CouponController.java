@@ -28,9 +28,11 @@ public class CouponController {
     @GetMapping
     public ResponseEntity<Page<CouponResponse>> getAll(
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active,
             @PageableDefault(sort = "code") Pageable pageable) {
-        if (nonNull(search) && !search.isBlank()) {
-            return ResponseEntity.ok(couponService.search(search, pageable));
+        if ((nonNull(search) && !search.isBlank())
+                || nonNull(active)) {
+            return ResponseEntity.ok(couponService.search(search, active, pageable));
         }
         return ResponseEntity.ok(couponService.getAll(pageable));
     }

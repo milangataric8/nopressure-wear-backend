@@ -33,8 +33,8 @@ public class BannerService {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public Page<BannerResponse> search(String query, Pageable pageable) {
-        return bannerRepository.findByTitleContainingIgnoreCase(query, pageable)
+    public Page<BannerResponse> search(String query, Boolean active, Pageable pageable) {
+        return bannerRepository.findByFilters(query, active, pageable)
                 .map(this::toResponse);
     }
 

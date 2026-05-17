@@ -16,6 +16,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     Page<Product> findByIsActiveTrue(Pageable pageable);
 
+    List<Product> findByCategoryId(Long categoryId);
+
     Page<Product> findByCategoryId(Long categoryId, Pageable pageable);
 
     Page<Product> findByIsActiveTrueAndPriceBetween(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable);
@@ -33,6 +35,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         AND (:search IS NULL
                     OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
                     OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%')))
+        AND (:active IS NULL OR p.is_active = :active)
         ORDER BY p.name ASC
         """,
             countQuery = """
@@ -44,10 +47,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         AND (:search IS NULL
                     OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
                     OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%')))
+        AND (:active IS NULL OR p.is_active = :active)
         """,
             nativeQuery = true)
     Page<Product> findByFilters(
             @Param("categoryId") Long categoryId,
             @Param("search") String search,
+            @Param("active") Boolean active,
             Pageable pageable);
 }

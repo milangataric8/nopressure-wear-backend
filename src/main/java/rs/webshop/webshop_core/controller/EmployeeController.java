@@ -8,12 +8,15 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import rs.webshop.webshop_core.constants.Role;
 import rs.webshop.webshop_core.dto.user.UserRequest;
 import rs.webshop.webshop_core.dto.user.UserResponse;
 import rs.webshop.webshop_core.dto.user.UserUpdateRequest;
 import rs.webshop.webshop_core.service.EmployeeService;
+import rs.webshop.webshop_core.service.UserService;
 
 import static java.util.Objects.nonNull;
+import static rs.webshop.webshop_core.constants.Role.EMPLOYEE;
 
 @RestController
 @RequestMapping("/api/employees")
@@ -21,6 +24,7 @@ import static java.util.Objects.nonNull;
 public class EmployeeController {
 
     private final EmployeeService employeeService;
+    private final UserService userService;
 
     @PostMapping
     public ResponseEntity<UserResponse> create(@Valid @RequestBody UserRequest request) {
@@ -36,10 +40,22 @@ public class EmployeeController {
     @GetMapping
     public ResponseEntity<Page<UserResponse>> getAll(
             @RequestParam(required = false) String search,
-            @PageableDefault(sort = "firstName") Pageable pageable) {
-        if (nonNull(search) && !search.isBlank()) {
-            return ResponseEntity.ok(employeeService.search(search, pageable));
+            @RequestParam(required = false) Boolean active,
+            Pageable pageable) {
+        if ((nonNull(search) && !search.isBlank())
+                || nonNull(active)) {
+            return search(search, active, pageable);
         }
+        return getAll(pageable);
+    }
+
+    private ResponseEntity<Page<UserResponse>> search(String search, Boolean active, Pageable pageable) {
+        return ResponseEntity.ok(employeeService.search(search, active, pageable));
+    }
+
+    private ResponseEntity<Page<UserResponse>> getAll(
+            @PageableDefault(sort = "firstName") Pageable pageable) {
+
         return ResponseEntity.ok(employeeService.getAll(pageable));
     }
 

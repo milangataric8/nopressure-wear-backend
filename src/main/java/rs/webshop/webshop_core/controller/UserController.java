@@ -16,6 +16,7 @@ import java.util.List;
 
 import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpStatus.CREATED;
+import static rs.webshop.webshop_core.constants.Role.CUSTOMER;
 
 @RestController
 @RequestMapping("/api/users")
@@ -47,26 +48,24 @@ public class UserController {
     @GetMapping("/customers")
     public ResponseEntity<Page<UserResponse>> getCustomers(
             @RequestParam(required = false) String search,
-            @PageableDefault(sort = "firstName") Pageable pageable) {
-
-        if (nonNull(search) && !search.isBlank()) {
-            return searchCustomers(search, pageable);
+            @RequestParam(required = false) Boolean active,
+            Pageable pageable) {
+        if ((nonNull(search) && !search.isBlank())
+                || nonNull(active)) {
+            return search(search, active, pageable);
         }
 
-        return getAllCustomers(pageable);
+        return getAll(pageable);
     }
 
-    private ResponseEntity<Page<UserResponse>> searchCustomers(
-            @RequestParam(required = false) String search,
-            Pageable pageable) {
-
-        return ResponseEntity.ok(userService.searchCustomers(search, pageable));
+    private ResponseEntity<Page<UserResponse>> search(String search, Boolean active, Pageable pageable) {
+        return ResponseEntity.ok(userService.search(search, active, pageable));
     }
 
-    private ResponseEntity<Page<UserResponse>> getAllCustomers(
+    private ResponseEntity<Page<UserResponse>> getAll(
             @PageableDefault(sort = "firstName") Pageable pageable) {
 
-        return ResponseEntity.ok(userService.getCustomers(pageable));
+        return ResponseEntity.ok(userService.getAllByRole(pageable));
     }
 
     @PutMapping("/{id}")

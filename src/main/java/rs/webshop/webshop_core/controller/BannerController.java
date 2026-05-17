@@ -31,9 +31,11 @@ public class BannerController {
     @GetMapping
     public ResponseEntity<Page<BannerResponse>> getAll(
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active,
             @PageableDefault(sort = "title") Pageable pageable) {
-        if (nonNull(search) && !search.isBlank()) {
-            return ResponseEntity.ok(bannerService.search(search, pageable));
+        if ((nonNull(search) && !search.isBlank())
+                || nonNull(active)) {
+            return ResponseEntity.ok(bannerService.search(search, active, pageable));
         }
         return ResponseEntity.ok(bannerService.getAll(pageable));
     }

@@ -27,27 +27,27 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query(value = """
         SELECT * FROM users u
-        WHERE u.role = 'CUSTOMER'
+        WHERE u.role = :role
         AND (:search IS NULL
                     OR LOWER(u.first_name) LIKE LOWER(CONCAT('%', :search, '%'))
                     OR LOWER(u.last_name) LIKE LOWER(CONCAT('%', :search, '%'))
                     OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')))
+        AND (:active IS NULL OR u.is_active = :active)
         ORDER BY u.first_name ASC
         """,
             countQuery = """
         SELECT COUNT(*) FROM users u
-        WHERE u.role = 'CUSTOMER'
+        WHERE u.role = :role
         AND (:search IS NULL
                     OR LOWER(u.first_name) LIKE LOWER(CONCAT('%', :search, '%'))
                     OR LOWER(u.last_name) LIKE LOWER(CONCAT('%', :search, '%'))
                     OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')))
+        AND (:active IS NULL OR u.is_active = :active)
         """,
             nativeQuery = true)
-    Page<User> findCustomersByFilters(
+    Page<User> findByFilters(
             @Param("search") String search,
+            @Param("active") Boolean active,
+            @Param("role") String role,
             Pageable pageable);
-
-    Page<User> findByFirstNameContainingIgnoreCaseOrEmailContainingIgnoreCase(String name,
-                                                                              String email,
-                                                                              Pageable pageable);
 }

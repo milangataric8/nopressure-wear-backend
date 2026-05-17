@@ -15,6 +15,8 @@ import rs.webshop.webshop_core.constants.Role;
 import rs.webshop.webshop_core.model.User;
 import rs.webshop.webshop_core.repository.UserRepository;
 
+import static rs.webshop.webshop_core.constants.Role.EMPLOYEE;
+
 @Service
 @RequiredArgsConstructor
 public class EmployeeService {
@@ -34,7 +36,7 @@ public class EmployeeService {
                 .lastName(request.getLastName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.EMPLOYEE)
+                .role(EMPLOYEE)
                 .isActive(true)
                 .build();
 
@@ -46,7 +48,7 @@ public class EmployeeService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
 
-        if (user.getRole() != Role.EMPLOYEE) {
+        if (user.getRole() != EMPLOYEE) {
             throw new RuntimeException("User is not an employee");
         }
 
@@ -57,13 +59,13 @@ public class EmployeeService {
 
     @PreAuthorize("hasRole('ADMIN')")
     public Page<UserResponse> getAll(Pageable pageable) {
-        return userRepository.findByRole(Role.EMPLOYEE, pageable)
+        return userRepository.findByRole(EMPLOYEE, pageable)
                 .map(this::toResponse);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN')")
-    public Page<UserResponse> search(String query, Pageable pageable) {
-        return userRepository.findByFirstNameContainingIgnoreCaseOrEmailContainingIgnoreCase(query, query, pageable)
+    public Page<UserResponse> search(String query, Boolean active, Pageable pageable) {
+        return userRepository.findByFilters(query, active, EMPLOYEE.name(), pageable)
                 .map(this::toResponse);
     }
 
@@ -72,7 +74,7 @@ public class EmployeeService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
 
-        if (user.getRole() != Role.EMPLOYEE) {
+        if (user.getRole() != EMPLOYEE) {
             throw new RuntimeException("User is not an employee");
         }
 

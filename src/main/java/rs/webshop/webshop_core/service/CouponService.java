@@ -56,8 +56,8 @@ public class CouponService {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public Page<CouponResponse> search(String query, Pageable pageable) {
-        return couponRepository.findByCodeContainingIgnoreCase(query, pageable)
+    public Page<CouponResponse> search(String query, Boolean active, Pageable pageable) {
+        return couponRepository.findByFilters(query, active, pageable)
                 .map(this::toResponse);
     }
 
