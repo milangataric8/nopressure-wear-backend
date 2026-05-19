@@ -127,9 +127,20 @@ public Page<ProductResponse> search(Long categoryId, String search, Boolean acti
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public ProductResponse toggleActive(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Coupon not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        if (validateCateogryActive(product)) {
+            throw new RuntimeException("Cannot activate product because its category is not active");
+        }
+
         product.setActive(!product.isActive());
         return toResponse(productRepository.save(product));
+    }
+
+    private static boolean validateCateogryActive(Product product) {
+        return !product.isActive()
+                && nonNull(product.getCategory())
+                && !product.getCategory().isActive();
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
