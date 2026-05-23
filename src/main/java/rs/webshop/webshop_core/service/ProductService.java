@@ -89,9 +89,16 @@ public class ProductService {
                 .map(this::toResponse);
     }
 
-public Page<ProductResponse> search(Long categoryId, String search, Boolean active, Pageable pageable) {
+    public Page<ProductResponse> search(Long categoryId, String search, Boolean active, Pageable pageable) {
         String searchParam = (search != null && !search.isBlank()) ? search : null;
         return productRepository.findByFilters(categoryId, searchParam, active, pageable)
+                .map(this::toResponse);
+    }
+
+    public Page<ProductResponse> searchActiveFiltered(Long categoryId, String search,
+                                                   BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
+        String searchParam = (search != null && !search.isBlank()) ? search : null;
+        return productRepository.findActiveByFilters(categoryId, searchParam, minPrice, maxPrice, pageable)
                 .map(this::toResponse);
     }
 

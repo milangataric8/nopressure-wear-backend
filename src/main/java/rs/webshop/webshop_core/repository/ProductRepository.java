@@ -55,4 +55,39 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("search") String search,
             @Param("active") Boolean active,
             Pageable pageable);
+
+    @Query(value = """
+        SELECT * FROM product p
+        WHERE p.is_active = true
+        AND (:categoryId IS NULL OR p.category_id = :categoryId
+               OR p.category_id IN (
+                   SELECT id FROM category WHERE parent_id = :categoryId
+               ))
+        AND (:search IS NULL
+                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
+                    OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%')))
+        AND (:minPrice IS NULL OR p.price >= :minPrice)
+        AND (:maxPrice IS NULL OR p.price <= :maxPrice)
+        ORDER BY p.name ASC
+        """,
+            countQuery = """
+        SELECT COUNT(*) FROM product p
+        WHERE p.is_active = true
+        AND (:categoryId IS NULL OR p.category_id = :categoryId
+               OR p.category_id IN (
+                   SELECT id FROM category WHERE parent_id = :categoryId
+               ))
+        AND (:search IS NULL
+                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
+                    OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%')))
+        AND (:minPrice IS NULL OR p.price >= :minPrice)
+        AND (:maxPrice IS NULL OR p.price <= :maxPrice)
+        """,
+            nativeQuery = true)
+    Page<Product> findActiveByFilters(
+            @Param("categoryId") Long categoryId,
+            @Param("search") String search,
+            @Param("minPrice") BigDecimal minPrice,
+            @Param("maxPrice") BigDecimal maxPrice,
+            Pageable pageable);
 }

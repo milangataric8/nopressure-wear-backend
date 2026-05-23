@@ -101,9 +101,10 @@ public class ProductController {
     public ResponseEntity<Page<ProductResponse>> search(
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
             @PageableDefault(sort = "name") Pageable pageable) {
-        return ResponseEntity.ok(productService.search(categoryId, search, active, pageable));
+        return ResponseEntity.ok(productService.searchActiveFiltered(categoryId, search, minPrice, maxPrice, pageable));
     }
 
     @PutMapping("/{id}")
