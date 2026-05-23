@@ -34,14 +34,4 @@ public class FileStorageService {
         }
     }
 
-    public void deleteFile(String fileUrl) {
-        try {
-            if (fileUrl != null && !fileUrl.isEmpty()) {
-                Path filePath = Paths.get(fileUrl.substring(1));
-                Files.deleteIfExists(filePath);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to delete file: " + e.getMessage());
-        }
-    }
 }

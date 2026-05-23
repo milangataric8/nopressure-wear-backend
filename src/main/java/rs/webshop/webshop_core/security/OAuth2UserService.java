@@ -11,6 +11,7 @@ import rs.webshop.webshop_core.repository.UserRepository;
 
 import java.util.Optional;
 
+import static java.util.Objects.nonNull;
 import static rs.webshop.webshop_core.constants.Role.CUSTOMER;
 
 @Service
@@ -32,8 +33,8 @@ public class OAuth2UserService extends DefaultOAuth2UserService {
         if (existingUser.isEmpty()) {
             User newUser = User.builder()
                     .email(email)
-                    .firstName(firstName != null ? firstName : "")
-                    .lastName(lastName != null ? lastName : "")
+                    .firstName(nonNull(firstName) ? firstName : "")
+                    .lastName(nonNull(lastName) ? lastName : "")
                     .password("")
                     .role(CUSTOMER)
                     .isActive(true)

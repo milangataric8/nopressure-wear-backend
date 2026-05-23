@@ -91,7 +91,7 @@ public class UserService {
         user.setLastName(request.getLastName());
         user.setEmail(request.getEmail());
 
-        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+        if (nonNull(request.getPassword()) && !request.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
     }

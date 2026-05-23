@@ -68,6 +68,9 @@ public class Product {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column
+    private String brand;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

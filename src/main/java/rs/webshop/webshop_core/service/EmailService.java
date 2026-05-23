@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
+import static java.util.Objects.nonNull;
+
 @Service
 @RequiredArgsConstructor
 public class EmailService {
@@ -85,7 +87,7 @@ public class EmailService {
             </p>
             """.formatted(customerFirstName, orderId, statusColor, status);
 
-        String shippingSection = (shippingStreet != null && !shippingStreet.isEmpty()) ? """
+        String shippingSection = (nonNull(shippingStreet) && !shippingStreet.isEmpty()) ? """
             <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e5e5;">
                 <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #111; margin: 0 0 8px;">Shipping Address</p>
                 <p style="font-size: 13px; color: #555; margin: 0; line-height: 1.6;">%s<br>%s, %s<br>%s</p>

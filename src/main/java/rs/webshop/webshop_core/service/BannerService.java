@@ -13,6 +13,8 @@ import rs.webshop.webshop_core.repository.BannerRepository;
 
 import java.util.List;
 
+import static java.util.Objects.nonNull;
+
 @Service
 @RequiredArgsConstructor
 public class BannerService {
@@ -47,7 +49,7 @@ public class BannerService {
                 .mediaType(request.getMediaType())
                 .buttonText(request.getButtonText())
                 .buttonLink(request.getButtonLink())
-                .displayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : 0)
+                .displayOrder(nonNull(request.getDisplayOrder()) ? request.getDisplayOrder() : 0)
                 .isActive(true)
                 .build();
         return toResponse(bannerRepository.save(banner));
@@ -64,7 +66,7 @@ public class BannerService {
         banner.setMediaType(request.getMediaType());
         banner.setButtonText(request.getButtonText());
         banner.setButtonLink(request.getButtonLink());
-        if (request.getDisplayOrder() != null) {
+        if (nonNull(request.getDisplayOrder())) {
             banner.setDisplayOrder(request.getDisplayOrder());
         }
         return toResponse(bannerRepository.save(banner));

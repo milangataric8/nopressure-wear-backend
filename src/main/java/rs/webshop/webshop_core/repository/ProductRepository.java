@@ -27,67 +27,50 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findBySkuContainingAndIdNot(String sku, Long id);
 
     @Query(value = """
-        SELECT * FROM product p
-        WHERE (:categoryId IS NULL OR p.category_id = :categoryId
-               OR p.category_id IN (
-                   SELECT id FROM category WHERE parent_id = :categoryId
-               ))
-        AND (:search IS NULL
-                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
-                    OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%')))
-        AND (:active IS NULL OR p.is_active = :active)
-        ORDER BY p.name ASC
-        """,
+    SELECT * FROM product p
+    WHERE (:active IS NULL OR p.is_active = :active)
+    AND (:categoryId IS NULL OR p.category_id = :categoryId
+           OR p.category_id IN (
+               SELECT id FROM category WHERE parent_id = :categoryId
+           ))
+    AND (:search IS NULL
+                OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%')))
+    AND (:minPrice IS NULL OR p.price >= :minPrice)
+    AND (:maxPrice IS NULL OR p.price <= :maxPrice)
+    AND (:brand IS NULL OR LOWER(p.brand) = LOWER(:brand))
+    AND (:colorName IS NULL OR LOWER(p.color_name) = LOWER(:colorName))
+    ORDER BY p.name ASC
+    """,
             countQuery = """
-        SELECT COUNT(*) FROM product p
-        WHERE (:categoryId IS NULL OR p.category_id = :categoryId
-               OR p.category_id IN (
-                   SELECT id FROM category WHERE parent_id = :categoryId
-               ))
-        AND (:search IS NULL
-                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
-                    OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%')))
-        AND (:active IS NULL OR p.is_active = :active)
-        """,
+    SELECT COUNT(*) FROM product p
+    WHERE (:active IS NULL OR p.is_active = :active)
+    AND (:categoryId IS NULL OR p.category_id = :categoryId
+           OR p.category_id IN (
+               SELECT id FROM category WHERE parent_id = :categoryId
+           ))
+    AND (:search IS NULL
+                OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%')))
+    AND (:minPrice IS NULL OR p.price >= :minPrice)
+    AND (:maxPrice IS NULL OR p.price <= :maxPrice)
+    AND (:brand IS NULL OR LOWER(p.brand) = LOWER(:brand))
+    AND (:colorName IS NULL OR LOWER(p.color_name) = LOWER(:colorName))
+    """,
             nativeQuery = true)
     Page<Product> findByFilters(
             @Param("categoryId") Long categoryId,
             @Param("search") String search,
+            @Param("minPrice") BigDecimal minPrice,
+            @Param("maxPrice") BigDecimal maxPrice,
+            @Param("brand") String brand,
+            @Param("colorName") String colorName,
             @Param("active") Boolean active,
             Pageable pageable);
 
-    @Query(value = """
-        SELECT * FROM product p
-        WHERE p.is_active = true
-        AND (:categoryId IS NULL OR p.category_id = :categoryId
-               OR p.category_id IN (
-                   SELECT id FROM category WHERE parent_id = :categoryId
-               ))
-        AND (:search IS NULL
-                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
-                    OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%')))
-        AND (:minPrice IS NULL OR p.price >= :minPrice)
-        AND (:maxPrice IS NULL OR p.price <= :maxPrice)
-        ORDER BY p.name ASC
-        """,
-            countQuery = """
-        SELECT COUNT(*) FROM product p
-        WHERE p.is_active = true
-        AND (:categoryId IS NULL OR p.category_id = :categoryId
-               OR p.category_id IN (
-                   SELECT id FROM category WHERE parent_id = :categoryId
-               ))
-        AND (:search IS NULL
-                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
-                    OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%')))
-        AND (:minPrice IS NULL OR p.price >= :minPrice)
-        AND (:maxPrice IS NULL OR p.price <= :maxPrice)
-        """,
-            nativeQuery = true)
-    Page<Product> findActiveByFilters(
-            @Param("categoryId") Long categoryId,
-            @Param("search") String search,
-            @Param("minPrice") BigDecimal minPrice,
-            @Param("maxPrice") BigDecimal maxPrice,
-            Pageable pageable);
+    @Query(value = "SELECT DISTINCT p.brand FROM product p WHERE p.brand IS NOT NULL AND p.is_active = true ORDER BY p.brand", nativeQuery = true)
+    List<String> findDistinctBrands();
+
+    @Query(value = "SELECT DISTINCT p.color_name, p.color_hex FROM product p WHERE p.color_name IS NOT NULL AND p.color_hex IS NOT NULL AND p.is_active = true ORDER BY p.color_name", nativeQuery = true)
+    List<Object[]> findDistinctColors();
 }

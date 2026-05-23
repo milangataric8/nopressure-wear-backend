@@ -36,4 +36,6 @@ public class ProductRequest {
     private String colorHex;
 
     private String videoUrl;
+
+    private String brand;
 }

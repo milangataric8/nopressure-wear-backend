@@ -18,8 +18,11 @@ import rs.webshop.webshop_core.repository.ProductImageRepository;
 import rs.webshop.webshop_core.repository.ProductRepository;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import static java.lang.Boolean.TRUE;
 import static java.util.Objects.nonNull;
 
 @Service
@@ -43,6 +46,9 @@ public class ProductService {
                 .imageUrl(request.getImageUrl())
                 .isActive(true)
                 .videoUrl(request.getVideoUrl())
+                .brand(request.getBrand())
+                .colorName(request.getColorName())
+                .colorHex(request.getColorHex())
                 .build();
 
         if (nonNull(request.getCategoryId())) {
@@ -89,17 +95,58 @@ public class ProductService {
                 .map(this::toResponse);
     }
 
-    public Page<ProductResponse> search(Long categoryId, String search, Boolean active, Pageable pageable) {
-        String searchParam = (search != null && !search.isBlank()) ? search : null;
-        return productRepository.findByFilters(categoryId, searchParam, active, pageable)
+    public Page<ProductResponse> filter(Long categoryId,
+                                        String search,
+                                        Boolean active,
+                                        String brand,
+                                        String colorName,
+                                        Pageable pageable) {
+        String searchParam = (nonNull(search) && !search.isBlank()) ? search : null;
+        String brandParam = (nonNull(brand) && !brand.isBlank()) ? brand : null;
+        String colorParam = (nonNull(colorName) && !colorName.isBlank()) ? colorName : null;
+
+        return findByFilters(categoryId, searchParam, brandParam, colorParam, active, pageable);
+    }
+
+    private Page<ProductResponse> findByFilters(Long categoryId,
+                                                      String searchParam,
+                                                      String brandParam,
+                                                      String colorParam,
+                                                      Boolean active,
+                                                      Pageable pageable) {
+        return productRepository.findByFilters(categoryId, searchParam, null, null, brandParam, colorParam, active, pageable)
                 .map(this::toResponse);
     }
 
-    public Page<ProductResponse> searchActiveFiltered(Long categoryId, String search,
-                                                   BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
-        String searchParam = (search != null && !search.isBlank()) ? search : null;
-        return productRepository.findActiveByFilters(categoryId, searchParam, minPrice, maxPrice, pageable)
+    public Page<ProductResponse> searchActiveFiltered(Long categoryId,
+                                                      String search,
+                                                      BigDecimal minPrice,
+                                                      BigDecimal maxPrice,
+                                                      String brand,
+                                                      String colorName,
+                                                      Pageable pageable) {
+        String searchParam = (nonNull(search) && !search.isBlank()) ? search : null;
+        String brandParam = (nonNull(brand) && !brand.isBlank()) ? brand : null;
+        String colorParam = (nonNull(colorName) && !colorName.isBlank()) ? colorName : null;
+        return productRepository.findByFilters(categoryId, searchParam, minPrice, maxPrice, brandParam, colorParam, TRUE, pageable)
                 .map(this::toResponse);
+    }
+
+    public Map<String, Object> getAvailableFilters() {
+        List<String> brands = productRepository.findDistinctBrands();
+        List<Object[]> colors = productRepository.findDistinctColors();
+
+        Map<String, Object> filters = new HashMap<>();
+        filters.put("brands", brands);
+        filters.put("colors", colors.stream()
+                .map(c -> {
+                    Map<String, String> color = new HashMap<>();
+                    color.put("colorName", (String) c[0]);
+                    color.put("colorHex", (String) c[1]);
+                    return color;
+                })
+                .toList());
+        return filters;
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
@@ -125,6 +172,7 @@ public class ProductService {
         product.setColorName(request.getColorName());
         product.setColorHex(request.getColorHex());
         product.setVideoUrl(request.getVideoUrl());
+        product.setBrand(request.getBrand());
 
         Product saved = productRepository.save(product);
         linkColorVariants(saved);
@@ -169,7 +217,7 @@ public class ProductService {
         ProductImage image = ProductImage.builder()
                 .product(product)
                 .imageUrl(request.getImageUrl())
-                .displayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : 0)
+                .displayOrder(nonNull(request.getDisplayOrder()) ? request.getDisplayOrder() : 0)
                 .isPrimary(request.isPrimary())
                 .build();
 
@@ -213,7 +261,7 @@ public class ProductService {
         List<Product> variants = productRepository.findBySkuContainingAndIdNot(baseSku, product.getId());
 
         for (Product variant : variants) {
-            if (variant.getColorHex() != null && !variant.getColorHex().isBlank()) {
+            if (nonNull(variant.getColorHex()) && !variant.getColorHex().isBlank()) {
                 if (!colorVariantRepository.existsByProductIdAndVariantId(product.getId(), variant.getId())) {
                     colorVariantRepository.save(ProductColorVariant.builder()
                             .product(product)
@@ -274,14 +322,15 @@ public class ProductService {
                 .imageUrl(product.getImageUrl())
                 .videoUrl(product.getVideoUrl())
                 .active(product.isActive())
-                .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
-                .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
+                .categoryId(nonNull(product.getCategory()) ? product.getCategory().getId() : null)
+                .categoryName(nonNull(product.getCategory()) ? product.getCategory().getName() : null)
                 .createdAt(product.getCreatedAt())
                 .updatedAt(product.getUpdatedAt())
                 .images(images)
                 .colorName(product.getColorName())
                 .colorHex(product.getColorHex())
                 .colorVariants(colorVariants)
+                .brand(product.getBrand())
                 .build();
     }
 }

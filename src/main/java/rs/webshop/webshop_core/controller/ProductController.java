@@ -12,6 +12,7 @@ import rs.webshop.webshop_core.service.ProductService;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpStatus.CREATED;
@@ -60,11 +61,15 @@ public class ProductController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) String colorName,
             @PageableDefault(sort = "name") Pageable pageable) {
         if ((nonNull(search) && !search.isBlank())
                 || nonNull(categoryId)
-                || nonNull(active)) {
-            return ResponseEntity.ok(productService.search(categoryId, search, active, pageable));
+                || nonNull(active)
+                || nonNull(brand)
+                || nonNull(colorName)) {
+            return ResponseEntity.ok(productService.filter(categoryId, search, active, brand, colorName, pageable));
         }
         return ResponseEntity.ok(productService.getAll(pageable));
     }
@@ -103,8 +108,12 @@ public class ProductController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) String colorName,
             @PageableDefault(sort = "name") Pageable pageable) {
-        return ResponseEntity.ok(productService.searchActiveFiltered(categoryId, search, minPrice, maxPrice, pageable));
+        return ResponseEntity.ok(
+                productService
+                        .searchActiveFiltered(categoryId, search, minPrice, maxPrice, brand, colorName, pageable));
     }
 
     @PutMapping("/{id}")
@@ -116,6 +125,11 @@ public class ProductController {
     @PatchMapping("/{id}/toggle")
     public ResponseEntity<ProductResponse> toggleActive(@PathVariable Long id) {
         return ResponseEntity.ok(productService.toggleActive(id));
+    }
+
+    @GetMapping("/filters")
+    public ResponseEntity<Map<String, Object>> getAvailableFilters() {
+        return ResponseEntity.ok(productService.getAvailableFilters());
     }
 
     @DeleteMapping("/{id}")

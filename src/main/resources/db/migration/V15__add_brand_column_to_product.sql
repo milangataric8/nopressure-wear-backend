@@ -1,0 +1,1 @@
+ALTER TABLE product ADD COLUMN brand VARCHAR(100);
