@@ -25,9 +25,10 @@ public class OrderController {
     @PostMapping("/{userId}/checkout")
     public ResponseEntity<OrderResponse> checkout(
             @PathVariable Long userId,
-            @RequestParam(required = false) String couponCode) {
+            @RequestParam(required = false) String couponCode,
+            @RequestParam(required = false) String paymentMethod) {
         return ResponseEntity.status(CREATED)
-                .body(orderService.checkout(userId, couponCode));
+                .body(orderService.checkout(userId, couponCode, paymentMethod));
     }
 
     @GetMapping("/all")

@@ -9,10 +9,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rs.webshop.webshop_core.constants.OrderStatus;
-import rs.webshop.webshop_core.constants.Role;
 import rs.webshop.webshop_core.dto.order.OrderItemResponse;
 import rs.webshop.webshop_core.dto.order.OrderResponse;
-import rs.webshop.webshop_core.dto.user.UserResponse;
 import rs.webshop.webshop_core.exception.ResourceNotFoundException;
 import rs.webshop.webshop_core.model.*;
 import rs.webshop.webshop_core.repository.*;
@@ -38,7 +36,7 @@ public class OrderService {
     private final EmailService emailService;
 
     @Transactional
-    public OrderResponse checkout(Long userId, String couponCode) {
+    public OrderResponse checkout(Long userId, String couponCode, String paymentMethod) {
         Cart cart = cartRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
 
@@ -89,6 +87,8 @@ public class OrderService {
             couponRepository.save(coupon);
         }
 
+        order.setPaymentMethod(paymentMethod != null ? paymentMethod : "COD");
+        order.setPaymentStatus(paymentMethod != null && paymentMethod.equals("CARD") ? "PAID" : "PENDING");
         order.setTotalAmount(total);
         cart.getCartItems().clear();
         cartRepository.save(cart);
@@ -271,6 +271,8 @@ public class OrderService {
                 .totalAmount(order.getTotalAmount())
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
+                .paymentMethod(order.getPaymentMethod())
+                .paymentStatus(order.getPaymentStatus())
                 .build();
     }
 

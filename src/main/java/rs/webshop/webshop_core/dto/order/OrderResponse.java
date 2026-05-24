@@ -28,4 +28,6 @@ public class OrderResponse {
     private BigDecimal totalAmount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String paymentMethod;
+    private String paymentStatus;
 }

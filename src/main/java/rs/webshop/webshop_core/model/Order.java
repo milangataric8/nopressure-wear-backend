@@ -72,6 +72,15 @@ public class Order {
     @Column(precision = 10, scale = 2)
     private BigDecimal discountAmount = BigDecimal.ZERO;
 
+    @Column
+    private String paymentMethod;
+
+    @Column
+    private String paymentStatus;
+
+    @Column
+    private String stripePaymentId;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

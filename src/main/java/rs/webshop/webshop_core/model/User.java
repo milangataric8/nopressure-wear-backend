@@ -63,6 +63,9 @@ public class User implements UserDetails {
     @Column
     private LocalDateTime resetTokenExpiry;
 
+    @Column
+    private String stripeCustomerId;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

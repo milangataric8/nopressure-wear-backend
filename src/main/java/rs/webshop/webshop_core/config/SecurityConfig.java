@@ -81,6 +81,7 @@ public class SecurityConfig {
                         .requestMatchers(PUT, "/api/settings/**").hasRole("ADMIN")
                         .requestMatchers(GET, "/api/filters/visible").permitAll()
                         .requestMatchers("/api/filters/**").hasRole("ADMIN")
+                        .requestMatchers("/api/payments/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())

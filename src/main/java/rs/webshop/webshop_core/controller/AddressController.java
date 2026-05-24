@@ -2,12 +2,10 @@ package rs.webshop.webshop_core.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import rs.webshop.webshop_core.dto.address.AddressRequest;
 import rs.webshop.webshop_core.dto.address.AddressResponse;
-import rs.webshop.webshop_core.dto.category.CategoryResponse;
 import rs.webshop.webshop_core.service.AddressService;
 
 import java.util.List;

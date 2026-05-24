@@ -1,0 +1,3 @@
+ALTER TABLE orders ADD COLUMN payment_method VARCHAR(20) DEFAULT 'COD';
+ALTER TABLE orders ADD COLUMN payment_status VARCHAR(20) DEFAULT 'PENDING';
+ALTER TABLE orders ADD COLUMN stripe_payment_id VARCHAR(255);
