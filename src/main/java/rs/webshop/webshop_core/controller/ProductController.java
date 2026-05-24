@@ -11,6 +11,7 @@ import rs.webshop.webshop_core.dto.product.*;
 import rs.webshop.webshop_core.service.ProductService;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -63,15 +64,25 @@ public class ProductController {
             @RequestParam(required = false) Boolean active,
             @RequestParam(required = false) String brand,
             @RequestParam(required = false) String colorName,
+            @RequestParam Map<String, String> allParams,
             @PageableDefault(sort = "name") Pageable pageable) {
-        if ((nonNull(search) && !search.isBlank())
+
+        Map<String, String> attributeFilters = extractAttributeFilters(allParams);
+
+        if (haveFilters(categoryId, search, active, brand, colorName, attributeFilters)) {
+            return ResponseEntity.ok(productService.filter(categoryId, search, active, brand, colorName, pageable));
+        }
+
+        return ResponseEntity.ok(productService.getAll(pageable));
+    }
+
+    private static boolean haveFilters(Long categoryId, String search, Boolean active, String brand, String colorName, Map<String, String> attributeFilters) {
+        return (nonNull(search) && !search.isBlank())
                 || nonNull(categoryId)
                 || nonNull(active)
                 || nonNull(brand)
-                || nonNull(colorName)) {
-            return ResponseEntity.ok(productService.filter(categoryId, search, active, brand, colorName, pageable));
-        }
-        return ResponseEntity.ok(productService.getAll(pageable));
+                || nonNull(colorName)
+                || !attributeFilters.isEmpty();
     }
 
     @GetMapping("/filter")
@@ -79,12 +90,14 @@ public class ProductController {
             @RequestParam BigDecimal minPrice,
             @RequestParam BigDecimal maxPrice,
             @PageableDefault(size = 8, sort = "price") Pageable pageable) {
+
         return ResponseEntity.ok(productService.getByPriceRange(minPrice, maxPrice, pageable));
     }
 
     @GetMapping("/active")
     public ResponseEntity<Page<ProductResponse>> getActive(
             @PageableDefault(sort = "name") Pageable pageable) {
+
         return ResponseEntity.ok(productService.getActive(pageable));
     }
 
@@ -92,6 +105,7 @@ public class ProductController {
     public ResponseEntity<Page<ProductResponse>> getByCategory(
             @PathVariable Long categoryId,
             @PageableDefault(sort = "name") Pageable pageable) {
+
         return ResponseEntity.ok(productService.getByCategory(categoryId, pageable));
     }
 
@@ -99,6 +113,7 @@ public class ProductController {
     public ResponseEntity<Page<ProductResponse>> getByCategories(
             @RequestParam List<Long> categoryIds,
             @PageableDefault(size = 8) Pageable pageable) {
+
         return ResponseEntity.ok(productService.getByCategories(categoryIds, pageable));
     }
 
@@ -110,10 +125,25 @@ public class ProductController {
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) String brand,
             @RequestParam(required = false) String colorName,
+            @RequestParam Map<String, String> allParams,
             @PageableDefault(sort = "name") Pageable pageable) {
-        return ResponseEntity.ok(
-                productService
-                        .searchActiveFiltered(categoryId, search, minPrice, maxPrice, brand, colorName, pageable));
+
+        Map<String, String> attributeFilters = extractAttributeFilters(allParams);
+
+        return ResponseEntity.ok(productService.getActiveFiltered(
+                categoryId, search, minPrice, maxPrice, brand, colorName,
+                attributeFilters.isEmpty() ? null : attributeFilters, pageable));
+    }
+
+    private static Map<String, String> extractAttributeFilters(Map<String, String> allParams) {
+        Map<String, String> attributes = new HashMap<>();
+        allParams.forEach((key, value) -> {
+            if (key.startsWith("attr_") && value != null && !value.isBlank()) {
+                attributes.put(key.substring(5), value);
+            }
+        });
+
+        return attributes;
     }
 
     @PutMapping("/{id}")
