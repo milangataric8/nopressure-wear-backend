@@ -13,6 +13,11 @@ import rs.webshop.webshop_core.exception.ResourceNotFoundException;
 import rs.webshop.webshop_core.model.Category;
 import rs.webshop.webshop_core.repository.CategoryRepository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -90,12 +95,12 @@ class CategoryServiceTest {
 
     @Test
     void getAll_ShouldReturnAllCategories() {
-        when(categoryRepository.findAll()).thenReturn(List.of(category));
+        when(categoryRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(category)));
 
-        List<CategoryResponse> responses = categoryService.getAll();
+        Page<CategoryResponse> responses = categoryService.getAll(PageRequest.of(0, 10));
 
-        assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).getName()).isEqualTo("Electronics");
+        assertThat(responses.getContent()).hasSize(1);
+        assertThat(responses.getContent().get(0).getName()).isEqualTo("Electronics");
     }
 
     @Test

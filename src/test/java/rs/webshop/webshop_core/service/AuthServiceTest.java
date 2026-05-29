@@ -64,7 +64,6 @@ class AuthServiceTest {
         registerRequest.setLastName("Gataric");
         registerRequest.setEmail("milan@webshop.com");
         registerRequest.setPassword("password123");
-        registerRequest.setRole(CUSTOMER);
 
         loginRequest = new LoginRequest();
         loginRequest.setEmail("milan@webshop.com");

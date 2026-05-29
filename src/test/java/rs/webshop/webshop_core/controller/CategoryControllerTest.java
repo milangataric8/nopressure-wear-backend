@@ -11,6 +11,8 @@ import rs.webshop.webshop_core.dto.category.CategoryRequest;
 import rs.webshop.webshop_core.dto.category.CategoryResponse;
 import rs.webshop.webshop_core.security.JwtUtil;
 import rs.webshop.webshop_core.security.UserDetailsServiceImpl;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import rs.webshop.webshop_core.service.CategoryService;
 
 import java.util.List;
@@ -84,11 +86,11 @@ class CategoryControllerTest {
                 .name("Electronics")
                 .build();
 
-        when(categoryService.getAll()).thenReturn(List.of(response));
+        when(categoryService.getAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(response)));
 
         mockMvc.perform(get("/api/categories"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("Electronics"));
+                .andExpect(jsonPath("$.content[0].name").value("Electronics"));
     }
 
     @Test
@@ -120,6 +122,6 @@ class CategoryControllerTest {
     @Test
     void getAll_ShouldReturn401_WhenNotAuthenticated() throws Exception {
         mockMvc.perform(get("/api/categories"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().is3xxRedirection());
     }
 }

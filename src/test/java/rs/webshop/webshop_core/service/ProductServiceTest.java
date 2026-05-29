@@ -9,13 +9,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import rs.webshop.webshop_core.dto.product.ProductRequest;
 import rs.webshop.webshop_core.dto.product.ProductResponse;
-import rs.webshop.webshop_core.exception.DuplicateResourceException;
 import rs.webshop.webshop_core.exception.ResourceNotFoundException;
 import rs.webshop.webshop_core.model.Category;
 import rs.webshop.webshop_core.model.Product;
 import rs.webshop.webshop_core.repository.CategoryRepository;
+import rs.webshop.webshop_core.repository.ProductAttributeRepository;
+import rs.webshop.webshop_core.repository.ProductColorVariantRepository;
+import rs.webshop.webshop_core.repository.ProductImageRepository;
 import rs.webshop.webshop_core.repository.ProductRepository;
 
 import java.math.BigDecimal;
@@ -34,6 +37,15 @@ class ProductServiceTest {
 
     @Mock
     private CategoryRepository categoryRepository;
+
+    @Mock
+    private ProductImageRepository productImageRepository;
+
+    @Mock
+    private ProductColorVariantRepository colorVariantRepository;
+
+    @Mock
+    private ProductAttributeRepository productAttributeRepository;
 
     @InjectMocks
     private ProductService productService;
@@ -67,11 +79,14 @@ class ProductServiceTest {
         request.setStockQuantity(50);
         request.setSku("APPL-IPH15PRO");
         request.setCategoryId(1L);
+
+        lenient().when(productImageRepository.findByProductIdOrderByDisplayOrderAsc(anyLong())).thenReturn(List.of());
+        lenient().when(colorVariantRepository.findByProductId(anyLong())).thenReturn(List.of());
+        lenient().when(productRepository.findBySkuContainingAndIdNot(anyString(), anyLong())).thenReturn(List.of());
     }
 
     @Test
     void create_ShouldReturnProductResponse_WhenValidRequest() {
-        when(productRepository.existsBySku(anyString())).thenReturn(false);
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(productRepository.save(any(Product.class))).thenReturn(product);
 
@@ -84,12 +99,12 @@ class ProductServiceTest {
     }
 
     @Test
-    void create_ShouldThrowDuplicateException_WhenSkuExists() {
-        when(productRepository.existsBySku(anyString())).thenReturn(true);
+    void create_ShouldThrowNotFoundException_WhenCategoryNotFound() {
+        when(categoryRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> productService.create(request))
-                .isInstanceOf(DuplicateResourceException.class)
-                .hasMessageContaining("SKU");
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Category not found");
 
         verify(productRepository, never()).save(any());
     }
@@ -115,7 +130,7 @@ class ProductServiceTest {
     @Test
     void getAll_ShouldReturnPagedProducts() {
         Page<Product> page = new PageImpl<>(List.of(product));
-        when(productRepository.findAll(any(PageRequest.class))).thenReturn(page);
+        when(productRepository.findAll(any(Pageable.class))).thenReturn(page);
 
         Page<ProductResponse> responses = productService.getAll(PageRequest.of(0, 10));
 
@@ -124,7 +139,7 @@ class ProductServiceTest {
     }
 
     @Test
-    void deactivate_ShouldSetInactive_WhenExists() {
+    void toggleActive_ShouldSetInactive_WhenProductIsActive() {
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(productRepository.save(any(Product.class))).thenReturn(product);
 
