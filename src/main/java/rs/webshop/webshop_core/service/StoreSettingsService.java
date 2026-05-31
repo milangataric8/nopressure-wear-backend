@@ -29,7 +29,10 @@ public class StoreSettingsService {
     public Map<String, String> getAllAsMap() {
         return storeSettingsRepository.findAll()
                 .stream()
-                .collect(Collectors.toMap(StoreSettings::getKey, StoreSettings::getValue));
+                .collect(Collectors.toMap(
+                        StoreSettings::getKey,
+                        s -> s.getValue() != null ? s.getValue() : ""
+                ));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
