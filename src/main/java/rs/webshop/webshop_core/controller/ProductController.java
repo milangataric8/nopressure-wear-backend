@@ -11,7 +11,6 @@ import rs.webshop.webshop_core.dto.product.*;
 import rs.webshop.webshop_core.service.ProductService;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -64,25 +63,21 @@ public class ProductController {
             @RequestParam(required = false) Boolean active,
             @RequestParam(required = false) String brand,
             @RequestParam(required = false) String colorName,
-            @RequestParam Map<String, String> allParams,
             @PageableDefault(sort = "name") Pageable pageable) {
 
-        Map<String, String> attributeFilters = extractAttributeFilters(allParams);
-
-        if (haveFilters(categoryId, search, active, brand, colorName, attributeFilters)) {
+        if (haveFilters(categoryId, search, active, brand, colorName)) {
             return ResponseEntity.ok(productService.filter(categoryId, search, active, brand, colorName, pageable));
         }
 
         return ResponseEntity.ok(productService.getAll(pageable));
     }
 
-    private static boolean haveFilters(Long categoryId, String search, Boolean active, String brand, String colorName, Map<String, String> attributeFilters) {
+    private static boolean haveFilters(Long categoryId, String search, Boolean active, String brand, String colorName) {
         return (nonNull(search) && !search.isBlank())
                 || nonNull(categoryId)
                 || nonNull(active)
                 || nonNull(brand)
-                || nonNull(colorName)
-                || !attributeFilters.isEmpty();
+                || nonNull(colorName);
     }
 
     @GetMapping("/filter")
@@ -125,25 +120,10 @@ public class ProductController {
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) String brand,
             @RequestParam(required = false) String colorName,
-            @RequestParam Map<String, String> allParams,
             @PageableDefault(sort = "name") Pageable pageable) {
 
-        Map<String, String> attributeFilters = extractAttributeFilters(allParams);
-
         return ResponseEntity.ok(productService.getActiveFiltered(
-                categoryId, search, minPrice, maxPrice, brand, colorName,
-                attributeFilters.isEmpty() ? null : attributeFilters, pageable));
-    }
-
-    private static Map<String, String> extractAttributeFilters(Map<String, String> allParams) {
-        Map<String, String> attributes = new HashMap<>();
-        allParams.forEach((key, value) -> {
-            if (key.startsWith("attr_") && value != null && !value.isBlank()) {
-                attributes.put(key.substring(5), value);
-            }
-        });
-
-        return attributes;
+                categoryId, search, minPrice, maxPrice, brand, colorName, pageable));
     }
 
     @PutMapping("/{id}")
