@@ -87,6 +87,7 @@ public class SecurityConfig {
                         .requestMatchers(GET, "/api/stores/active").permitAll()
                         .requestMatchers(GET, "/api/stores/product/**").permitAll()
                         .requestMatchers("/api/stores/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers("/api/favorites/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
