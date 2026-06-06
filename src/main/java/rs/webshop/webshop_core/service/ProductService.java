@@ -332,6 +332,8 @@ public class ProductService {
                 .colorHex(product.getColorHex())
                 .colorVariants(colorVariants)
                 .brand(product.getBrand())
+                .averageRating(product.getAverageRating())
+                .ratingCount(product.getRatingCount())
                 .build();
     }
 }

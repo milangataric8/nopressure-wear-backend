@@ -71,6 +71,12 @@ public class Product {
     @Column
     private String brand;
 
+    @Column(precision = 2, scale = 1)
+    private BigDecimal averageRating = BigDecimal.ZERO;
+
+    @Column
+    private Integer ratingCount = 0;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
