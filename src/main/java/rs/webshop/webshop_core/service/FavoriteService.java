@@ -75,6 +75,8 @@ public class FavoriteService {
                 .productPrice(product.getPrice())
                 .productInStock(product.getStockQuantity() > 0)
                 .createdAt(favorite.getCreatedAt())
+                .productDiscountPrice(product.getDiscountPrice())
+                .productDiscountPercentage(product.getDiscountPercentage())
                 .build();
     }
 }

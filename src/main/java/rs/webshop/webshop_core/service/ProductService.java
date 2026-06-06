@@ -21,6 +21,8 @@ import java.util.Map;
 
 
 import static java.lang.Boolean.TRUE;
+import static java.math.BigDecimal.ZERO;
+import static java.math.RoundingMode.HALF_UP;
 import static java.util.Objects.nonNull;
 
 @Service
@@ -54,6 +56,9 @@ public class ProductService {
                     .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
             product.setCategory(category);
         }
+
+        product.setDiscountPercentage(request.getDiscountPercentage() != null ? request.getDiscountPercentage() : ZERO);
+        calculateDiscountPrice(product);
 
         Product saved = productRepository.save(product);
         linkColorVariants(saved);
@@ -175,6 +180,9 @@ public class ProductService {
         product.setVideoUrl(request.getVideoUrl());
         product.setBrand(request.getBrand());
 
+        product.setDiscountPercentage(request.getDiscountPercentage() != null ? request.getDiscountPercentage() : ZERO);
+        calculateDiscountPrice(product);
+
         Product saved = productRepository.save(product);
         linkColorVariants(saved);
         return toResponse(saved);
@@ -292,6 +300,17 @@ public class ProductService {
         colorVariantRepository.delete(variant);
     }
 
+    private void calculateDiscountPrice(Product product) {
+        if (nonNull(product.getDiscountPercentage()) && product.getDiscountPercentage().compareTo(ZERO) > 0) {
+            BigDecimal discount = product.getPrice()
+                    .multiply(product.getDiscountPercentage())
+                    .divide(BigDecimal.valueOf(100), 2, HALF_UP);
+            product.setDiscountPrice(product.getPrice().subtract(discount));
+        } else {
+            product.setDiscountPrice(null);
+        }
+    }
+
     private ProductResponse toResponse(Product product) {
         List<ProductImageResponse> images = productImageRepository
                 .findByProductIdOrderByDisplayOrderAsc(product.getId())
@@ -334,6 +353,8 @@ public class ProductService {
                 .brand(product.getBrand())
                 .averageRating(product.getAverageRating())
                 .ratingCount(product.getRatingCount())
+                .discountPercentage(product.getDiscountPercentage())
+                .discountPrice(product.getDiscountPrice())
                 .build();
     }
 }

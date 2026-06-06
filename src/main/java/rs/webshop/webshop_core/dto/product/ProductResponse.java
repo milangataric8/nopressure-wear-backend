@@ -33,4 +33,6 @@ public class ProductResponse {
     private String brand;
     private BigDecimal averageRating;
     private Integer ratingCount;
+    private BigDecimal discountPercentage;
+    private BigDecimal discountPrice;
 }

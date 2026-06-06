@@ -61,7 +61,9 @@ public class OrderService {
                     .order(order)
                     .product(product)
                     .quantity(cartItem.getQuantity())
-                    .priceAtPurchase(product.getPrice())
+                    .priceAtPurchase(nonNull(product.getDiscountPrice())
+                            ? product.getDiscountPrice()
+                            : product.getPrice())
                     .build();
         }).toList();
 
@@ -141,6 +143,7 @@ public class OrderService {
         String orderStatus = (nonNull(status) && !status.isBlank())
                 ? status
                 : null;
+
         String searchParam = (nonNull(search) && !search.isBlank())
                 ? search
                 : null;

@@ -19,4 +19,6 @@ public class CartItemResponse {
     private Integer quantity;
     private BigDecimal subtotal;
     private String imageUrl;
+    private BigDecimal discountPrice;
+    private BigDecimal discountPercentage;
 }

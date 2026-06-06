@@ -38,4 +38,6 @@ public class ProductRequest {
     private String videoUrl;
 
     private String brand;
+
+    private BigDecimal discountPercentage;
 }

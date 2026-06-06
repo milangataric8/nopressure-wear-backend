@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.math.BigDecimal.ZERO;
+import static java.util.Objects.nonNull;
 
 @Service
 @RequiredArgsConstructor
@@ -56,8 +57,12 @@ public class StripeService {
         }
 
         BigDecimal total = cart.getCartItems().stream()
-                .map(item -> item.getProduct().getPrice()
-                        .multiply(BigDecimal.valueOf(item.getQuantity())))
+                .map(item -> {
+                    BigDecimal price = nonNull(item.getProduct().getDiscountPrice())
+                            ? item.getProduct().getDiscountPrice()
+                            : item.getProduct().getPrice();
+                    return price.multiply(BigDecimal.valueOf(item.getQuantity()));
+                })
                 .reduce(ZERO, BigDecimal::add);
 
         if (couponCode != null && !couponCode.isBlank()) {

@@ -8,8 +8,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static jakarta.persistence.CascadeType.ALL;
 import static jakarta.persistence.FetchType.LAZY;
 import static jakarta.persistence.GenerationType.IDENTITY;
+import static java.math.BigDecimal.ZERO;
 
 @Entity
 @Table(name = "product")
@@ -51,7 +53,7 @@ public class Product {
     @Column
     private String videoUrl;
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "product", cascade = ALL, orphanRemoval = true)
     @OrderBy("displayOrder ASC")
     private List<ProductImage> images = new ArrayList<>();
 
@@ -72,10 +74,16 @@ public class Product {
     private String brand;
 
     @Column(precision = 2, scale = 1)
-    private BigDecimal averageRating = BigDecimal.ZERO;
+    private BigDecimal averageRating = ZERO;
 
     @Column
     private Integer ratingCount = 0;
+
+    @Column(precision = 5, scale = 2)
+    private BigDecimal discountPercentage = ZERO;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal discountPrice;
 
     @PrePersist
     protected void onCreate() {

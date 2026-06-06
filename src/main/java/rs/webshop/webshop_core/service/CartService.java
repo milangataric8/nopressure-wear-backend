@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static java.math.BigDecimal.ZERO;
+import static java.util.Objects.nonNull;
 
 @Service
 @RequiredArgsConstructor
@@ -127,9 +128,11 @@ public class CartService {
         return cartRepository.findByUserId(userId).orElseGet(() -> {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
             Cart newCart = Cart.builder()
                     .user(user)
                     .build();
+
             return cartRepository.save(newCart);
         });
     }
@@ -152,7 +155,9 @@ public class CartService {
     }
 
     private CartItemResponse toItemResponse(CartItem item) {
-        BigDecimal subtotal = item.getProduct().getPrice()
+        BigDecimal subtotal = nonNull(item.getProduct().getDiscountPrice())
+                ? item.getProduct().getDiscountPrice()
+                : item.getProduct().getPrice()
                 .multiply(BigDecimal.valueOf(item.getQuantity()));
 
         return CartItemResponse.builder()
@@ -164,6 +169,8 @@ public class CartService {
                 .quantity(item.getQuantity())
                 .imageUrl(item.getProduct().getImageUrl())
                 .subtotal(subtotal)
+                .discountPrice(item.getProduct().getDiscountPrice())
+                .discountPercentage(item.getProduct().getDiscountPercentage())
                 .build();
     }
 }

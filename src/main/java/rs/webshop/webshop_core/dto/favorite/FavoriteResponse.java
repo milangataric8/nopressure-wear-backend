@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import rs.webshop.webshop_core.dto.product.ProductResponse;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Getter
@@ -18,4 +19,6 @@ public class FavoriteResponse {
     private java.math.BigDecimal productPrice;
     private Boolean productInStock;
     private LocalDateTime createdAt;
+    private BigDecimal productDiscountPrice;
+    private BigDecimal productDiscountPercentage;
 }
