@@ -40,4 +40,6 @@ public class ProductRequest {
     private String brand;
 
     private BigDecimal discountPercentage;
+
+    private String material;
 }

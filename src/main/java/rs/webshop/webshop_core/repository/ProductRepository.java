@@ -40,6 +40,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     AND (:maxPrice IS NULL OR p.price <= :maxPrice)
     AND (:brand IS NULL OR LOWER(p.brand) = LOWER(:brand))
     AND (:colorName IS NULL OR LOWER(p.color_name) = LOWER(:colorName))
+    AND (:material IS NULL OR LOWER(p.material) = LOWER(:material))
     ORDER BY p.name ASC
     """,
             countQuery = """
@@ -56,8 +57,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     AND (:maxPrice IS NULL OR p.price <= :maxPrice)
     AND (:brand IS NULL OR LOWER(p.brand) = LOWER(:brand))
     AND (:colorName IS NULL OR LOWER(p.color_name) = LOWER(:colorName))
+    AND (:material IS NULL OR LOWER(p.material) = LOWER(:material))
     """,
-            nativeQuery = true)
+        nativeQuery = true)
     Page<Product> findByFilters(
             @Param("categoryId") Long categoryId,
             @Param("search") String search,
@@ -65,6 +67,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("maxPrice") BigDecimal maxPrice,
             @Param("brand") String brand,
             @Param("colorName") String colorName,
+            @Param("material") String material,
             @Param("active") Boolean active,
             Pageable pageable);
 
@@ -73,4 +76,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query(value = "SELECT DISTINCT p.color_name, p.color_hex FROM product p WHERE p.color_name IS NOT NULL AND p.color_hex IS NOT NULL AND p.is_active = true ORDER BY p.color_name", nativeQuery = true)
     List<Object[]> findDistinctColors();
+
+    @Query(value = "SELECT DISTINCT p.material FROM product p WHERE p.material IS NOT NULL AND p.is_active = true ORDER BY p.material", nativeQuery = true)
+    List<String> findDistinctMaterials();
 }

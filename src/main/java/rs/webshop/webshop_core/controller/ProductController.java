@@ -63,21 +63,28 @@ public class ProductController {
             @RequestParam(required = false) Boolean active,
             @RequestParam(required = false) String brand,
             @RequestParam(required = false) String colorName,
+            @RequestParam(required = false) String material,
             @PageableDefault(sort = "name") Pageable pageable) {
 
-        if (haveFilters(categoryId, search, active, brand, colorName)) {
-            return ResponseEntity.ok(productService.filter(categoryId, search, active, brand, colorName, pageable));
+        if (haveFilters(categoryId, search, active, brand, colorName, material)) {
+            return ResponseEntity.ok(productService.filter(categoryId, search, active, brand, colorName, material, pageable));
         }
 
         return ResponseEntity.ok(productService.getAll(pageable));
     }
 
-    private static boolean haveFilters(Long categoryId, String search, Boolean active, String brand, String colorName) {
+    private static boolean haveFilters(Long categoryId,
+                                       String search,
+                                       Boolean active,
+                                       String brand,
+                                       String colorName,
+                                       String material) {
         return (nonNull(search) && !search.isBlank())
                 || nonNull(categoryId)
                 || nonNull(active)
                 || nonNull(brand)
-                || nonNull(colorName);
+                || nonNull(colorName)
+                || nonNull(material);
     }
 
     @GetMapping("/filter")
@@ -120,10 +127,11 @@ public class ProductController {
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) String brand,
             @RequestParam(required = false) String colorName,
+            @RequestParam(required = false) String material,
             @PageableDefault(sort = "name") Pageable pageable) {
 
         return ResponseEntity.ok(productService.getActiveFiltered(
-                categoryId, search, minPrice, maxPrice, brand, colorName, pageable));
+                categoryId, search, minPrice, maxPrice, brand, colorName, material, pageable));
     }
 
     @PutMapping("/{id}")

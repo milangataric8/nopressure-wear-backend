@@ -35,4 +35,5 @@ public class ProductResponse {
     private Integer ratingCount;
     private BigDecimal discountPercentage;
     private BigDecimal discountPrice;
+    private String material;
 }

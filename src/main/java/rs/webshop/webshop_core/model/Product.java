@@ -85,6 +85,9 @@ public class Product {
     @Column(precision = 10, scale = 2)
     private BigDecimal discountPrice;
 
+    @Column
+    private String material;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

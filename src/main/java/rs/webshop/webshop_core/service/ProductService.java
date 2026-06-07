@@ -57,6 +57,7 @@ public class ProductService {
             product.setCategory(category);
         }
 
+        product.setMaterial(request.getMaterial());
         product.setDiscountPercentage(request.getDiscountPercentage() != null ? request.getDiscountPercentage() : ZERO);
         calculateDiscountPrice(product);
 
@@ -103,21 +104,24 @@ public class ProductService {
                                         Boolean active,
                                         String brand,
                                         String colorName,
+                                        String material,
                                         Pageable pageable) {
         String searchParam = (nonNull(search) && !search.isBlank()) ? search : null;
         String brandParam = (nonNull(brand) && !brand.isBlank()) ? brand : null;
         String colorParam = (nonNull(colorName) && !colorName.isBlank()) ? colorName : null;
+        String materialParam = (nonNull(material) && !material.isBlank()) ? material : null;
 
-        return findByFilters(categoryId, searchParam, brandParam, colorParam, active, pageable);
+        return findByFilters(categoryId, searchParam, brandParam, colorParam, materialParam, active, pageable);
     }
 
     private Page<ProductResponse> findByFilters(Long categoryId,
                                                       String searchParam,
                                                       String brandParam,
                                                       String colorParam,
+                                                      String material,
                                                       Boolean active,
                                                       Pageable pageable) {
-        return productRepository.findByFilters(categoryId, searchParam, null, null, brandParam, colorParam, active, pageable)
+        return productRepository.findByFilters(categoryId, searchParam, null, null, brandParam, colorParam, material, active, pageable)
                 .map(this::toResponse);
     }
 
@@ -127,19 +131,22 @@ public class ProductService {
                                                    BigDecimal maxPrice,
                                                    String brand,
                                                    String colorName,
+                                                   String material,
                                                    Pageable pageable) {
         String searchParam = (nonNull(search) && !search.isBlank()) ? search : null;
         String brandParam = (nonNull(brand) && !brand.isBlank()) ? brand : null;
         String colorParam = (nonNull(colorName) && !colorName.isBlank()) ? colorName : null;
+        String materialParam = (nonNull(material) && !material.isBlank()) ? material : null;
 
         return productRepository
-                .findByFilters(categoryId, searchParam, minPrice, maxPrice, brandParam, colorParam, TRUE, pageable)
+                .findByFilters(categoryId, searchParam, minPrice, maxPrice, brandParam, colorParam, materialParam, Boolean.TRUE, pageable)
                 .map(this::toResponse);
     }
 
     public Map<String, Object> getAvailableFilters() {
         List<String> brands = productRepository.findDistinctBrands();
         List<Object[]> colors = productRepository.findDistinctColors();
+        List<String> materials = productRepository.findDistinctMaterials();
 
         Map<String, Object> filters = new HashMap<>();
         filters.put("brands", brands);
@@ -151,6 +158,7 @@ public class ProductService {
                     return color;
                 })
                 .toList());
+        filters.put("materials", materials);
 
         return filters;
     }
@@ -179,6 +187,7 @@ public class ProductService {
         product.setColorHex(request.getColorHex());
         product.setVideoUrl(request.getVideoUrl());
         product.setBrand(request.getBrand());
+        product.setMaterial(request.getMaterial());
 
         product.setDiscountPercentage(request.getDiscountPercentage() != null ? request.getDiscountPercentage() : ZERO);
         calculateDiscountPrice(product);
@@ -355,6 +364,7 @@ public class ProductService {
                 .ratingCount(product.getRatingCount())
                 .discountPercentage(product.getDiscountPercentage())
                 .discountPrice(product.getDiscountPrice())
+                .material(product.getMaterial())
                 .build();
     }
 }
