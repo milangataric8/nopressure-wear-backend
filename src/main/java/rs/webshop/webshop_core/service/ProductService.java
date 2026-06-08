@@ -15,12 +15,12 @@ import rs.webshop.webshop_core.model.ProductImage;
 import rs.webshop.webshop_core.repository.*;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 
-import static java.lang.Boolean.TRUE;
 import static java.math.BigDecimal.ZERO;
 import static java.math.RoundingMode.HALF_UP;
 import static java.util.Objects.nonNull;
@@ -163,6 +163,47 @@ public class ProductService {
         return filters;
     }
 
+    public List<ProductResponse> getMostSold(int limit) {
+        return productRepository.findMostSold(limit).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public List<ProductResponse> getSimilarProducts(Long productId, int limit) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        List<Product> similar = productRepository.findSimilarProducts(
+                product.getCategory().getId(), productId, limit);
+
+        if (similar.size() < limit
+                && nonNull(product.getCategory())
+                && nonNull(product.getCategory().getParent())) {
+            getSimilarProducts(productId, limit, similar, product);
+        }
+
+        if (similar.size() < limit) {
+            getMostSoldProducts(productId, limit, similar);
+        }
+
+        return similar.stream().map(this::toResponse).toList();
+    }
+
+    private void getMostSoldProducts(Long productId, int limit, List<Product> similar) {
+        List<Long> excludeIds = new ArrayList<>(similar.stream().map(Product::getId).toList());
+        excludeIds.add(productId);
+        List<Product> mostSold = productRepository.findMostSoldExcluding(excludeIds, limit - similar.size());
+        similar.addAll(mostSold);
+    }
+
+    private void getSimilarProducts(Long productId, int limit, List<Product> similar, Product product) {
+        List<Long> existingIds = new ArrayList<>(similar.stream().map(Product::getId).toList());
+        existingIds.add(productId);
+        List<Product> parentCategoryProducts = productRepository.findSimilarFromParentCategory(
+                product.getCategory().getParent().getId(), existingIds, limit - similar.size());
+        similar.addAll(parentCategoryProducts);
+    }
+
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public ProductResponse update(Long id, ProductRequest request) {
         Product product = productRepository.findById(id)
@@ -189,7 +230,9 @@ public class ProductService {
         product.setBrand(request.getBrand());
         product.setMaterial(request.getMaterial());
 
-        product.setDiscountPercentage(request.getDiscountPercentage() != null ? request.getDiscountPercentage() : ZERO);
+        product.setDiscountPercentage(nonNull(request.getDiscountPercentage())
+                ? request.getDiscountPercentage()
+                : ZERO);
         calculateDiscountPrice(product);
 
         Product saved = productRepository.save(product);
@@ -365,6 +408,7 @@ public class ProductService {
                 .discountPercentage(product.getDiscountPercentage())
                 .discountPrice(product.getDiscountPrice())
                 .material(product.getMaterial())
+                .salesCount(product.getSalesCount())
                 .build();
     }
 }

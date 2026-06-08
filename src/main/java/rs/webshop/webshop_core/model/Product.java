@@ -88,6 +88,9 @@ public class Product {
     @Column
     private String material;
 
+    @Column
+    private Integer salesCount = 0;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

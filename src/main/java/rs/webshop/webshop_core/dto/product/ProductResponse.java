@@ -36,4 +36,5 @@ public class ProductResponse {
     private BigDecimal discountPercentage;
     private BigDecimal discountPrice;
     private String material;
+    private Integer salesCount;
 }

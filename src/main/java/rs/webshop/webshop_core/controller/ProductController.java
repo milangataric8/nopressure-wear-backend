@@ -73,6 +73,19 @@ public class ProductController {
         return ResponseEntity.ok(productService.getAll(pageable));
     }
 
+    @GetMapping("/featured")
+    public ResponseEntity<List<ProductResponse>> getFeatured(
+            @RequestParam(defaultValue = "8") int limit) {
+        return ResponseEntity.ok(productService.getMostSold(limit));
+    }
+
+    @GetMapping("/{id}/similar")
+    public ResponseEntity<List<ProductResponse>> getSimilar(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "4") int limit) {
+        return ResponseEntity.ok(productService.getSimilarProducts(id, limit));
+    }
+
     private static boolean haveFilters(Long categoryId,
                                        String search,
                                        Boolean active,

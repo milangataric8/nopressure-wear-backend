@@ -55,6 +55,8 @@ public class SecurityConfig {
                         .requestMatchers(PUT, "/api/products/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(DELETE, "/api/products/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(PATCH, "/api/products/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(GET, "/api/products/featured").permitAll()
+                        .requestMatchers(GET, "/api/products/*/similar").permitAll()
                         .requestMatchers(GET, "/api/categories/**").permitAll()
                         .requestMatchers(POST, "/api/categories/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(PUT, "/api/categories/**").hasAnyRole("ADMIN", "EMPLOYEE")

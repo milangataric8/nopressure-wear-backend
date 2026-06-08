@@ -55,6 +55,7 @@ public class OrderService {
                 throw new RuntimeException("Insufficient stock for product: " + product.getName());
             }
             product.setStockQuantity(product.getStockQuantity() - cartItem.getQuantity());
+            product.setSalesCount(product.getSalesCount() + cartItem.getQuantity());
             productRepository.save(product);
 
             return OrderItem.builder()
