@@ -92,6 +92,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/favorites/**").authenticated()
                         .requestMatchers(GET, "/api/reviews/**").permitAll()
                         .requestMatchers("/api/reviews/**").authenticated()
+                        .requestMatchers("/api/dashboard/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers("/api/reports/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())

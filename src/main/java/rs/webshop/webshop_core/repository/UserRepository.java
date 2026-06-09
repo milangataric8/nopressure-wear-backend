@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import rs.webshop.webshop_core.constants.Role;
 import rs.webshop.webshop_core.model.User;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,4 +51,23 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("active") Boolean active,
             @Param("role") String role,
             Pageable pageable);
+
+    @Query(
+    value = """
+        SELECT COUNT(*)
+         FROM users
+        WHERE role = 'CUSTOMER'
+        """,
+    nativeQuery = true)
+    Long countCustomers();
+
+    @Query(
+    value = """
+        SELECT COUNT(*)
+         FROM users
+        WHERE role = 'CUSTOMER'
+          AND created_at >= :since
+        """,
+    nativeQuery = true)
+    Long countCustomersSince(@Param("since") LocalDateTime since);
 }

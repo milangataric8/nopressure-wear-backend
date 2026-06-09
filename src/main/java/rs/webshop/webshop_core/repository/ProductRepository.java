@@ -10,6 +10,7 @@ import rs.webshop.webshop_core.model.Product;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
@@ -25,6 +26,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findByIsActiveTrueAndCategoryIdIn(List<Long> categoryIds, Pageable pageable);
 
     List<Product> findBySkuContainingAndIdNot(String sku, Long id);
+
+    List<Product> findByIsActiveTrueAndStockQuantityLessThanEqualOrderByStockQuantityAsc(int stockQuantity);
 
     @Query(
     value = """
@@ -171,4 +174,27 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findMostSoldExcluding(
             @Param("excludeIds") List<Long> excludeIds,
             @Param("limit") int limit);
+
+    @Query(value = "SELECT COUNT(*) FROM product WHERE is_active = true", nativeQuery = true)
+    Long countActiveProducts();
+
+    @Query(value = """
+    SELECT p.id, p.name, p.sales_count AS salesCount,
+           p.price, p.stock_quantity AS stockQuantity,
+           p.image_url AS imageUrl
+     FROM product p
+    WHERE p.is_active = true
+    ORDER BY p.sales_count DESC
+    LIMIT :limit
+    """, nativeQuery = true)
+    List<Map<String, Object>> findTopSellingProducts(@Param("limit") int limit);
+
+    @Query(value = """
+    SELECT p.id, p.name, p.stock_quantity AS stockQuantity,
+           p.image_url AS imageUrl
+     FROM product p
+    WHERE p.is_active = true AND p.stock_quantity <= :threshold
+    ORDER BY p.stock_quantity ASC
+    """, nativeQuery = true)
+    List<Map<String, Object>> findLowStockProducts(@Param("threshold") int threshold);
 }
