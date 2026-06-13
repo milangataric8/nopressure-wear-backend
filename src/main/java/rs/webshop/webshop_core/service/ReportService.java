@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import rs.webshop.webshop_core.model.*;
 import rs.webshop.webshop_core.repository.*;
 
-import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -25,13 +24,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.lowagie.text.Element.ALIGN_CENTER;
 import static com.lowagie.text.Element.ALIGN_RIGHT;
 import static com.lowagie.text.Font.HELVETICA;
 import static com.lowagie.text.PageSize.A4;
 import static java.awt.Color.*;
 import static java.awt.Font.BOLD;
+import static java.awt.Font.ITALIC;
 import static java.awt.Frame.NORMAL;
 import static java.math.BigDecimal.ZERO;
+import static java.util.Objects.nonNull;
 import static org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND;
 import static org.apache.poi.ss.usermodel.HorizontalAlignment.CENTER;
 
@@ -156,8 +158,6 @@ public class ReportService {
         return t;
     }
 
-    // ==================== ORDERS ====================
-
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public byte[] generateOrdersPdf(String lang) throws DocumentException {
         Map<String, String> t = getTranslations(lang);
@@ -193,10 +193,10 @@ public class ReportService {
             addCell(table, order.getCustomerFullName());
             addBoldCell(table, formatPrice(order.getTotalAmount()));
             addCell(table, order.getStatus().name());
-            addCell(table, order.getPaymentStatus() != null ? order.getPaymentStatus() : "—");
-            addCell(table, order.getPaymentMethod() != null ? order.getPaymentMethod() : "—");
-            addCell(table, order.getCreatedAt() != null ? order.getCreatedAt().format(DATE_ONLY_FORMAT) : "—");
-            totalRevenue = totalRevenue.add(order.getTotalAmount() != null ? order.getTotalAmount() : ZERO);
+            addCell(table, nonNull(order.getPaymentStatus()) ? order.getPaymentStatus() : "—");
+            addCell(table, nonNull(order.getPaymentMethod()) ? order.getPaymentMethod() : "—");
+            addCell(table, nonNull(order.getCreatedAt()) ? order.getCreatedAt().format(DATE_ONLY_FORMAT) : "—");
+            totalRevenue = totalRevenue.add(nonNull(order.getTotalAmount()) ? order.getTotalAmount() : ZERO);
         }
 
         document.add(table);
@@ -235,18 +235,32 @@ public class ReportService {
             row.createCell(1).setCellValue(order.getOrderCode());
             row.createCell(2).setCellValue(order.getCustomerFullName());
             row.createCell(3).setCellValue(order.getCustomerEmail());
-            row.createCell(4).setCellValue(order.getTotalAmount() != null ? order.getTotalAmount().doubleValue() : 0);
-            row.createCell(5).setCellValue(order.getDiscountAmount() != null ? order.getDiscountAmount().doubleValue() : 0);
-            row.createCell(6).setCellValue(order.getCouponCode() != null ? order.getCouponCode() : "");
+            row.createCell(4).setCellValue(nonNull(order.getTotalAmount())
+                    ? order.getTotalAmount().doubleValue()
+                    : 0);
+            row.createCell(5).setCellValue(nonNull(order.getDiscountAmount())
+                    ? order.getDiscountAmount().doubleValue()
+                    : 0);
+            row.createCell(6).setCellValue(nonNull(order.getCouponCode()) ? order.getCouponCode() : "");
             row.createCell(7).setCellValue(order.getStatus().name());
-            row.createCell(8).setCellValue(order.getPaymentStatus() != null ? order.getPaymentStatus() : "");
-            row.createCell(9).setCellValue(order.getPaymentMethod() != null ? order.getPaymentMethod() : "");
-            row.createCell(10).setCellValue(order.getShippingAddress() != null ? order.getShippingAddress().getStreet() : "");
-            row.createCell(11).setCellValue(order.getShippingAddress() != null ? order.getShippingAddress().getCity() : "");
-            row.createCell(12).setCellValue(order.getShippingAddress() != null ? order.getShippingAddress().getPostalCode() : "");
-            row.createCell(13).setCellValue(order.getShippingAddress() != null ? order.getShippingAddress().getCountry() : "");
-            row.createCell(14).setCellValue(order.getCreatedAt() != null ? order.getCreatedAt().format(DATE_FORMAT) : "");
-            totalRevenue = totalRevenue.add(order.getTotalAmount() != null ? order.getTotalAmount() : ZERO);
+            row.createCell(8).setCellValue(nonNull(order.getPaymentStatus()) ? order.getPaymentStatus() : "");
+            row.createCell(9).setCellValue(nonNull(order.getPaymentMethod()) ? order.getPaymentMethod() : "");
+            row.createCell(10).setCellValue(nonNull(order.getShippingAddress())
+                    ? order.getShippingAddress().getStreet()
+                    : "");
+            row.createCell(11).setCellValue(nonNull(order.getShippingAddress())
+                    ? order.getShippingAddress().getCity()
+                    : "");
+            row.createCell(12).setCellValue(nonNull(order.getShippingAddress())
+                    ? order.getShippingAddress().getPostalCode()
+                    : "");
+            row.createCell(13).setCellValue(nonNull(order.getShippingAddress())
+                    ? order.getShippingAddress().getCountry()
+                    : "");
+            row.createCell(14).setCellValue(nonNull(order.getCreatedAt())
+                    ? order.getCreatedAt().format(DATE_FORMAT)
+                    : "");
+            totalRevenue = totalRevenue.add(nonNull(order.getTotalAmount()) ? order.getTotalAmount() : ZERO);
         }
 
         Row summaryRow = sheet.createRow(orders.size() + 2);
@@ -264,8 +278,6 @@ public class ReportService {
         workbook.close();
         return out.toByteArray();
     }
-
-    // ==================== PRODUCTS ====================
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public byte[] generateProductsPdf(String lang) throws DocumentException {
@@ -300,12 +312,12 @@ public class ReportService {
             Product p = products.get(i);
             addCell(table, String.valueOf(i + 1));
             addCell(table, p.getName());
-            addCell(table, p.getSku() != null ? p.getSku() : "—");
+            addCell(table, nonNull(p.getSku()) ? p.getSku() : "—");
             addBoldCell(table, formatPrice(p.getPrice()));
-            addCell(table, p.getDiscountPrice() != null ? formatPrice(p.getDiscountPrice()) : "—");
+            addCell(table, nonNull(p.getDiscountPrice()) ? formatPrice(p.getDiscountPrice()) : "—");
             addCell(table, String.valueOf(p.getStockQuantity()));
-            addCell(table, p.getBrand() != null ? p.getBrand() : "—");
-            addCell(table, String.valueOf(p.getSalesCount() != null ? p.getSalesCount() : 0));
+            addCell(table, nonNull(p.getBrand()) ? p.getBrand() : "—");
+            addCell(table, String.valueOf(nonNull(p.getSalesCount()) ? p.getSalesCount() : 0));
             addCell(table, p.isActive() ? t.get("active") : t.get("inactive"));
             totalValue = totalValue.add(p.getPrice().multiply(BigDecimal.valueOf(p.getStockQuantity())));
         }
@@ -343,17 +355,19 @@ public class ReportService {
             Row row = sheet.createRow(i + 1);
             row.createCell(0).setCellValue(i + 1);
             row.createCell(1).setCellValue(p.getName());
-            row.createCell(2).setCellValue(p.getSku() != null ? p.getSku() : "");
+            row.createCell(2).setCellValue(nonNull(p.getSku()) ? p.getSku() : "");
             row.createCell(3).setCellValue(p.getPrice().doubleValue());
-            row.createCell(4).setCellValue(p.getDiscountPercentage() != null ? p.getDiscountPercentage().doubleValue() : 0);
-            row.createCell(5).setCellValue(p.getDiscountPrice() != null ? p.getDiscountPrice().doubleValue() : 0);
+            row.createCell(4).setCellValue(nonNull(p.getDiscountPercentage())
+                    ? p.getDiscountPercentage().doubleValue()
+                    : 0);
+            row.createCell(5).setCellValue(nonNull(p.getDiscountPrice()) ? p.getDiscountPrice().doubleValue() : 0);
             row.createCell(6).setCellValue(p.getStockQuantity());
-            row.createCell(7).setCellValue(p.getBrand() != null ? p.getBrand() : "");
-            row.createCell(8).setCellValue(p.getColorName() != null ? p.getColorName() : "");
-            row.createCell(9).setCellValue(p.getMaterial() != null ? p.getMaterial() : "");
-            row.createCell(10).setCellValue(p.getCategory() != null ? p.getCategory().getName() : "");
-            row.createCell(11).setCellValue(p.getSalesCount() != null ? p.getSalesCount() : 0);
-            row.createCell(12).setCellValue(p.getAverageRating() != null ? p.getAverageRating().doubleValue() : 0);
+            row.createCell(7).setCellValue(nonNull(p.getBrand()) ? p.getBrand() : "");
+            row.createCell(8).setCellValue(nonNull(p.getColorName()) ? p.getColorName() : "");
+            row.createCell(9).setCellValue(nonNull(p.getMaterial()) ? p.getMaterial() : "");
+            row.createCell(10).setCellValue(nonNull(p.getCategory()) ? p.getCategory().getName() : "");
+            row.createCell(11).setCellValue(nonNull(p.getSalesCount()) ? p.getSalesCount() : 0);
+            row.createCell(12).setCellValue(nonNull(p.getAverageRating()) ? p.getAverageRating().doubleValue() : 0);
             row.createCell(13).setCellValue(p.isActive() ? t.get("active") : t.get("inactive"));
             totalValue = totalValue.add(p.getPrice().multiply(BigDecimal.valueOf(p.getStockQuantity())));
         }
@@ -373,8 +387,6 @@ public class ReportService {
         workbook.close();
         return out.toByteArray();
     }
-
-    // ==================== CUSTOMERS ====================
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public byte[] generateCustomersPdf(String lang) throws DocumentException {
@@ -450,8 +462,6 @@ public class ReportService {
         return out.toByteArray();
     }
 
-    // ==================== LOW STOCK ====================
-
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public byte[] generateLowStockPdf(int threshold, String lang) throws DocumentException {
         Map<String, String> t = getTranslations(lang);
@@ -480,7 +490,7 @@ public class ReportService {
             Product p = products.get(i);
             addCell(table, String.valueOf(i + 1));
             addCell(table, p.getName());
-            addCell(table, p.getSku() != null ? p.getSku() : "—");
+            addCell(table, nonNull(p.getSku()) ? p.getSku() : "—");
             addBoldCell(table, String.valueOf(p.getStockQuantity()));
             addCell(table, formatPrice(p.getPrice()));
         }
@@ -501,7 +511,16 @@ public class ReportService {
         CellStyle headerStyle = createHeaderStyle(workbook);
 
         Row header = sheet.createRow(0);
-        String[] columns = {"#", t.get("name"), t.get("sku"), t.get("stock"), t.get("price"), t.get("brand"), t.get("category")};
+        String[] columns = {
+                "#",
+                t.get("name"),
+                t.get("sku"),
+                t.get("stock"),
+                t.get("price"),
+                t.get("brand"),
+                t.get("category")
+        };
+
         for (int i = 0; i < columns.length; i++) {
             Cell cell = header.createCell(i);
             cell.setCellValue(columns[i]);
@@ -513,11 +532,11 @@ public class ReportService {
             Row row = sheet.createRow(i + 1);
             row.createCell(0).setCellValue(i + 1);
             row.createCell(1).setCellValue(p.getName());
-            row.createCell(2).setCellValue(p.getSku() != null ? p.getSku() : "");
+            row.createCell(2).setCellValue(nonNull(p.getSku()) ? p.getSku() : "");
             row.createCell(3).setCellValue(p.getStockQuantity());
             row.createCell(4).setCellValue(p.getPrice().doubleValue());
-            row.createCell(5).setCellValue(p.getBrand() != null ? p.getBrand() : "");
-            row.createCell(6).setCellValue(p.getCategory() != null ? p.getCategory().getName() : "");
+            row.createCell(5).setCellValue(nonNull(p.getBrand()) ? p.getBrand() : "");
+            row.createCell(6).setCellValue(nonNull(p.getCategory()) ? p.getCategory().getName() : "");
         }
 
         for (int i = 0; i < columns.length; i++) sheet.autoSizeColumn(i);
@@ -527,8 +546,6 @@ public class ReportService {
         workbook.close();
         return out.toByteArray();
     }
-
-    // ==================== HELPERS ====================
 
     private void addTitle(Document doc, String text) throws DocumentException {
         Paragraph title = new Paragraph(text, TITLE_FONT);
@@ -596,5 +613,208 @@ public class ReportService {
         font.setBold(true);
         style.setFont(font);
         return style;
+    }
+
+    public byte[] generateInvoicePdf(Order order, String lang) throws DocumentException {
+        Map<String, String> t = getInvoiceTranslations(lang);
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Document document = new Document(A4);
+        PdfWriter.getInstance(document, out);
+        document.open();
+
+        addTitle(document, t.get("invoice"));
+        addSubtitle(document, t.get("invoiceNumber") + ": #" + order.getOrderCode());
+        addSubtitle(document, t.get("date") + ": " + order.getCreatedAt().format(DATE_FORMAT));
+
+        document.add(new Paragraph(" "));
+
+        PdfPTable customerTable = new PdfPTable(2);
+        customerTable.setWidthPercentage(100);
+        customerTable.setSpacingBefore(10);
+
+        PdfPCell billToCell = new PdfPCell();
+        billToCell.setBorderWidth(0);
+        billToCell.addElement(new Paragraph(t.get("billTo"), BOLD_CELL_FONT));
+        billToCell.addElement(new Paragraph(order.getCustomerFullName(), CELL_FONT));
+        billToCell.addElement(new Paragraph(order.getCustomerEmail(), CELL_FONT));
+        customerTable.addCell(billToCell);
+
+        PdfPCell shipToCell = new PdfPCell();
+        shipToCell.setBorderWidth(0);
+        shipToCell.addElement(new Paragraph(t.get("shipTo"), BOLD_CELL_FONT));
+        if (nonNull(order.getShippingAddress())) {
+            shipToCell.addElement(new Paragraph(order.getShippingAddress().getStreet(), CELL_FONT));
+            shipToCell.addElement(new Paragraph(
+                    order.getShippingAddress().getCity() + ", " +
+                            order.getShippingAddress().getPostalCode(), CELL_FONT));
+            shipToCell.addElement(new Paragraph(order.getShippingAddress().getCountry(), CELL_FONT));
+        }
+        customerTable.addCell(shipToCell);
+        document.add(customerTable);
+
+        document.add(new Paragraph(" "));
+
+        PdfPTable infoTable = new PdfPTable(new float[]{2, 2, 2});
+        infoTable.setWidthPercentage(100);
+        infoTable.setSpacingBefore(5);
+
+        addInfoCell(infoTable, t.get("paymentMethod"), nonNull(order.getPaymentMethod())
+                ? ("CARD".equals(order.getPaymentMethod()) ? t.get("card") : t.get("cod"))
+                : "—");
+        addInfoCell(infoTable, t.get("paymentStatus"), nonNull(order.getPaymentStatus())
+                ? ("PAID".equals(order.getPaymentStatus()) ? t.get("paid") : t.get("pending"))
+                : "—");
+        addInfoCell(infoTable, t.get("orderStatus"), order.getStatus().name());
+        document.add(infoTable);
+
+        document.add(new Paragraph(" "));
+
+        PdfPTable itemsTable = new PdfPTable(new float[]{1, 4, 1.5f, 1.5f, 2});
+        itemsTable.setWidthPercentage(100);
+        itemsTable.setSpacingBefore(10);
+
+        addHeaderCell(itemsTable, "#");
+        addHeaderCell(itemsTable, t.get("product"));
+        addHeaderCell(itemsTable, t.get("quantity"));
+        addHeaderCell(itemsTable, t.get("unitPrice"));
+        addHeaderCell(itemsTable, t.get("subtotal"));
+
+        for (int i = 0; i < order.getOrderItems().size(); i++) {
+            OrderItem item = order.getOrderItems().get(i);
+            addCell(itemsTable, String.valueOf(i + 1));
+            addCell(itemsTable, item.getProduct().getName());
+            addCell(itemsTable, String.valueOf(item.getQuantity()));
+            addCell(itemsTable, formatPrice(item.getPriceAtPurchase()));
+            addBoldCell(itemsTable, formatPrice(
+                    item.getPriceAtPurchase().multiply(BigDecimal.valueOf(item.getQuantity()))));
+        }
+
+        document.add(itemsTable);
+
+        PdfPTable totalsTable = new PdfPTable(new float[]{6, 2});
+        totalsTable.setWidthPercentage(100);
+        totalsTable.setSpacingBefore(15);
+
+        BigDecimal subtotal = order.getOrderItems().stream()
+                .map(item -> item.getPriceAtPurchase().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(ZERO, BigDecimal::add);
+
+        addTotalRow(totalsTable, t.get("subtotalLabel"), formatPrice(subtotal));
+
+        if (nonNull(order.getDiscountAmount()) && order.getDiscountAmount().compareTo(ZERO) > 0) {
+            createDiscountPart(order, t, totalsTable);
+        }
+
+        addTotalRow(totalsTable, t.get("delivery"), t.get("free"));
+
+        PdfPCell totalLabel = new PdfPCell(new Phrase(t.get("totalLabel"), new Font(HELVETICA, 11, BOLD)));
+        totalLabel.setBorderWidth(0);
+        totalLabel.setBorderWidthTop(1);
+        totalLabel.setPaddingTop(8);
+        totalLabel.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        totalsTable.addCell(totalLabel);
+
+        PdfPCell totalValue = new PdfPCell(
+                new Phrase(formatPrice(order.getTotalAmount()), new Font(HELVETICA, 11, BOLD)));
+        totalValue.setBorderWidth(0);
+        totalValue.setBorderWidthTop(1);
+        totalValue.setPaddingTop(8);
+        totalValue.setHorizontalAlignment(ALIGN_RIGHT);
+        totalsTable.addCell(totalValue);
+
+        document.add(totalsTable);
+
+        Paragraph footer = new Paragraph(t.get("thankYou"), new Font(HELVETICA, 10, ITALIC, GRAY));
+        footer.setSpacingBefore(30);
+        footer.setAlignment(ALIGN_CENTER);
+        document.add(footer);
+
+        document.close();
+        return out.toByteArray();
+    }
+
+    private void createDiscountPart(Order order, Map<String, String> t, PdfPTable totalsTable) {
+        String discountText = t.get("discountLabel");
+        if (nonNull(order.getCouponCode())) {
+            discountText += " (" + order.getCouponCode() + ")";
+        }
+        addTotalRow(totalsTable, discountText, "-" + formatPrice(order.getDiscountAmount()));
+    }
+
+    private void addInfoCell(PdfPTable table, String label, String value) {
+        PdfPCell cell = new PdfPCell();
+        cell.setBorderWidth(0.5f);
+        cell.setBorderColor(LIGHT_GRAY);
+        cell.setPadding(8);
+        cell.addElement(new Paragraph(label, new Font(HELVETICA, 7, NORMAL, GRAY)));
+        cell.addElement(new Paragraph(value, new Font(HELVETICA, 9, BOLD)));
+        table.addCell(cell);
+    }
+
+    private void addTotalRow(PdfPTable table, String label, String value) {
+        PdfPCell labelCell = new PdfPCell(new Phrase(label, new Font(HELVETICA, 9, NORMAL, GRAY)));
+        labelCell.setBorderWidth(0);
+        labelCell.setPaddingTop(4);
+        labelCell.setHorizontalAlignment(ALIGN_RIGHT);
+        table.addCell(labelCell);
+
+        PdfPCell valueCell = new PdfPCell(new Phrase(value, new Font(HELVETICA, 9, BOLD)));
+        valueCell.setBorderWidth(0);
+        valueCell.setPaddingTop(4);
+        valueCell.setHorizontalAlignment(ALIGN_RIGHT);
+        table.addCell(valueCell);
+    }
+
+    private Map<String, String> getInvoiceTranslations(String lang) {
+        Map<String, String> t = new HashMap<>();
+        if ("sr".equals(lang)) {
+            t.put("invoice", "RAČUN");
+            t.put("invoiceNumber", "Broj računa");
+            t.put("date", "Datum");
+            t.put("billTo", "KUPAC");
+            t.put("shipTo", "ADRESA DOSTAVE");
+            t.put("product", "Proizvod");
+            t.put("quantity", "Količina");
+            t.put("unitPrice", "Cena");
+            t.put("subtotal", "Iznos");
+            t.put("subtotalLabel", "Međuzbir");
+            t.put("discountLabel", "Popust");
+            t.put("delivery", "Dostava");
+            t.put("free", "Besplatno");
+            t.put("totalLabel", "UKUPNO");
+            t.put("paymentMethod", "Način plaćanja");
+            t.put("paymentStatus", "Status plaćanja");
+            t.put("orderStatus", "Status porudžbine");
+            t.put("card", "Kartica");
+            t.put("cod", "Pouzeće");
+            t.put("paid", "Plaćeno");
+            t.put("pending", "Na čekanju");
+            t.put("thankYou", "Hvala Vam na kupovini!");
+        } else {
+            t.put("invoice", "INVOICE");
+            t.put("invoiceNumber", "Invoice Number");
+            t.put("date", "Date");
+            t.put("billTo", "BILL TO");
+            t.put("shipTo", "SHIP TO");
+            t.put("product", "Product");
+            t.put("quantity", "Qty");
+            t.put("unitPrice", "Unit Price");
+            t.put("subtotal", "Subtotal");
+            t.put("subtotalLabel", "Subtotal");
+            t.put("discountLabel", "Discount");
+            t.put("delivery", "Delivery");
+            t.put("free", "Free");
+            t.put("totalLabel", "TOTAL");
+            t.put("paymentMethod", "Payment Method");
+            t.put("paymentStatus", "Payment Status");
+            t.put("orderStatus", "Order Status");
+            t.put("card", "Card");
+            t.put("cod", "Cash on Delivery");
+            t.put("paid", "Paid");
+            t.put("pending", "Pending");
+            t.put("thankYou", "Thank you for your purchase!");
+        }
+        return t;
     }
 }
