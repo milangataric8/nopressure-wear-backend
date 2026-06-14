@@ -5,6 +5,7 @@ import com.stripe.model.PaymentIntent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import rs.webshop.webshop_core.dto.order.GuestOrderRequest;
 import rs.webshop.webshop_core.dto.payment.PaymentIntentRequest;
 import rs.webshop.webshop_core.dto.payment.PaymentIntentResponse;
 import rs.webshop.webshop_core.service.StripeService;
@@ -27,6 +28,29 @@ public class PaymentController {
                 request.getUserId(),
                 request.getCouponCode()
         );
+
+        return ResponseEntity.ok(PaymentIntentResponse.builder()
+                .clientSecret(paymentIntent.getClientSecret())
+                .amount(paymentIntent.getAmount())
+                .currency(paymentIntent.getCurrency())
+                .build());
+    }
+
+    @PostMapping("/guest-payment-intent")
+    public ResponseEntity<PaymentIntentResponse> createGuestPaymentIntent(
+            @RequestBody Map<String, Object> request) throws StripeException {
+
+        List<Map<String, Object>> itemsRaw = (List<Map<String, Object>>) request.get("items");
+        List<GuestOrderRequest.GuestOrderItem> items = itemsRaw.stream().map(m -> {
+            GuestOrderRequest.GuestOrderItem item = new GuestOrderRequest.GuestOrderItem();
+            item.setProductId(Long.valueOf(m.get("productId").toString()));
+            item.setQuantity(Integer.valueOf(m.get("quantity").toString()));
+            return item;
+        }).toList();
+
+        String couponCode = (String) request.get("couponCode");
+
+        PaymentIntent paymentIntent = stripeService.createGuestPaymentIntent(items, couponCode);
 
         return ResponseEntity.ok(PaymentIntentResponse.builder()
                 .clientSecret(paymentIntent.getClientSecret())

@@ -1,5 +1,6 @@
 package rs.webshop.webshop_core.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -8,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.webshop.webshop_core.constants.OrderStatus;
+import rs.webshop.webshop_core.dto.order.GuestOrderRequest;
 import rs.webshop.webshop_core.dto.order.OrderResponse;
 import rs.webshop.webshop_core.service.OrderService;
 
@@ -29,6 +31,11 @@ public class OrderController {
             @RequestParam(required = false) String paymentMethod) {
         return ResponseEntity.status(CREATED)
                 .body(orderService.checkout(userId, couponCode, paymentMethod));
+    }
+
+    @PostMapping("/guest-checkout")
+    public ResponseEntity<OrderResponse> guestCheckout(@Valid @RequestBody GuestOrderRequest request) {
+        return ResponseEntity.status(CREATED).body(orderService.guestCheckout(request));
     }
 
     @GetMapping("/all")

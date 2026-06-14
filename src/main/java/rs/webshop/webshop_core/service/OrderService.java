@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rs.webshop.webshop_core.constants.OrderStatus;
+import rs.webshop.webshop_core.dto.order.GuestOrderRequest;
 import rs.webshop.webshop_core.dto.order.OrderItemResponse;
 import rs.webshop.webshop_core.dto.order.OrderResponse;
 import rs.webshop.webshop_core.exception.ResourceNotFoundException;
@@ -35,6 +36,8 @@ public class OrderService {
     private final CouponRepository couponRepository;
     private final EmailService emailService;
 
+    private record ProductWithQuantity(Product product, int quantity) {}
+
     @Transactional
     public OrderResponse checkout(Long userId, String couponCode, String paymentMethod) {
         Cart cart = cartRepository.findByUserId(userId)
@@ -49,54 +52,107 @@ public class OrderService {
 
         Order order = createOrder(user);
 
-        List<OrderItem> orderItems = cart.getCartItems().stream().map(cartItem -> {
-            Product product = cartItem.getProduct();
-            if (product.getStockQuantity() < cartItem.getQuantity()) {
+        List<ProductWithQuantity> pairs = cart.getCartItems().stream()
+                .map(cartItem -> new ProductWithQuantity(cartItem.getProduct(), cartItem.getQuantity()))
+                .toList();
+
+        order.setOrderItems(buildOrderItems(pairs, order));
+
+        BigDecimal total = calculateTotalOrderValue(order.getOrderItems());
+        total = applyCouponToOrder(order, couponCode, total);
+        setPaymentFields(order, paymentMethod);
+        order.setTotalAmount(total);
+
+        cart.getCartItems().clear();
+        cartRepository.save(cart);
+
+        return toResponse(orderRepository.save(order));
+    }
+
+    @Transactional
+    public OrderResponse guestCheckout(GuestOrderRequest request) {
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new RuntimeException("Order must have items");
+        }
+
+        Order order = Order.builder()
+                .user(null)
+                .status(PENDING)
+                .totalAmount(ZERO)
+                .discountAmount(ZERO)
+                .customerFullName(request.getCustomerFullName())
+                .customerEmail(request.getCustomerEmail())
+                .customerPhone(request.getCustomerPhone())
+                .shippingAddress(ShippingAddress.builder()
+                        .street(request.getStreet())
+                        .city(request.getCity())
+                        .postalCode(request.getPostalCode())
+                        .country(request.getCountry())
+                        .build())
+                .orderCode(generateOrderCode())
+                .build();
+
+        List<ProductWithQuantity> pairs = request.getItems().stream()
+                .map(reqItem -> {
+                    Product product = productRepository.findById(reqItem.getProductId())
+                            .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + reqItem.getProductId()));
+                    return new ProductWithQuantity(product, reqItem.getQuantity());
+                })
+                .toList();
+
+        order.setOrderItems(buildOrderItems(pairs, order));
+
+        BigDecimal total = calculateTotalOrderValue(order.getOrderItems());
+        total = applyCouponToOrder(order, request.getCouponCode(), total);
+        setPaymentFields(order, request.getPaymentMethod());
+        order.setTotalAmount(total);
+
+        return toResponse(orderRepository.save(order));
+    }
+
+    private List<OrderItem> buildOrderItems(List<ProductWithQuantity> pairs, Order order) {
+        return pairs.stream().map(pair -> {
+            Product product = pair.product();
+            if (product.getStockQuantity() < pair.quantity()) {
                 throw new RuntimeException("Insufficient stock for product: " + product.getName());
             }
-            product.setStockQuantity(product.getStockQuantity() - cartItem.getQuantity());
-            product.setSalesCount(product.getSalesCount() + cartItem.getQuantity());
+            product.setStockQuantity(product.getStockQuantity() - pair.quantity());
+            product.setSalesCount((product.getSalesCount() != null ? product.getSalesCount() : 0) + pair.quantity());
             productRepository.save(product);
 
             return OrderItem.builder()
                     .order(order)
                     .product(product)
-                    .quantity(cartItem.getQuantity())
+                    .quantity(pair.quantity())
                     .priceAtPurchase(nonNull(product.getDiscountPrice())
                             ? product.getDiscountPrice()
                             : product.getPrice())
                     .build();
         }).toList();
+    }
 
-        order.setOrderItems(orderItems);
+    private BigDecimal applyCouponToOrder(Order order, String couponCode, BigDecimal total) {
+        if (!nonNull(couponCode) || couponCode.isBlank()) return total;
 
-        BigDecimal total = calculateTotalOrderValue(orderItems);
+        Coupon coupon = couponRepository.findByCode(couponCode.toUpperCase())
+                .orElseThrow(() -> new ResourceNotFoundException("Coupon not found"));
 
-        if (nonNull(couponCode) && !couponCode.isBlank()) {
-            Coupon coupon = couponRepository.findByCode(couponCode.toUpperCase())
-                    .orElseThrow(() -> new ResourceNotFoundException("Coupon not found"));
-
-            if (!coupon.isActive() || coupon.getUsageCount() >= coupon.getUsageLimit()) {
-                throw new RuntimeException("Coupon is not valid");
-            }
-
-            BigDecimal discountAmount = CouponService.applyCouponDiscount(coupon, total);
-
-            order.setDiscountAmount(discountAmount);
-            order.setCouponCode(couponCode.toUpperCase());
-            total = total.subtract(discountAmount);
-
-            coupon.setUsageCount(coupon.getUsageCount() + 1);
-            couponRepository.save(coupon);
+        if (!coupon.isActive() || coupon.getUsageCount() >= coupon.getUsageLimit()) {
+            throw new RuntimeException("Coupon is not valid");
         }
 
-        order.setPaymentMethod(paymentMethod != null ? paymentMethod : "COD");
-        order.setPaymentStatus(paymentMethod != null && paymentMethod.equals("CARD") ? "PAID" : "PENDING");
-        order.setTotalAmount(total);
-        cart.getCartItems().clear();
-        cartRepository.save(cart);
+        BigDecimal discountAmount = CouponService.applyCouponDiscount(coupon, total);
+        order.setDiscountAmount(discountAmount);
+        order.setCouponCode(couponCode.toUpperCase());
+        coupon.setUsageCount(coupon.getUsageCount() + 1);
+        couponRepository.save(coupon);
 
-        return toResponse(orderRepository.save(order));
+        return total.subtract(discountAmount);
+    }
+
+    private static void setPaymentFields(Order order, String paymentMethod) {
+        order.setPaymentMethod(paymentMethod != null ? paymentMethod : "COD");
+        order.setPaymentStatus("CARD".equals(paymentMethod) ? "PAID" : "PENDING");
     }
 
     private static BigDecimal calculateTotalOrderValue(List<OrderItem> orderItems) {
@@ -254,9 +310,10 @@ public class OrderService {
 
         return OrderResponse.builder()
                 .id(order.getId())
-                .userId(order.getUser().getId())
+                .userId(nonNull(order.getUser()) ? order.getUser().getId() : null)
                 .customerFullName(order.getCustomerFullName())
                 .customerEmail(order.getCustomerEmail())
+                .customerPhone(order.getCustomerPhone())
                 .shippingStreet(nonNull(order.getShippingAddress())
                         ? order.getShippingAddress().getStreet()
                         : null)

@@ -8,9 +8,11 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import rs.webshop.webshop_core.dto.order.GuestOrderRequest;
 import rs.webshop.webshop_core.exception.ResourceNotFoundException;
 import rs.webshop.webshop_core.model.Cart;
 import rs.webshop.webshop_core.model.Coupon;
+import rs.webshop.webshop_core.model.Product;
 import rs.webshop.webshop_core.model.User;
 import rs.webshop.webshop_core.repository.CartRepository;
 import rs.webshop.webshop_core.repository.CouponRepository;
@@ -19,6 +21,7 @@ import com.stripe.model.PaymentMethod;
 import com.stripe.model.PaymentMethodCollection;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.PaymentMethodListParams;
+import rs.webshop.webshop_core.repository.ProductRepository;
 import rs.webshop.webshop_core.repository.UserRepository;
 
 import java.math.BigDecimal;
@@ -27,7 +30,9 @@ import java.util.List;
 import java.util.Map;
 
 import static java.math.BigDecimal.ZERO;
+import static java.math.RoundingMode.HALF_UP;
 import static java.util.Objects.nonNull;
+import static rs.webshop.webshop_core.constants.DiscountType.PERCENTAGE;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +44,7 @@ public class StripeService {
     private final CartRepository cartRepository;
     private final CouponRepository couponRepository;
     private final UserRepository userRepository;
+    private final ProductRepository productRepository;
 
     @PostConstruct
     public void init() {
@@ -65,16 +71,9 @@ public class StripeService {
                 })
                 .reduce(ZERO, BigDecimal::add);
 
-        if (couponCode != null && !couponCode.isBlank()) {
-            Coupon coupon = couponRepository.findByCode(couponCode.toUpperCase())
-                    .orElse(null);
-            if (coupon != null && coupon.isActive() && coupon.getUsageCount() < coupon.getUsageLimit()) {
-                BigDecimal discount = CouponService.applyCouponDiscount(coupon, total);
-                total = total.subtract(discount);
-            }
-        }
+        total = applyCartCoupon(total, couponCode);
 
-        long amountInCents = total.multiply(BigDecimal.valueOf(100)).longValue();
+        long amountInCents = toStripeAmount(total);
 
         String customerId = getOrCreateCustomer(user);
 
@@ -153,5 +152,42 @@ public class StripeService {
 
         com.stripe.model.SetupIntent setupIntent = com.stripe.model.SetupIntent.create(params);
         return setupIntent.getClientSecret();
+    }
+
+    public PaymentIntent createGuestPaymentIntent(List<GuestOrderRequest.GuestOrderItem> items, String couponCode) throws StripeException {
+        if (items == null || items.isEmpty()) {
+            throw new RuntimeException("No items");
+        }
+
+        BigDecimal total = BigDecimal.ZERO;
+        for (GuestOrderRequest.GuestOrderItem item : items) {
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+            BigDecimal price = nonNull(product.getDiscountPrice()) ? product.getDiscountPrice() : product.getPrice();
+            total = total.add(price.multiply(BigDecimal.valueOf(item.getQuantity())));
+        }
+
+        total = applyCartCoupon(total, couponCode);
+
+        PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
+                .setAmount(toStripeAmount(total))
+                .setCurrency("usd")
+                .addPaymentMethodType("card")
+                .build();
+
+        return PaymentIntent.create(params);
+    }
+
+    private BigDecimal applyCartCoupon(BigDecimal total, String couponCode) {
+        if (couponCode == null || couponCode.isBlank()) return total;
+        Coupon coupon = couponRepository.findByCode(couponCode.toUpperCase()).orElse(null);
+        if (coupon != null && coupon.isActive() && coupon.getUsageCount() < coupon.getUsageLimit()) {
+            return total.subtract(CouponService.applyCouponDiscount(coupon, total));
+        }
+        return total;
+    }
+
+    private static long toStripeAmount(BigDecimal total) {
+        return total.multiply(BigDecimal.valueOf(100)).longValue();
     }
 }

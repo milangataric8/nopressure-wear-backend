@@ -18,6 +18,7 @@ public class OrderResponse {
     private Long userId;
     private String customerFullName;
     private String customerEmail;
+    private String customerPhone;
     private String shippingStreet;
     private String shippingCity;
     private String shippingPostalCode;

@@ -13,6 +13,7 @@ import static jakarta.persistence.CascadeType.ALL;
 import static jakarta.persistence.EnumType.STRING;
 import static jakarta.persistence.FetchType.LAZY;
 import static jakarta.persistence.GenerationType.IDENTITY;
+import static java.math.BigDecimal.ZERO;
 
 @Entity
 @Table(name = "orders")
@@ -28,7 +29,7 @@ public class Order {
     private Long id;
 
     @ManyToOne(fetch = LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private User user;
 
     @OneToMany(mappedBy = "order", cascade = ALL, orphanRemoval = true)
@@ -54,6 +55,9 @@ public class Order {
     @Column(name = "customer_email")
     private String customerEmail;
 
+    @Column
+    private String customerPhone;
+
     @Column(unique = true)
     private String orderCode;
 
@@ -70,7 +74,7 @@ public class Order {
     private String couponCode;
 
     @Column(precision = 10, scale = 2)
-    private BigDecimal discountAmount = BigDecimal.ZERO;
+    private BigDecimal discountAmount = ZERO;
 
     @Column
     private String paymentMethod;
