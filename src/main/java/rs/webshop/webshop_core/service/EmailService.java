@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.core.io.FileSystemResource;
+import java.io.File;
 
 
 import jakarta.mail.MessagingException;
@@ -27,6 +29,9 @@ public class EmailService {
 
     @Value("${spring.mail.username}")
     private String fromEmail;
+
+    @Value("${app.upload-dir:uploads}")
+    private String uploadDir;
 
     public void sendPasswordResetEmail(String to, String token) {
         String resetUrl = "http://localhost:5173/reset-password?token=" + token;
@@ -189,13 +194,12 @@ public class EmailService {
     }
 
     public void sendContactEmail(String fromName, String fromEmail, String subject, String message, String lang) {
-        Map<String, String> t = getEmailTranslations(lang);
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
             helper.setTo(this.fromEmail);
-            helper.setSubject("Contact: " + (subject != null && !subject.isBlank() ? subject : "No subject"));
+            helper.setSubject("Contact: " + (nonNull(subject) && !subject.isBlank() ? subject : "No subject"));
             helper.setFrom(this.fromEmail);
             helper.setReplyTo(fromEmail);
 
@@ -224,7 +228,7 @@ public class EmailService {
                 </div>
             </div>
             """.formatted(fromName, fromEmail,
-                    subject != null && !subject.isBlank() ? subject : "—",
+                    nonNull(subject) && !subject.isBlank() ? subject : "—",
                     message);
 
             helper.setText(html, true);
@@ -235,7 +239,6 @@ public class EmailService {
     }
 
     public void sendContactConfirmation(String to, String name, String lang) {
-        Map<String, String> t = getEmailTranslations(lang);
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
@@ -324,5 +327,61 @@ public class EmailService {
             t.put("CANCELLED", "Cancelled");
         }
         return t;
+    }
+
+    public void sendNotificationEmail(String to, String subject, String message, String imageUrl) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setTo(to);
+            helper.setSubject(subject != null && !subject.isBlank() ? subject : "Special Offer");
+            helper.setFrom(fromEmail);
+
+            boolean hasImage = imageUrl != null && !imageUrl.isBlank();
+            String imageHtml = hasImage ? """
+            <div style="margin-bottom: 25px;">
+                <img src="cid:notificationImage" alt="" style="width: 100%%; max-width: 560px; height: auto; display: block;" />
+            </div>
+            """ : "";
+
+            String html = """
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 0;">
+                %s
+                <div style="border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px;">
+                    <h1 style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; text-transform: uppercase; margin: 0; color: #000;">
+                        %s
+                    </h1>
+                </div>
+                <div style="font-size: 14px; color: #333; line-height: 1.6; white-space: pre-line;">
+                    %s
+                </div>
+            </div>
+            """.formatted(
+                    imageHtml,
+                    subject != null && !subject.isBlank() ? subject : "Special Offer",
+                    message
+            );
+
+            helper.setText(html, true);
+
+            // Embed the image inline
+            if (hasImage) {
+                // imageUrl is a relative path like /uploads/products/abc.jpg
+                // Resolve it to the actual file on disk
+                String relativePath = imageUrl.startsWith("/") ? imageUrl.substring(1) : imageUrl;
+                File imageFile = new File(uploadDir, relativePath.replace("uploads/", ""));
+
+                if (imageFile.exists()) {
+                    helper.addInline("notificationImage", new FileSystemResource(imageFile));
+                } else {
+                    log.warn("Notification image file not found: {}", imageFile.getAbsolutePath());
+                }
+            }
+
+            mailSender.send(mimeMessage);
+        } catch (Exception e) {
+            log.error("Failed to send notification email to {}: {}", to, e.getMessage());
+        }
     }
 }

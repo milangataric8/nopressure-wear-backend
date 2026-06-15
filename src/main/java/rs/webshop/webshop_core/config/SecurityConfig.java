@@ -96,6 +96,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/reviews/**").authenticated()
                         .requestMatchers("/api/dashboard/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers("/api/reports/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers("/api/notifications/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())

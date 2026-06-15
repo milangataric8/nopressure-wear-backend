@@ -70,4 +70,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
         """,
     nativeQuery = true)
     Long countCustomersSince(@Param("since") LocalDateTime since);
+
+    @Query(
+    value = """
+        SELECT * FROM users
+        WHERE role = :role
+          AND is_active = true
+        """,
+    nativeQuery = true)
+    List<User> findByRoleAndIsActiveTrue(@Param("role") String role);
 }

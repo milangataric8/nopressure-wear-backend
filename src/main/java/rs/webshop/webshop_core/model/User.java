@@ -66,6 +66,9 @@ public class User implements UserDetails {
     @Column
     private String stripeCustomerId;
 
+    @Column
+    private String phone;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
