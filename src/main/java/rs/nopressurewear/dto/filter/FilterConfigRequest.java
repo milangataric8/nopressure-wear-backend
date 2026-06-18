@@ -1,0 +1,11 @@
+package rs.nopressurewear.dto.filter;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class FilterConfigRequest {
+    private Boolean visible;
+    private Integer displayOrder;
+}

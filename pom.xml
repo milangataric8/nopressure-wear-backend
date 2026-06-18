@@ -10,8 +10,8 @@
 		<relativePath/>
 	</parent>
 
-	<groupId>rs.webshop</groupId>
-	<artifactId>webshop-core-backend</artifactId>
+	<groupId>rs.nopressurewear</groupId>
+	<artifactId>nopressure-wear-backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 
 	<properties>

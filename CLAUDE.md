@@ -34,9 +34,9 @@ Full-stack e-commerce web application built as a learning project. Features prod
 ## Repository Structure
 
 ```
-nopressure-wear/
-├── webshop-core-backend/     # Spring Boot backend
-│   ├── src/main/java/rs/webshop/webshop_core/
+nopressure-wear-webshop/
+├── nopressure-wear-backend/     # Spring Boot backend
+│   ├── src/main/java/rs/nopressurewear/
 │   │   ├── config/           # WebConfig, SecurityConfig
 │   │   ├── constants/        # OrderStatus enum
 │   │   ├── controller/       # REST controllers
@@ -62,7 +62,7 @@ nopressure-wear/
 │   │   └── db/migration/     # Flyway SQL migrations (V1-V22+)
 │   └── uploads/products/     # Uploaded product images/videos
 │
-└── webshop-frontend/         # React frontend
+└── nopressure-wear-frontend/         # React frontend
     ├── src/
     │   ├── api/              # Axios API modules
     │   ├── components/
@@ -281,7 +281,7 @@ nopressure-wear/
 
 ### Backend (application.yml / IntelliJ env vars)
 ```
-DATABASE_URL=jdbc:postgresql://localhost:5432/webshop
+DATABASE_URL=jdbc:postgresql://localhost:5432/nopressure_wear
 DATABASE_USERNAME=postgres
 DATABASE_PASSWORD=your_password
 JWT_SECRET=your_jwt_secret
@@ -360,7 +360,7 @@ Expiry: any future date, CVC: any 3 digits, ZIP: any 5 digits
 
 ### Backend
 ```bash
-cd webshop-core-backend
+cd nopressure-wear-core-backend
 # Set environment variables in IntelliJ or export them
 mvn spring-boot:run
 # Runs on http://localhost:8080
@@ -368,7 +368,7 @@ mvn spring-boot:run
 
 ### Frontend
 ```bash
-cd webshop-frontend
+cd nopressure-wear-frontend
 npm install
 npm run dev
 # Runs on http://localhost:5173
@@ -377,12 +377,12 @@ npm run dev
 ### Database
 ```bash
 # Create PostgreSQL database
-createdb webshop
+createdb nopressure_wear
 # Flyway migrations run automatically on backend startup
 ```
 
 ### Tests
 ```bash
-cd webshop-core-backend
+cd nopressure-wear-backend
 mvn test
 ```

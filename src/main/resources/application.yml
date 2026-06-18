@@ -1,9 +1,9 @@
 spring:
   application:
-    name: webshop-core
+    name: nopressure-wear-webshop
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/webshop
+    url: jdbc:postgresql://localhost:5432/nopressure_wear
     username: postgres
     password: nopressure8
     driver-class-name: org.postgresql.Driver
@@ -38,8 +38,8 @@ spring:
   servlet:
     multipart:
       enabled: true
-      max-file-size: 5MB
-      max-request-size: 5MB
+      max-file-size: 20MB
+      max-request-size: 20MB
 
   security:
     oauth2:
@@ -62,17 +62,14 @@ app:
   stripe:
     secret-key: ${STRIPE_SECRET_KEY:sk_test_51TagIqHCn4yqn3qWqSaPdnEy28o9BaC4tumn6G1vfVxcUAoQ2fvujcM75BarnpsGkx1Trdj0hPUafY1ZP1qWR1CF00rGsMc4Bd}
 
-  twilio:
-    enabled: false
-    account-sid: ${TWILIO_ACCOUNT_SID:}
-    auth-token: ${TWILIO_AUTH_TOKEN:}
-    whatsapp-from: ${TWILIO_WHATSAPP_FROM:}
-    viber:
-      enabled: false
-      auth-token: ${VIBER_AUTH_TOKEN:}
-
-  base-url: ${APP_BASE_URL:http://localhost:8080}
-
+#  twilio:
+#    enabled: false
+#    account-sid: ${TWILIO_ACCOUNT_SID:}
+#    auth-token: ${TWILIO_AUTH_TOKEN:}
+#    whatsapp-from: ${TWILIO_WHATSAPP_FROM:}
+#    viber:
+#      enabled: false
+#      auth-token: ${VIBER_AUTH_TOKEN:}
 
 server:
   port: 8080
