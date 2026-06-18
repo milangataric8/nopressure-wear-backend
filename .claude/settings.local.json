@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Recurse -Path \"src/main/java\" -Name)",
+      "Bash(Sort-Object)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\milan.gataric\\\\Desktop\\\\milan\\\\nopressure-wear-core\" -Recurse -Name)",
+      "Bash(Select-String -Pattern \"\\(productAttribute|filterConfig\\)\")",
+      "Bash(rm \"/mnt/c/Users/milan.gataric/Desktop/milan/nopressure-wear-webshop/nopressure-wear-backend/src/main/java/rs/nopressurewear/model/ProductAttribute.java\")",
+      "Bash(rm \"/mnt/c/Users/milan.gataric/Desktop/milan/nopressure-wear-webshop/nopressure-wear-backend/src/main/java/rs/nopressurewear/repository/ProductAttributeRepository.java\")",
+      "Bash(rm \"/mnt/c/Users/milan.gataric/Desktop/milan/nopressure-wear-webshop/nopressure-wear-backend/src/main/java/rs/nopressurewear/service/ProductAttributeService.java\")",
+      "Bash(rm \"/mnt/c/Users/milan.gataric/Desktop/milan/nopressure-wear-webshop/nopressure-wear-backend/src/main/java/rs/nopressurewear/controller/ProductAttributeController.java\")",
+      "Bash(rm \"/mnt/c/Users/milan.gataric/Desktop/milan/nopressure-wear-webshop/nopressure-wear-backend/src/main/java/rs/nopressurewear/dto/product/ProductAttributeRequest.java\")",
+      "Bash(xargs grep -l \"review\\\\|rating\" -i)",
+      "Bash(grep -n \"No image\" components/common/ImageUpload.jsx)",
+      "Read(//c/Users/milan.gataric/Desktop/milan/components/common/**)"
+    ]
+  }
+}
