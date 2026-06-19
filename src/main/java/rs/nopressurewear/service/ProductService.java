@@ -6,11 +6,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import rs.nopressurewear.dto.product.*;
-import rs.nopressurewear.exception.DuplicateResourceException;
 import rs.nopressurewear.exception.ResourceNotFoundException;
 import rs.nopressurewear.model.Category;
 import rs.nopressurewear.model.Product;
-import rs.nopressurewear.model.ProductColorVariant;
 import rs.nopressurewear.model.ProductImage;
 import rs.nopressurewear.repository.*;
 
@@ -23,7 +21,6 @@ import java.util.Map;
 
 import static java.math.BigDecimal.ZERO;
 import static java.math.RoundingMode.HALF_UP;
-import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
 @Service
@@ -65,9 +62,7 @@ public class ProductService {
         calculateDiscountPrice(product);
 
         Product saved = productRepository.save(product);
-        linkColorVariants(saved);
         return toResponse(saved);
-
     }
 
     public ProductResponse getById(Long id) {
@@ -239,7 +234,6 @@ public class ProductService {
         calculateDiscountPrice(product);
 
         Product saved = productRepository.save(product);
-        linkColorVariants(saved);
         return toResponse(saved);
     }
 
@@ -294,65 +288,11 @@ public class ProductService {
                 .build();
     }
 
-    public ProductColorVariantResponse addColorVariant(Long productId, ProductColorVariantRequest request) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-
-        Product variant = productRepository.findById(request.getVariantId())
-                .orElseThrow(() -> new ResourceNotFoundException("Variant product not found"));
-
-        if (colorVariantRepository.existsByProductIdAndVariantId(productId, request.getVariantId())) {
-            throw new DuplicateResourceException("Variant already exists");
-        }
-
-        ProductColorVariant colorVariant = ProductColorVariant.builder()
-                .product(product)
-                .variant(variant)
-                .build();
-
-        colorVariantRepository.save(colorVariant);
-
-        return ProductColorVariantResponse.builder()
-                .variantId(variant.getId())
-                .imageUrl(variant.getImageUrl())
-                .build();
-    }
-
-    private void linkColorVariants(Product product) {
-        if (isNull(product.getColorHex()) || product.getColorHex().isBlank()) return;
-
-        String baseSku = product.getSku();
-        List<Product> variants = productRepository.findBySkuContainingAndIdNot(baseSku, product.getId());
-
-        for (Product variant : variants) {
-            if (nonNull(variant.getColorHex()) && !variant.getColorHex().isBlank()) {
-                if (!colorVariantRepository.existsByProductIdAndVariantId(product.getId(), variant.getId())) {
-                    colorVariantRepository.save(ProductColorVariant.builder()
-                            .product(product)
-                            .variant(variant)
-                            .build());
-                }
-                if (!colorVariantRepository.existsByProductIdAndVariantId(variant.getId(), product.getId())) {
-                    colorVariantRepository.save(ProductColorVariant.builder()
-                            .product(variant)
-                            .variant(product)
-                            .build());
-                }
-            }
-        }
-    }
-
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public void deleteImage(Long imageId) {
         ProductImage image = productImageRepository.findById(imageId)
                 .orElseThrow(() -> new ResourceNotFoundException("Image not found"));
         productImageRepository.delete(image);
-    }
-
-    public void deleteColorVariant(Long variantId) {
-        ProductColorVariant variant = colorVariantRepository.findById(variantId)
-                .orElseThrow(() -> new ResourceNotFoundException("Variant not found"));
-        colorVariantRepository.delete(variant);
     }
 
     private void calculateDiscountPrice(Product product) {
@@ -381,10 +321,18 @@ public class ProductService {
         List<ProductColorVariantResponse> colorVariants = colorVariantRepository
                 .findByProductId(product.getId())
                 .stream()
-                .map(cv -> ProductColorVariantResponse.builder()
-                        .variantId(cv.getVariant().getId())
-                        .imageUrl(cv.getVariant().getImageUrl())
-                        .build())
+                .map(cv -> {
+                    Product v = cv.getVariant();
+                    return ProductColorVariantResponse.builder()
+                            .productId(v.getId())
+                            .name(v.getName())
+                            .colorName(v.getColorName())
+                            .colorHex(v.getColorHex())
+                            .imageUrl(v.getImageUrl())
+                            .sku(v.getSku())
+                            .isCurrent(v.getId().equals(product.getId()))
+                            .build();
+                })
                 .toList();
 
         return ProductResponse.builder()

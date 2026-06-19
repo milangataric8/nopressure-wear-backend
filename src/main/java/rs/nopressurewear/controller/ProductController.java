@@ -43,14 +43,6 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{id}/color-variants")
-    public ResponseEntity<ProductColorVariantResponse> addColorVariant(
-            @PathVariable Long id,
-            @Valid @RequestBody ProductColorVariantRequest request) {
-        return ResponseEntity.status(CREATED)
-                .body(productService.addColorVariant(id, request));
-    }
-
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getById(id));
@@ -166,12 +158,6 @@ public class ProductController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         productService.delete(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @DeleteMapping("/color-variants/{variantId}")
-    public ResponseEntity<Void> deleteColorVariant(@PathVariable Long variantId) {
-        productService.deleteColorVariant(variantId);
         return ResponseEntity.noContent().build();
     }
 }
