@@ -14,4 +14,8 @@ public interface ProductColorVariantRepository extends JpaRepository<ProductColo
     boolean existsByProductIdAndVariantId(Long productId, Long variantId);
 
     void deleteByProductIdAndVariantId(Long productId, Long variantId);
+
+    void deleteByProductId(Long productId);
+
+    void deleteByVariantId(Long variantId);
 }

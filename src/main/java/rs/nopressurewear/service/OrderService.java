@@ -20,7 +20,9 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static java.math.BigDecimal.ZERO;
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static rs.nopressurewear.constants.OrderStatus.CANCELLED;
 import static rs.nopressurewear.constants.OrderStatus.PENDING;
 
 @Service
@@ -66,12 +68,14 @@ public class OrderService {
         cart.getCartItems().clear();
         cartRepository.save(cart);
 
+        sendOrderConfirmation(order);
+
         return toResponse(orderRepository.save(order));
     }
 
     @Transactional
     public OrderResponse guestCheckout(GuestOrderRequest request) {
-        if (request.getItems() == null || request.getItems().isEmpty()) {
+        if (isNull(request.getItems()) || request.getItems().isEmpty()) {
             throw new RuntimeException("Order must have items");
         }
 
@@ -107,22 +111,29 @@ public class OrderService {
         setPaymentFields(order, request.getPaymentMethod());
         order.setTotalAmount(total);
 
+        sendOrderConfirmation(order);
+
         return toResponse(orderRepository.save(order));
     }
 
     private List<OrderItem> buildOrderItems(List<ProductWithQuantity> pairs, Order order) {
         return pairs.stream().map(pair -> {
             Product product = pair.product();
-            if (product.getStockQuantity() < pair.quantity()) {
+            Integer stock = product.getStockQuantity();
+            if (stock != null && stock < pair.quantity()) {
                 throw new RuntimeException("Insufficient stock for product: " + product.getName());
             }
-            product.setStockQuantity(product.getStockQuantity() - pair.quantity());
-            product.setSalesCount((product.getSalesCount() != null ? product.getSalesCount() : 0) + pair.quantity());
+            if (stock != null) {
+                product.setStockQuantity(stock - pair.quantity());
+            }
+            product.setSalesCount((nonNull(product.getSalesCount()) ? product.getSalesCount() : 0) + pair.quantity());
             productRepository.save(product);
 
             return OrderItem.builder()
                     .order(order)
                     .product(product)
+                    .productName(product.getName())
+                    .productSku(product.getSku())
                     .quantity(pair.quantity())
                     .priceAtPurchase(nonNull(product.getDiscountPrice())
                             ? product.getDiscountPrice()
@@ -189,6 +200,49 @@ public class OrderService {
         return shippingAddress;
     }
 
+    private void sendOrderConfirmation(Order order) {
+        try {
+            StringBuilder productRows = new StringBuilder();
+            for (OrderItem item : order.getOrderItems()) {
+                productRows.append("""
+                <div class="item-row">
+                    <div>
+                        <p class="item-name">%s</p>
+                        <p class="item-qty">Qty: %d × %s RSD</p>
+                    </div>
+                    <span class="item-price">%s RSD</span>
+                </div>
+                """.formatted(
+                        item.getProduct().getName(),
+                        item.getQuantity(),
+                        item.getPriceAtPurchase(),
+                        item.getPriceAtPurchase().multiply(BigDecimal.valueOf(item.getQuantity()))
+                ));
+            }
+
+            String street = nonNull(order.getShippingAddress()) ? order.getShippingAddress().getStreet() : "";
+            String city = nonNull(order.getShippingAddress()) ? order.getShippingAddress().getCity() : "";
+            String postalCode = nonNull(order.getShippingAddress()) ? order.getShippingAddress().getPostalCode() : "";
+            String country = nonNull(order.getShippingAddress()) ? order.getShippingAddress().getCountry() : "";
+
+            emailService.sendOrderStatusEmail(
+                    order.getCustomerEmail(),
+                    order.getId(),
+                    order.getOrderCode(),
+                    order.getStatus().name(),
+                    order.getCustomerFullName(),
+                    productRows.toString(),
+                    order.getTotalAmount().toString(),
+                    street,
+                    city,
+                    postalCode,
+                    country
+            );
+        } catch (Exception e) {
+            log.error("Failed to send order confirmation email: " + e.getMessage());
+        }
+    }
+
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public Page<OrderResponse> getAll(Pageable pageable) {
         return orderRepository.findAll(pageable)
@@ -245,6 +299,10 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
+        OrderStatus previousStatus = order.getStatus();
+
+        restoreStockIfOrderCanceled(status, previousStatus, order);
+
         order.setStatus(status);
         Order savedOrder = orderRepository.save(order);
 
@@ -276,8 +334,9 @@ public class OrderService {
             String shippingCountry = getShippingAddressPart(order, order.getShippingAddress().getCountry());
 
             emailService.sendOrderStatusEmail(
-                    order.getUser().getEmail(),
+                    order.getCustomerEmail(),
                     orderId,
+                    order.getOrderCode(),
                     status.name(),
                     order.getCustomerFullName(),
                     productRows.toString(),
@@ -292,6 +351,32 @@ public class OrderService {
         }
 
         return toResponse(savedOrder);
+    }
+
+    private void restoreStockIfOrderCanceled(OrderStatus status, OrderStatus previousStatus, Order order) {
+        if (status == CANCELLED && previousStatus != CANCELLED) {
+            for (OrderItem item : order.getOrderItems()) {
+                Product product = item.getProduct();
+                product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
+
+                int restoredSales = (nonNull(product.getSalesCount()) ? product.getSalesCount() : 0) - item.getQuantity();
+                product.setSalesCount(Math.max(restoredSales, 0));
+
+                productRepository.save(product);
+            }
+        }
+
+        if (previousStatus == CANCELLED && status != CANCELLED) {
+            for (OrderItem item : order.getOrderItems()) {
+                Product product = item.getProduct();
+                if (product.getStockQuantity() < item.getQuantity()) {
+                    throw new RuntimeException("Insufficient stock to reactivate order for product: " + product.getName());
+                }
+                product.setStockQuantity(product.getStockQuantity() - item.getQuantity());
+                product.setSalesCount((nonNull(product.getSalesCount()) ? product.getSalesCount() : 0) + item.getQuantity());
+                productRepository.save(product);
+            }
+        }
     }
 
     private static String getShippingAddressPart(Order order, String addressPart) {
@@ -341,7 +426,9 @@ public class OrderService {
         return OrderItemResponse.builder()
                 .id(item.getId())
                 .productId(item.getProduct().getId())
-                .productName(item.getProduct().getName())
+                .productName(nonNull(item.getProductName())
+                        ? item.getProductName()
+                        : (nonNull(item.getProduct()) ? item.getProduct().getName() : "—"))
                 .quantity(item.getQuantity())
                 .priceAtPurchase(item.getPriceAtPurchase())
                 .subtotal(item.getPriceAtPurchase()

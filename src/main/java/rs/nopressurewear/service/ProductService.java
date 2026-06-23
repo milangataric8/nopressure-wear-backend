@@ -260,6 +260,11 @@ public class ProductService {
     public void delete(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        productImageRepository.deleteByProductId(id);
+        colorVariantRepository.deleteByProductId(id);
+        colorVariantRepository.deleteByVariantId(id);
+        
         productRepository.delete(product);
     }
 

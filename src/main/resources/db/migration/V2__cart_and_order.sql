@@ -22,7 +22,7 @@ CREATE TABLE orders (
 CREATE TABLE order_item (
                             id                  BIGSERIAL PRIMARY KEY,
                             order_id            BIGINT         NOT NULL REFERENCES orders(id),
-                            product_id          BIGINT         NOT NULL REFERENCES product(id),
+                            product_id          BIGINT         REFERENCES product(id),
                             quantity            INTEGER        NOT NULL,
                             price_at_purchase   NUMERIC(10, 2) NOT NULL
 );

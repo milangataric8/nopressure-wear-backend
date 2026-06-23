@@ -77,6 +77,7 @@ public class EmailService {
 
     public void sendOrderStatusEmail(String to,
                                      Long orderId,
+                                     String orderCode,
                                      String status,
                                      String customerFirstName,
                                      String productRows,
@@ -99,10 +100,10 @@ public class EmailService {
         String greeting = """
             <p class="status-badge" style="color: #111; margin: 10px 0 10px;">
                 Dear <strong>%s</strong>,<br><br>
-                Your order with ID: <strong>#%d</strong> status has been updated to
+                Your order with CODE: <strong>#%s</strong> status has been updated to
                 <span style="font-weight: 700; color: %s;">%s</span>.
             </p>
-            """.formatted(customerFirstName, orderId, statusColor, status);
+            """.formatted(customerFirstName, orderCode, statusColor, status);
 
         String shippingSection = (nonNull(shippingStreet) && !shippingStreet.isEmpty()) ? """
             <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e5e5;">
@@ -144,7 +145,7 @@ public class EmailService {
                         <h1>NoPressure wear</h1>
                     </div>
                     <div class="body">
-                        <h2 class="order-title">Order #%d</h2>
+                        <h2 class="order-title">Order #%s</h2>
                         <p class="order-date">Status updated</p>
                         %s
                         <p class="section-title">Items</p>
@@ -168,7 +169,7 @@ public class EmailService {
             </html>
             """.formatted(
                 statusColor, statusColor,
-                orderId,
+                orderCode,
                 greeting,
                 productRows,
                 subtotal, subtotal,
@@ -176,7 +177,7 @@ public class EmailService {
                 orderUrl
         );
 
-        sendHtmlEmail(to, "Your order #" + orderId + " is now " + status, html);
+        sendHtmlEmail(to, "Your order #" + orderCode + " is now " + status, html);
     }
 
     private void sendHtmlEmail(String to, String subject, String html) {
@@ -210,7 +211,7 @@ public class EmailService {
                         New Contact Message
                     </h1>
                 </div>
-                
+            
                 <div style="background: #f9f9f9; padding: 20px; margin-bottom: 20px;">
                     <p style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 5px;">From</p>
                     <p style="font-size: 14px; color: #333; margin: 0;">%s</p>
