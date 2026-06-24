@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -286,7 +287,8 @@ public class OrderService {
                 ? search
                 : null;
 
-        return orderRepository.findByFilters(orderStatus, searchParam, pageable)
+        PageRequest unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+        return orderRepository.findByFilters(orderStatus, searchParam, unsorted)
                 .map(this::toResponse);
     }
 

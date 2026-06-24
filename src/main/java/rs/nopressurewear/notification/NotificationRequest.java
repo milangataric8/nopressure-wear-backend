@@ -17,6 +17,10 @@ public class NotificationRequest {
 
     private String imageUrl;
 
+    private String bgColor;
+
+    private String textColor;
+
     @NotEmpty(message = "At least one channel required")
     private List<String> channels;
 }

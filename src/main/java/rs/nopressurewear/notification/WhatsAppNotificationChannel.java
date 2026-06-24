@@ -31,7 +31,7 @@ public class WhatsAppNotificationChannel implements NotificationChannel {
     }
 
     @Override
-    public void send(String recipient, String subject, String message, String imageUrl) {
+    public void send(String recipient, String subject, String message, String imageUrl, String bgColor, String textColor) {
         if (!isEnabled()) {
             log.warn("WhatsApp channel not configured — skipping message to {}", recipient);
             return;

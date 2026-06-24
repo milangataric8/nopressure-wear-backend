@@ -21,7 +21,7 @@ public class EmailNotificationChannel implements NotificationChannel {
     }
 
     @Override
-    public void send(String recipient, String subject, String message, String imageUrl) {
-        emailService.sendNotificationEmail(recipient, subject, message, imageUrl);
+    public void send(String recipient, String subject, String message, String imageUrl, String bgColor, String textColor) {
+        emailService.sendNotificationEmail(recipient, subject, message, imageUrl, bgColor, textColor);
     }
 }

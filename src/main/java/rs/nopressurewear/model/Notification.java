@@ -23,6 +23,12 @@ public class Notification {
     @Column
     private String imageUrl;
 
+    @Column(name = "bg_color")
+    private String bgColor;
+
+    @Column(name = "text_color")
+    private String textColor;
+
     @Column(nullable = false)
     private String channels;
 

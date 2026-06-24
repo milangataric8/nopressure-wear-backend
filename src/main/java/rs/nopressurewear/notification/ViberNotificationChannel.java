@@ -25,7 +25,7 @@ public class ViberNotificationChannel implements NotificationChannel {
     }
 
     @Override
-    public void send(String recipient, String subject, String message, String imageUrl) {
+    public void send(String recipient, String subject, String message, String imageUrl, String bgColor, String textColor) {
         if (!isEnabled()) {
             log.warn("Viber channel not configured — skipping message to {}", recipient);
             return;

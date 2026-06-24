@@ -40,19 +40,19 @@ public class NotificationService {
                 switch (channelName) {
                     case "EMAIL" -> {
                         if (nonNull(customer.getEmail())) {
-                            channel.send(customer.getEmail(), request.getSubject(), request.getMessage(), request.getImageUrl());
+                            channel.send(customer.getEmail(), request.getSubject(), request.getMessage(), request.getImageUrl(), request.getBgColor(), request.getTextColor());
                             emailCount++;
                         }
                     }
                     case "WHATSAPP" -> {
                         if (nonNull(customer.getPhone())) {
-                            channel.send(customer.getPhone(), request.getSubject(), request.getMessage(), request.getImageUrl());
+                            channel.send(customer.getPhone(), request.getSubject(), request.getMessage(), request.getImageUrl(), null, null);
                             whatsappCount++;
                         }
                     }
                     case "VIBER" -> {
                         if (nonNull(customer.getPhone())) {
-                            channel.send(customer.getPhone(), request.getSubject(), request.getMessage(), request.getImageUrl());
+                            channel.send(customer.getPhone(), request.getSubject(), request.getMessage(), request.getImageUrl(), null, null);
                             viberCount++;
                         }
                     }
@@ -64,6 +64,8 @@ public class NotificationService {
                 .subject(request.getSubject())
                 .message(request.getMessage())
                 .imageUrl(request.getImageUrl())
+                .bgColor(request.getBgColor())
+                .textColor(request.getTextColor())
                 .channels(String.join(", ", request.getChannels()))
                 .recipients(customers.size())
                 .sentBy(sentBy)
