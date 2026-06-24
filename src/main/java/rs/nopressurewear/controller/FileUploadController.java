@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static java.util.Objects.nonNull;
+
 @RestController
 @RequestMapping("/api/upload")
 @RequiredArgsConstructor
@@ -42,13 +44,13 @@ public class FileUploadController {
 
     private boolean isAllowedImage(MultipartFile file) {
         String ct = file.getContentType();
-        if (ct != null && ct.startsWith("image/")) return true;
+        if (nonNull(ct) && ct.startsWith("image/")) return true;
         return ALLOWED_IMAGE_EXTENSIONS.contains(getExtension(file.getOriginalFilename()));
     }
 
     private boolean isAllowedVideo(MultipartFile file) {
         String ct = file.getContentType();
-        if (ct != null && ct.startsWith("video/")) return true;
+        if (nonNull(ct) && ct.startsWith("video/")) return true;
         return ALLOWED_VIDEO_EXTENSIONS.contains(getExtension(file.getOriginalFilename()));
     }
 

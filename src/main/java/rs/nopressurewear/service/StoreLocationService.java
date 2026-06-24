@@ -16,6 +16,8 @@ import rs.nopressurewear.repository.StoreLocationRepository;
 
 import java.util.List;
 
+import static java.util.Objects.nonNull;
+
 @Service
 @RequiredArgsConstructor
 public class StoreLocationService {
@@ -118,7 +120,7 @@ public class StoreLocationService {
         ProductStore productStore = ProductStore.builder()
                 .product(product)
                 .storeLocation(store)
-                .inStock(request.getInStock() != null ? request.getInStock() : true)
+                .inStock(nonNull(request.getInStock()) ? request.getInStock() : true)
                 .build();
 
         return toProductStoreResponse(productStoreRepository.save(productStore));

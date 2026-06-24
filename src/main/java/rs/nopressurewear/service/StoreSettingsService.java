@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.nonNull;
+
 @Service
 @RequiredArgsConstructor
 public class StoreSettingsService {
@@ -31,7 +33,7 @@ public class StoreSettingsService {
                 .stream()
                 .collect(Collectors.toMap(
                         StoreSettings::getKey,
-                        s -> s.getValue() != null ? s.getValue() : ""
+                        s -> nonNull(s.getValue()) ? s.getValue() : ""
                 ));
     }
 

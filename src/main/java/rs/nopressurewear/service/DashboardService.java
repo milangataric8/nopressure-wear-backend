@@ -11,6 +11,7 @@ import java.util.*;
 
 import static java.math.BigDecimal.ZERO;
 import static java.math.RoundingMode.HALF_UP;
+import static java.util.Objects.nonNull;
 
 @Service
 @RequiredArgsConstructor
@@ -46,7 +47,7 @@ public class DashboardService {
         BigDecimal totalRevenue = (BigDecimal) overview.get("totalRevenue");
         Long totalOrders = (Long) overview.get("totalOrders");
         overview.put("averageOrderValue",
-                totalOrders > 0 && totalRevenue != null
+                totalOrders > 0 && nonNull(totalRevenue)
                         ? totalRevenue.divide(BigDecimal.valueOf(totalOrders), 2, HALF_UP)
                         : ZERO);
 

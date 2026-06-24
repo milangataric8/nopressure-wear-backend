@@ -17,6 +17,7 @@ import rs.nopressurewear.model.*;
 import rs.nopressurewear.repository.*;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import static java.math.BigDecimal.ZERO;
@@ -120,10 +121,10 @@ public class OrderService {
         return pairs.stream().map(pair -> {
             Product product = pair.product();
             Integer stock = product.getStockQuantity();
-            if (stock != null && stock < pair.quantity()) {
+            if (nonNull(stock) && stock < pair.quantity()) {
                 throw new RuntimeException("Insufficient stock for product: " + product.getName());
             }
-            if (stock != null) {
+            if (nonNull(stock)) {
                 product.setStockQuantity(stock - pair.quantity());
             }
             product.setSalesCount((nonNull(product.getSalesCount()) ? product.getSalesCount() : 0) + pair.quantity());
@@ -134,6 +135,7 @@ public class OrderService {
                     .product(product)
                     .productName(product.getName())
                     .productSku(product.getSku())
+                    .productImageUrl(product.getImageUrl())
                     .quantity(pair.quantity())
                     .priceAtPurchase(nonNull(product.getDiscountPrice())
                             ? product.getDiscountPrice()
@@ -162,7 +164,7 @@ public class OrderService {
     }
 
     private static void setPaymentFields(Order order, String paymentMethod) {
-        order.setPaymentMethod(paymentMethod != null ? paymentMethod : "COD");
+        order.setPaymentMethod(nonNull(paymentMethod) ? paymentMethod : "COD");
         order.setPaymentStatus("CARD".equals(paymentMethod) ? "PAID" : "PENDING");
     }
 
@@ -203,21 +205,9 @@ public class OrderService {
     private void sendOrderConfirmation(Order order) {
         try {
             StringBuilder productRows = new StringBuilder();
+            List<String> productImageUrls = new ArrayList<>();
             for (OrderItem item : order.getOrderItems()) {
-                productRows.append("""
-                <div class="item-row">
-                    <div>
-                        <p class="item-name">%s</p>
-                        <p class="item-qty">Qty: %d × %s RSD</p>
-                    </div>
-                    <span class="item-price">%s RSD</span>
-                </div>
-                """.formatted(
-                        item.getProduct().getName(),
-                        item.getQuantity(),
-                        item.getPriceAtPurchase(),
-                        item.getPriceAtPurchase().multiply(BigDecimal.valueOf(item.getQuantity()))
-                ));
+                buildProductRowHtml(item, productImageUrls, productRows, BigDecimal.valueOf(item.getQuantity()));
             }
 
             String street = nonNull(order.getShippingAddress()) ? order.getShippingAddress().getStreet() : "";
@@ -236,11 +226,48 @@ public class OrderService {
                     street,
                     city,
                     postalCode,
-                    country
+                    country,
+                    productImageUrls
             );
         } catch (Exception e) {
             log.error("Failed to send order confirmation email: " + e.getMessage());
         }
+    }
+
+    private static void buildProductRowHtml(OrderItem item, List<String> productImageUrls, StringBuilder productRows, BigDecimal quantity) {
+        String imageUrl = nonNull(item.getProductImageUrl())
+                ? item.getProductImageUrl()
+                : (nonNull(item.getProduct()) ? item.getProduct().getImageUrl() : null);
+
+        String imageHtml;
+        if (nonNull(imageUrl) && !imageUrl.isBlank()) {
+            String cid = "productImg" + productImageUrls.size();
+            productImageUrls.add(imageUrl);
+            imageHtml = "<img src=\"cid:" + cid + "\" alt=\"\" class=\"item-img\" />";
+        } else {
+            imageHtml = "<div class=\"item-img\"></div>";
+        }
+
+        String productName = nonNull(item.getProductName())
+                ? item.getProductName()
+                : (nonNull(item.getProduct()) ? item.getProduct().getName() : "—");
+
+        productRows.append("""
+                <div class="item-row">
+                    %s
+                    <div>
+                        <p class="item-name">%s</p>
+                        <p class="item-qty">Qty: %d × %s RSD</p>
+                    </div>
+                    <span class="item-price">%s RSD</span>
+                </div>
+                """.formatted(
+                imageHtml,
+                productName,
+                item.getQuantity(),
+                item.getPriceAtPurchase(),
+                item.getPriceAtPurchase().multiply(quantity)
+        ));
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
@@ -308,24 +335,9 @@ public class OrderService {
 
         try {
             StringBuilder productRows = new StringBuilder();
+            List<String> productImageUrls = new ArrayList<>();
             for (OrderItem item : order.getOrderItems()) {
-                productRows.append("""
-                <div class="item-row">
-                    <div>
-                        <p class="item-name">%s</p>
-                        <p class="item-qty">Qty: %d × $%s</p>
-                    </div>
-                    <span class="item-price">$%s</span>
-                </div>
-                """.formatted(
-                                item.getProduct().getName(),
-                                item.getQuantity(),
-                                item.getPriceAtPurchase(),
-                                item.getPriceAtPurchase().multiply(
-                                        java.math.BigDecimal.valueOf(item.getQuantity())
-                                )
-                        )
-                );
+                buildProductRowHtml(item, productImageUrls, productRows, BigDecimal.valueOf(item.getQuantity()));
             }
 
             String shippingStreet = getShippingAddressPart(order, order.getShippingAddress().getStreet());
@@ -344,7 +356,8 @@ public class OrderService {
                     shippingStreet,
                     shippingCity,
                     shippingPostalCode,
-                    shippingCountry
+                    shippingCountry,
+                    productImageUrls
             );
         } catch (Exception e) {
             log.error("Failed to send email: " + e.getMessage());

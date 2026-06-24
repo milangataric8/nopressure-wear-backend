@@ -11,6 +11,8 @@ import rs.nopressurewear.service.PopupService;
 
 import java.util.List;
 
+import static java.util.Objects.nonNull;
+
 @RestController
 @RequestMapping("/api/popups")
 @RequiredArgsConstructor
@@ -21,7 +23,7 @@ public class PopupController {
     @GetMapping("/active")
     public ResponseEntity<PopupResponse> getActive() {
         PopupResponse popup = popupService.getActive();
-        return popup != null ? ResponseEntity.ok(popup) : ResponseEntity.noContent().build();
+        return nonNull(popup) ? ResponseEntity.ok(popup) : ResponseEntity.noContent().build();
     }
 
     @GetMapping

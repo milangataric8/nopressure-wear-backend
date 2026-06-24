@@ -35,6 +35,9 @@ public class OrderItem {
     @Column(name = "product_sku")
     private String productSku;
 
+    @Column(name = "product_image_url")
+    private String productImageUrl;
+
     @Column(nullable = false)
     private Integer quantity;
 

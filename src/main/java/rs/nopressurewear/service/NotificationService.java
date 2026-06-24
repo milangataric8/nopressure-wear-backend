@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.nonNull;
+
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
@@ -37,19 +39,19 @@ public class NotificationService {
 
                 switch (channelName) {
                     case "EMAIL" -> {
-                        if (customer.getEmail() != null) {
+                        if (nonNull(customer.getEmail())) {
                             channel.send(customer.getEmail(), request.getSubject(), request.getMessage(), request.getImageUrl());
                             emailCount++;
                         }
                     }
                     case "WHATSAPP" -> {
-                        if (customer.getPhone() != null) {
+                        if (nonNull(customer.getPhone())) {
                             channel.send(customer.getPhone(), request.getSubject(), request.getMessage(), request.getImageUrl());
                             whatsappCount++;
                         }
                     }
                     case "VIBER" -> {
-                        if (customer.getPhone() != null) {
+                        if (nonNull(customer.getPhone())) {
                             channel.send(customer.getPhone(), request.getSubject(), request.getMessage(), request.getImageUrl());
                             viberCount++;
                         }

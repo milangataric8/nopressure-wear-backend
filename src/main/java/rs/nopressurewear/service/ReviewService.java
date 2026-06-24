@@ -18,6 +18,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 
+import static java.math.BigDecimal.ZERO;
+import static java.math.RoundingMode.HALF_UP;
+import static java.util.Objects.nonNull;
+
 @Service
 @RequiredArgsConstructor
 public class ReviewService {
@@ -75,10 +79,10 @@ public class ReviewService {
         Double avg = reviewRepository.findAverageRatingByProductId(product.getId());
         Integer count = reviewRepository.countByProductId(product.getId());
 
-        product.setAverageRating(avg != null
-                ? BigDecimal.valueOf(avg).setScale(1, RoundingMode.HALF_UP)
-                : BigDecimal.ZERO);
-        product.setRatingCount(count != null ? count : 0);
+        product.setAverageRating(nonNull(avg)
+                ? BigDecimal.valueOf(avg).setScale(1, HALF_UP)
+                : ZERO);
+        product.setRatingCount(nonNull(count) ? count : 0);
         productRepository.save(product);
     }
 

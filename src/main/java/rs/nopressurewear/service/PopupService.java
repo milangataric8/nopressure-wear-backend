@@ -11,6 +11,8 @@ import rs.nopressurewear.repository.PopupRepository;
 
 import java.util.List;
 
+import static java.util.Objects.nonNull;
+
 @Service
 @RequiredArgsConstructor
 public class PopupService {
@@ -20,7 +22,7 @@ public class PopupService {
     public PopupResponse getActive() {
         Popup popup = popupRepository.findFirstByActiveTrueOrderByCreatedAtDesc()
                 .orElse(null);
-        return popup != null ? toResponse(popup) : null;
+        return nonNull(popup) ? toResponse(popup) : null;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -37,13 +39,13 @@ public class PopupService {
                 .subtitle(request.getSubtitle())
                 .content(request.getContent())
                 .mediaUrl(request.getMediaUrl())
-                .mediaType(request.getMediaType() != null ? request.getMediaType() : "IMAGE")
+                .mediaType(nonNull(request.getMediaType()) ? request.getMediaType() : "IMAGE")
                 .buttonText(request.getButtonText())
                 .buttonLink(request.getButtonLink())
-                .backgroundColor(request.getBackgroundColor() != null ? request.getBackgroundColor() : "#FFFFFF")
-                .textColor(request.getTextColor() != null ? request.getTextColor() : "#000000")
+                .backgroundColor(nonNull(request.getBackgroundColor()) ? request.getBackgroundColor() : "#FFFFFF")
+                .textColor(nonNull(request.getTextColor()) ? request.getTextColor() : "#000000")
                 .active(true)
-                .showOnce(request.getShowOnce() != null && request.getShowOnce())
+                .showOnce(nonNull(request.getShowOnce()) && request.getShowOnce())
                 .build();
         return toResponse(popupRepository.save(popup));
     }
@@ -60,9 +62,9 @@ public class PopupService {
         popup.setMediaType(request.getMediaType());
         popup.setButtonText(request.getButtonText());
         popup.setButtonLink(request.getButtonLink());
-        if (request.getBackgroundColor() != null) popup.setBackgroundColor(request.getBackgroundColor());
-        if (request.getTextColor() != null) popup.setTextColor(request.getTextColor());
-        if (request.getShowOnce() != null) popup.setShowOnce(request.getShowOnce());
+        if (nonNull(request.getBackgroundColor())) popup.setBackgroundColor(request.getBackgroundColor());
+        if (nonNull(request.getTextColor())) popup.setTextColor(request.getTextColor());
+        if (nonNull(request.getShowOnce())) popup.setShowOnce(request.getShowOnce());
 
         return toResponse(popupRepository.save(popup));
     }

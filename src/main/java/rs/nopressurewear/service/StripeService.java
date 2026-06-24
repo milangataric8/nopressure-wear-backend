@@ -81,14 +81,14 @@ public class StripeService {
                 .setCustomer(customerId)
                 .addPaymentMethodType("card")
                 .putMetadata("userId", userId.toString())
-                .putMetadata("couponCode", couponCode != null ? couponCode : "")
+                .putMetadata("couponCode", nonNull(couponCode) ? couponCode : "")
                 .build();
 
         return PaymentIntent.create(params);
     }
 
     public String getOrCreateCustomer(User user) throws StripeException {
-        if (user.getStripeCustomerId() != null) {
+        if (nonNull(user.getStripeCustomerId())) {
             return user.getStripeCustomerId();
         }
 
@@ -179,7 +179,7 @@ public class StripeService {
     private BigDecimal applyCartCoupon(BigDecimal total, String couponCode) {
         if (couponCode == null || couponCode.isBlank()) return total;
         Coupon coupon = couponRepository.findByCode(couponCode.toUpperCase()).orElse(null);
-        if (coupon != null && coupon.isActive() && coupon.getUsageCount() < coupon.getUsageLimit()) {
+        if (nonNull(coupon) && coupon.isActive() && coupon.getUsageCount() < coupon.getUsageLimit()) {
             return total.subtract(CouponService.applyCouponDiscount(coupon, total));
         }
         return total;
