@@ -20,4 +20,5 @@ public class BannerRequest {
     private String buttonText;
     private String buttonLink;
     private Integer displayOrder;
+    private Boolean displayTitle;
 }

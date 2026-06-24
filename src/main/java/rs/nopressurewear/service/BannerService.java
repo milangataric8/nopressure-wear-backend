@@ -51,6 +51,7 @@ public class BannerService {
                 .buttonLink(request.getButtonLink())
                 .displayOrder(nonNull(request.getDisplayOrder()) ? request.getDisplayOrder() : 0)
                 .isActive(true)
+                .displayTitle(request.getDisplayTitle() != null ? request.getDisplayTitle() : true)
                 .build();
         return toResponse(bannerRepository.save(banner));
     }
@@ -69,6 +70,7 @@ public class BannerService {
         if (nonNull(request.getDisplayOrder())) {
             banner.setDisplayOrder(request.getDisplayOrder());
         }
+        banner.setDisplayTitle(request.getDisplayTitle() != null ? request.getDisplayTitle() : true);
         return toResponse(bannerRepository.save(banner));
     }
 
@@ -98,6 +100,7 @@ public class BannerService {
                 .buttonLink(banner.getButtonLink())
                 .displayOrder(banner.getDisplayOrder())
                 .active(banner.isActive())
+                .displayTitle(banner.getDisplayTitle() != null ? banner.getDisplayTitle() : true)
                 .build();
     }
 }

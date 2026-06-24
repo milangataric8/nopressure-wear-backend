@@ -19,4 +19,5 @@ public class BannerResponse {
     private String buttonLink;
     private Integer displayOrder;
     private Boolean active;
+    private Boolean displayTitle;
 }

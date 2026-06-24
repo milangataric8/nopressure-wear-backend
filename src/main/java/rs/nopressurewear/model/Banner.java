@@ -44,4 +44,7 @@ public class Banner {
 
     @Column(nullable = false)
     private boolean isActive = true;
+
+    @Column(name = "display_title")
+    private Boolean displayTitle = true;
 }
