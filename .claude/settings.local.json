@@ -16,7 +16,8 @@
       "Skill(code-review)",
       "Bash(git diff *)",
       "Bash(xargs grep -l -i \"product_color_variant\")",
-      "Bash(mvn compile *)"
+      "Bash(mvn compile *)",
+      "PowerShell(New-Item *)"
     ]
   }
 }
