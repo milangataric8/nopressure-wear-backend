@@ -35,7 +35,7 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    @Value("${app.upload-dir:uploads}")
+    @Value("${app.upload.dir:uploads/products}")
     private String uploadDir;
 
     public void sendPasswordResetEmail(String to, String token) {
@@ -201,7 +201,7 @@ public class EmailService {
                 for (int i = 0; i < productImageUrls.size(); i++) {
                     String rawUrl = productImageUrls.get(i);
                     String relativePath = rawUrl.startsWith("/") ? rawUrl.substring(1) : rawUrl;
-                    File imageFile = new File(uploadDir, relativePath.replace("uploads/", ""));
+                    File imageFile = new File(relativePath);
                     if (imageFile.exists()) {
                         helper.addInline("productImg" + i, new FileSystemResource(imageFile));
                     } else {
@@ -297,9 +297,11 @@ public class EmailService {
         if (logoUrl == null || logoUrl.isBlank()) return;
         try {
             String relativePath = logoUrl.startsWith("/") ? logoUrl.substring(1) : logoUrl;
-            File logoFile = new File(uploadDir, relativePath.replace("uploads/", ""));
+            File logoFile = new File(relativePath);
             if (logoFile.exists()) {
                 helper.addInline("emailLogo", new FileSystemResource(logoFile));
+            } else {
+                log.warn("Logo file not found: {}", logoFile.getAbsolutePath());
             }
         } catch (Exception e) {
             log.warn("Could not attach logo image: {}", e.getMessage());
