@@ -12,11 +12,14 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import rs.nopressurewear.model.User;
+import rs.nopressurewear.repository.StoreSettingsRepository;
 
 import java.io.IOException;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
+import static rs.nopressurewear.constants.Role.CUSTOMER;
 
 @Component
 @RequiredArgsConstructor
@@ -24,6 +27,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
+    private final StoreSettingsRepository storeSettingsRepository;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -45,6 +49,16 @@ public class JwtFilter extends OncePerRequestFilter {
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
             if (jwtUtil.isTokenValid(token, userDetails)) {
+                if (userDetails instanceof User user && user.getRole() == CUSTOMER) {
+                    boolean loginEnabled = storeSettingsRepository.findByKey("login_enabled")
+                            .map(s -> !"false".equalsIgnoreCase(s.getValue()))
+                            .orElse(true);
+                    if (!loginEnabled) {
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+                }
+
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
                                 userDetails,

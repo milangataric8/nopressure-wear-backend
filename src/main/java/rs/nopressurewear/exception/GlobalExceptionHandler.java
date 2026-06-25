@@ -62,4 +62,24 @@ public class GlobalExceptionHandler {
                 .build();
         return ResponseEntity.status(NOT_FOUND).body(error);
     }
+
+    @ExceptionHandler(RegistrationDisabledException.class)
+    public ResponseEntity<ErrorResponse> handleRegistrationDisabled(RegistrationDisabledException ex) {
+        ErrorResponse error = ErrorResponse.builder()
+                .status(FORBIDDEN.value())
+                .message(ex.getMessage())
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(FORBIDDEN).body(error);
+    }
+
+    @ExceptionHandler(LoginDisabledException.class)
+    public ResponseEntity<ErrorResponse> handleLoginDisabled(LoginDisabledException ex) {
+        ErrorResponse error = ErrorResponse.builder()
+                .status(FORBIDDEN.value())
+                .message(ex.getMessage())
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(FORBIDDEN).body(error);
+    }
 }

@@ -7,8 +7,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import rs.nopressurewear.dto.auth.*;
 import rs.nopressurewear.exception.DuplicateResourceException;
+import rs.nopressurewear.exception.LoginDisabledException;
+import rs.nopressurewear.exception.RegistrationDisabledException;
 import rs.nopressurewear.exception.ResourceNotFoundException;
 import rs.nopressurewear.model.User;
+import rs.nopressurewear.repository.StoreSettingsRepository;
 import rs.nopressurewear.repository.UserRepository;
 import rs.nopressurewear.security.JwtUtil;
 
@@ -26,8 +29,19 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
+    private final StoreSettingsRepository storeSettingsRepository;
+
+    private boolean isSettingEnabled(String key, boolean defaultValue) {
+        return storeSettingsRepository.findByKey(key)
+                .map(s -> !"false".equalsIgnoreCase(s.getValue()))
+                .orElse(defaultValue);
+    }
 
     public AuthResponse register(RegisterRequest request) {
+        if (!isSettingEnabled("registration_enabled", true)) {
+            throw new RegistrationDisabledException("Registration is currently disabled");
+        }
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("User with this email already exists");
         }
@@ -64,6 +78,10 @@ public class AuthService {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!isSettingEnabled("login_enabled", true) && user.getRole() == CUSTOMER) {
+            throw new LoginDisabledException("Login is currently disabled");
+        }
 
         String token = jwtUtil.generateToken(user);
 

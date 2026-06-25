@@ -7,10 +7,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import rs.nopressurewear.constants.Role;
 import rs.nopressurewear.model.User;
+import rs.nopressurewear.repository.StoreSettingsRepository;
 import rs.nopressurewear.repository.UserRepository;
 
 import java.io.IOException;
+
+import static rs.nopressurewear.constants.Role.CUSTOMER;
 
 @Component
 @RequiredArgsConstructor
@@ -18,6 +22,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
+    private final StoreSettingsRepository storeSettingsRepository;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
@@ -28,6 +33,16 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        boolean loginEnabled = storeSettingsRepository.findByKey("login_enabled")
+                .map(s -> !"false".equalsIgnoreCase(s.getValue()))
+                .orElse(true);
+
+        if (!loginEnabled && user.getRole() == CUSTOMER) {
+            getRedirectStrategy().sendRedirect(request, response,
+                    "http://localhost:5173/login?error=login_disabled");
+            return;
+        }
 
         String token = jwtUtil.generateToken(user);
 
