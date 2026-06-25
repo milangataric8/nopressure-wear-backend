@@ -28,14 +28,17 @@ public class OrderController {
     public ResponseEntity<OrderResponse> checkout(
             @PathVariable Long userId,
             @RequestParam(required = false) String couponCode,
-            @RequestParam(required = false) String paymentMethod) {
+            @RequestParam(required = false) String paymentMethod,
+            @RequestParam(defaultValue = "en") String lang) {
         return ResponseEntity.status(CREATED)
-                .body(orderService.checkout(userId, couponCode, paymentMethod));
+                .body(orderService.checkout(userId, couponCode, paymentMethod, lang));
     }
 
     @PostMapping("/guest-checkout")
-    public ResponseEntity<OrderResponse> guestCheckout(@Valid @RequestBody GuestOrderRequest request) {
-        return ResponseEntity.status(CREATED).body(orderService.guestCheckout(request));
+    public ResponseEntity<OrderResponse> guestCheckout(
+            @Valid @RequestBody GuestOrderRequest request,
+            @RequestParam(defaultValue = "en") String lang) {
+        return ResponseEntity.status(CREATED).body(orderService.guestCheckout(request, lang));
     }
 
     @GetMapping("/all")
@@ -87,7 +90,8 @@ public class OrderController {
 
     @PatchMapping("/{orderId}/status")
     public ResponseEntity<OrderResponse> updateStatus(@PathVariable Long orderId,
-                                                      @RequestParam OrderStatus status) {
-        return ResponseEntity.ok(orderService.updateStatus(orderId, status));
+                                                      @RequestParam OrderStatus status,
+                                                      @RequestParam(defaultValue = "en") String lang) {
+        return ResponseEntity.ok(orderService.updateStatus(orderId, status, lang));
     }
 }

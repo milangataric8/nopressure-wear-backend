@@ -27,8 +27,9 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-        authService.forgotPassword(request);
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request,
+                                               @RequestParam(defaultValue = "en") String lang) {
+        authService.forgotPassword(request, lang);
         return ResponseEntity.ok().build();
     }
 

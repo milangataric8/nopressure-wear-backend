@@ -25,8 +25,7 @@ public class ContactController {
                 request.getName(),
                 request.getEmail(),
                 request.getSubject(),
-                request.getMessage(),
-                lang
+                request.getMessage()
         );
 
         emailService.sendContactConfirmation(

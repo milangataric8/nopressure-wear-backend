@@ -24,7 +24,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
 
     @PreAuthorize("hasRole('ADMIN')")
-    public Map<String, Object> notification(rs.nopressurewear.dto.notification.NotificationRequest request, String sentBy) {
+    public Map<String, Object> notification(rs.nopressurewear.dto.notification.NotificationRequest request, String sentBy, String lang) {
         List<User> customers = userRepository.findByRoleAndIsActiveTrue("CUSTOMER");
 
         Map<String, NotificationChannel> channelMap = channels.stream()
@@ -40,19 +40,19 @@ public class NotificationService {
                 switch (channelName) {
                     case "EMAIL" -> {
                         if (nonNull(customer.getEmail())) {
-                            channel.send(customer.getEmail(), request.getSubject(), request.getMessage(), request.getImageUrl(), request.getBgColor(), request.getTextColor());
+                            channel.send(customer.getEmail(), request.getSubject(), request.getMessage(), request.getImageUrl(), request.getBgColor(), request.getTextColor(), lang);
                             emailCount++;
                         }
                     }
                     case "WHATSAPP" -> {
                         if (nonNull(customer.getPhone())) {
-                            channel.send(customer.getPhone(), request.getSubject(), request.getMessage(), request.getImageUrl(), null, null);
+                            channel.send(customer.getPhone(), request.getSubject(), request.getMessage(), request.getImageUrl(), null, null, lang);
                             whatsappCount++;
                         }
                     }
                     case "VIBER" -> {
                         if (nonNull(customer.getPhone())) {
-                            channel.send(customer.getPhone(), request.getSubject(), request.getMessage(), request.getImageUrl(), null, null);
+                            channel.send(customer.getPhone(), request.getSubject(), request.getMessage(), request.getImageUrl(), null, null, lang);
                             viberCount++;
                         }
                     }

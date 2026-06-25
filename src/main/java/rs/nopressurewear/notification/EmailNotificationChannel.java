@@ -17,11 +17,11 @@ public class EmailNotificationChannel implements NotificationChannel {
 
     @Override
     public boolean isEnabled() {
-        return true; // email always available
+        return true;
     }
 
     @Override
-    public void send(String recipient, String subject, String message, String imageUrl, String bgColor, String textColor) {
-        emailService.sendNotificationEmail(recipient, subject, message, imageUrl, bgColor, textColor);
+    public void send(String recipient, String subject, String message, String imageUrl, String bgColor, String textColor, String lang) {
+        emailService.sendNotificationEmail(recipient, subject, message, imageUrl, bgColor, textColor, lang);
     }
 }

@@ -43,7 +43,7 @@ public class OrderService {
     private record ProductWithQuantity(Product product, int quantity) {}
 
     @Transactional
-    public OrderResponse checkout(Long userId, String couponCode, String paymentMethod) {
+    public OrderResponse checkout(Long userId, String couponCode, String paymentMethod, String lang) {
         Cart cart = cartRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
 
@@ -70,13 +70,13 @@ public class OrderService {
         cart.getCartItems().clear();
         cartRepository.save(cart);
 
-        sendOrderConfirmation(order);
+        sendOrderConfirmation(order, lang);
 
         return toResponse(orderRepository.save(order));
     }
 
     @Transactional
-    public OrderResponse guestCheckout(GuestOrderRequest request) {
+    public OrderResponse guestCheckout(GuestOrderRequest request, String lang) {
         if (isNull(request.getItems()) || request.getItems().isEmpty()) {
             throw new RuntimeException("Order must have items");
         }
@@ -113,7 +113,7 @@ public class OrderService {
         setPaymentFields(order, request.getPaymentMethod());
         order.setTotalAmount(total);
 
-        sendOrderConfirmation(order);
+        sendOrderConfirmation(order, lang);
 
         return toResponse(orderRepository.save(order));
     }
@@ -203,7 +203,7 @@ public class OrderService {
         return shippingAddress;
     }
 
-    private void sendOrderConfirmation(Order order) {
+    private void sendOrderConfirmation(Order order, String lang) {
         try {
             StringBuilder productRows = new StringBuilder();
             List<String> productImageUrls = new ArrayList<>();
@@ -228,7 +228,8 @@ public class OrderService {
                     city,
                     postalCode,
                     country,
-                    productImageUrls
+                    productImageUrls,
+                    lang
             );
         } catch (Exception e) {
             log.error("Failed to send order confirmation email: " + e.getMessage());
@@ -324,7 +325,7 @@ public class OrderService {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public OrderResponse updateStatus(Long orderId, OrderStatus status) {
+    public OrderResponse updateStatus(Long orderId, OrderStatus status, String lang) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
@@ -359,7 +360,8 @@ public class OrderService {
                     shippingCity,
                     shippingPostalCode,
                     shippingCountry,
-                    productImageUrls
+                    productImageUrls,
+                    lang
             );
         } catch (Exception e) {
             log.error("Failed to send email: " + e.getMessage());

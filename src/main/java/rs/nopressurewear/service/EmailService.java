@@ -38,7 +38,8 @@ public class EmailService {
     @Value("${app.upload.dir:uploads/products}")
     private String uploadDir;
 
-    public void sendPasswordResetEmail(String to, String token) {
+    public void sendPasswordResetEmail(String to, String token, String lang) {
+        Map<String, String> t = getEmailTranslations(lang);
         String resetUrl = "http://localhost:5173/reset-password?token=" + token;
 
         String html = """
@@ -65,19 +66,27 @@ public class EmailService {
                         <h1>NoPressure wear</h1>
                     </div>
                     <div class="body">
-                        <p>You requested a password reset. Click the button below to create a new password. This link expires in <strong>1 hour</strong>.</p>
-                        <a href="%s" class="button">Reset Password</a>
-                        <p style="margin-top: 32px; font-size: 13px; color: #999;">If you did not request this, you can safely ignore this email.</p>
+                        <p>%s</p>
+                        <p>%s</p>
+                        <a href="%s" class="button">%s</a>
+                        <p style="margin-top: 32px; font-size: 13px; color: #999;">%s</p>
                     </div>
                     <div class="footer">
-                        <p>© 2026 NoPressure. All rights reserved.</p>
+                        <p>© 2026 NoPressure. %s</p>
                     </div>
                 </div>
             </body>
             </html>
-            """.formatted(resetUrl);
+            """.formatted(
+                t.get("resetText"),
+                t.get("resetExpire"),
+                resetUrl,
+                t.get("resetButton"),
+                t.get("resetIgnore"),
+                t.get("allRightsReserved")
+            );
 
-        sendHtmlEmail(to, "Reset your NoPressure wear webshop password", html);
+        sendHtmlEmail(to, t.get("resetSubject"), html, t.get("allRightsReserved"));
     }
 
     public void sendOrderStatusEmail(String to,
@@ -91,32 +100,41 @@ public class EmailService {
                                      String shippingCity,
                                      String shippingPostalCode,
                                      String shippingCountry,
-                                     List<String> productImageUrls) {
+                                     List<String> productImageUrls,
+                                     String lang) {
+
+        Map<String, String> t = getEmailTranslations(lang);
 
         String orderUrl = "http://localhost:5173/orders/" + orderId;
 
         String statusColor = switch (status) {
             case "CONFIRMED" -> "#2563eb";
-            case "SHIPPED" -> "#7c3aed";
+            case "SHIPPED"   -> "#7c3aed";
             case "DELIVERED" -> "#16a34a";
             case "CANCELLED" -> "#dc2626";
-            default -> "#d97706";
+            default          -> "#d97706";
         };
+        String statusLabel = t.getOrDefault(status, status);
 
         String greeting = """
             <p class="status-badge" style="color: #111; margin: 10px 0 10px;">
-                Dear <strong>%s</strong>,<br><br>
-                Your order with CODE: <strong>#%s</strong> status has been updated to
+                %s<br><br>
+                %s
                 <span style="font-weight: 700; color: %s;">%s</span>.
             </p>
-            """.formatted(customerFirstName, orderCode, statusColor, status);
+            """.formatted(
+                t.get("orderHi").formatted(customerFirstName),
+                t.get("orderStatusUpdate").formatted(orderCode),
+                statusColor,
+                statusLabel
+            );
 
         String shippingSection = (nonNull(shippingStreet) && !shippingStreet.isEmpty()) ? """
             <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e5e5;">
-                <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #111; margin: 0 0 8px;">Shipping Address</p>
+                <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #111; margin: 0 0 8px;">%s</p>
                 <p style="font-size: 13px; color: #555; margin: 0; line-height: 1.6;">%s<br>%s, %s<br>%s</p>
             </div>
-            """.formatted(shippingStreet, shippingCity, shippingPostalCode, shippingCountry) : "";
+            """.formatted(t.get("orderShipping"), shippingStreet, shippingCity, shippingPostalCode, shippingCountry) : "";
 
         String html = """
             <!DOCTYPE html>
@@ -151,46 +169,52 @@ public class EmailService {
                         <h1>NoPressure wear</h1>
                     </div>
                     <div class="body">
-                        <h2 class="order-title">Order #%s</h2>
-                        <p class="order-date">Status updated</p>
+                        <h2 class="order-title">%s #%s</h2>
+                        <p class="order-date">%s</p>
                         %s
-                        <p class="section-title">Items</p>
+                        <p class="section-title">%s</p>
                         %s
 
                         <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e5e5;">
-                            <div class="summary-row"><span>Subtotal</span><span>$%s</span></div>
-                            <div class="summary-row"><span>Delivery</span><span style="color: #16a34a;">Free</span></div>
-                            <div class="summary-total"><span>Total</span><span>$%s</span></div>
+                            <div class="summary-row"><span>%s</span><span>$%s</span></div>
+                            <div class="summary-row"><span>%s</span><span style="color: #16a34a;">%s</span></div>
+                            <div class="summary-total"><span>%s</span><span>$%s</span></div>
                         </div>
 
                         %s
 
-                        <a href="%s" class="button">View Order</a>
+                        <a href="%s" class="button">%s</a>
                     </div>
                     <div class="footer">
-                        <p>© 2026 NoPressure. All rights reserved.</p>
+                        <p>© 2026 NoPressure. %s</p>
                     </div>
                 </div>
             </body>
             </html>
             """.formatted(
                 statusColor, statusColor,
-                orderCode,
+                t.get("orderTitle"), orderCode,
+                t.get("orderStatusUpdatedNote"),
                 greeting,
+                t.get("orderItems"),
                 productRows,
-                subtotal, subtotal,
+                t.get("orderSubtotal"), subtotal,
+                t.get("orderDelivery"), t.get("orderFree"),
+                t.get("orderTotal"), subtotal,
                 shippingSection,
-                orderUrl
+                orderUrl,
+                t.get("orderViewButton"),
+                t.get("allRightsReserved")
         );
 
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
             helper.setTo(to);
-            helper.setSubject("Your order #" + orderCode + " is now " + status);
+            helper.setSubject(t.get("orderSubject").formatted(orderCode, statusLabel));
             helper.setFrom(fromEmail);
 
-            setEmailLogoHeader(html, helper);
+            setEmailLogoHeader(html, helper, t.get("allRightsReserved"));
 
             if (nonNull(productImageUrls)) {
                 for (int i = 0; i < productImageUrls.size(); i++) {
@@ -211,16 +235,16 @@ public class EmailService {
         }
     }
 
-    private void setEmailLogoHeader(String html, MimeMessageHelper helper) throws MessagingException {
+    private void setEmailLogoHeader(String html, MimeMessageHelper helper, String allRightsReserved) throws MessagingException {
         String logoUrl = fetchLogoUrl();
         String withLogo = html.replace("<h1>NoPressure wear</h1>", buildLogoHtml(logoUrl));
-        String htmlFinal = injectSignature(withLogo, fetchTagline());
+        String htmlFinal = injectSignature(withLogo, fetchTagline(), allRightsReserved);
         helper.setText(htmlFinal, true);
 
         attachLogo(helper, logoUrl);
     }
 
-    private void sendHtmlEmail(String to, String subject, String html) {
+    private void sendHtmlEmail(String to, String subject, String html, String lang) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -232,7 +256,7 @@ public class EmailService {
             String logoUrl = fetchLogoUrl();
             String tagline = fetchTagline();
             String withLogo = html.replace("<h1>NoPressure wear</h1>", buildLogoHtml(logoUrl));
-            String htmlFinal = injectSignature(withLogo, tagline);
+            String htmlFinal = injectSignature(withLogo, tagline, lang);
 
             helper.setText(htmlFinal, true);
             attachLogo(helper, logoUrl);
@@ -243,12 +267,18 @@ public class EmailService {
         }
     }
 
-    private String injectSignature(String html, String tagline) {
-        String copyrightMarker = "<p>© 2026 NoPressure. All rights reserved.</p>";
+    private String injectSignature(String html, String tagline, String allRightsReserved) {
+        String copyrightMarker = """
+        <p>© 2026 NoPressure. %s</p>
+        """.formatted(allRightsReserved);
+
         if (html.contains(copyrightMarker)) {
             return html.replace(
                     copyrightMarker,
-                    buildSignatureBlock(tagline) + "<p style=\"font-size: 12px; color: #999; margin: 8px 0 0;\">© 2026 NoPressure. All rights reserved.</p>"
+                    buildSignatureBlock(tagline) +
+                            """
+                                <p style="font-size: 12px; color: #999; margin: 8px 0 0;">© 2026 NoPressure. %s</p>
+                            """.formatted(allRightsReserved)
             );
         }
         String footer = buildSignatureFooter(tagline);
@@ -256,7 +286,7 @@ public class EmailService {
     }
 
     private String buildSignatureBlock(String tagline) {
-        String taglineHtml = (tagline != null && !tagline.isBlank())
+        String taglineHtml = (nonNull(tagline) && !tagline.isBlank())
                 ? "<div style=\"font-size: 13px; color: #333; text-align: center; margin-bottom: 16px; line-height: 1.7;\">" + tagline + "</div>"
                 : "";
         return taglineHtml + "<img src=\"cid:emailSignature\" alt=\"\" style=\"height: 48px; width: auto; display: block; margin: 0 auto 8px;\" />";
@@ -323,7 +353,7 @@ public class EmailService {
         }
     }
 
-    public void sendContactEmail(String fromName, String fromEmail, String subject, String message, String lang) {
+    public void sendContactEmail(String fromName, String fromEmail, String subject, String message) {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
@@ -435,6 +465,11 @@ public class EmailService {
             t.put("SHIPPED", "Poslato");
             t.put("DELIVERED", "Dostavljeno");
             t.put("CANCELLED", "Otkazano");
+            t.put("orderSubtotal", "Međuzbir");
+            t.put("orderDelivery", "Dostava");
+            t.put("orderFree", "Besplatno");
+            t.put("orderStatusUpdatedNote", "Status ažuriran");
+            t.put("allRightsReserved", "Sva prava zadržana.");
         } else {
             t.put("resetSubject", "Password Reset Request");
             t.put("resetTitle", "Reset Your Password");
@@ -459,12 +494,25 @@ public class EmailService {
             t.put("SHIPPED", "Shipped");
             t.put("DELIVERED", "Delivered");
             t.put("CANCELLED", "Cancelled");
+            t.put("orderSubtotal", "Subtotal");
+            t.put("orderDelivery", "Delivery");
+            t.put("orderFree", "Free");
+            t.put("orderStatusUpdatedNote", "Status updated");
+            t.put("allRightsReserved", "All rights reserved.");
         }
         return t;
     }
 
-    public void sendNotificationEmail(String to, String subject, String message, String imageUrl, String bgColor, String textColor) {
+    public void sendNotificationEmail(String to,
+                                      String subject,
+                                      String message,
+                                      String imageUrl,
+                                      String bgColor,
+                                      String textColor,
+                                      String lang) {
         try {
+            Map<String, String> t = getEmailTranslations(lang);
+
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
@@ -474,8 +522,6 @@ public class EmailService {
 
             String bg = (bgColor != null && !bgColor.isBlank()) ? bgColor : "#ffffff";
             String text = (textColor != null && !textColor.isBlank()) ? textColor : "#111111";
-            String logoUrl = fetchLogoUrl();
-            String tagline = fetchTagline();
 
             String imageHtml = hasImage(imageUrl) ? """
                     <div style="margin: 0 0 24px;">
@@ -520,14 +566,14 @@ public class EmailService {
                                 </div>
                             </div>
                             <div class="footer">
-                                <p>© 2026 NoPressure. All rights reserved.</p>
+                                <p>© 2026 NoPressure. %s</p>
                             </div>
                         </div>
                     </body>
                     </html>
-                    """.formatted(bg, imageHtml, subjectHtml, text, message);
+                    """.formatted(bg, imageHtml, subjectHtml, text, message, t.get("allRightsReserved"));
 
-            setEmailLogoHeader(html, helper);
+            setEmailLogoHeader(html, helper, t.get("allRightsReserved"));
 
             if (hasImage(imageUrl)) {
                 String relativePath = imageUrl.startsWith("/") ? imageUrl.substring(1) : imageUrl;

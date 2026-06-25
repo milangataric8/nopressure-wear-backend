@@ -77,7 +77,7 @@ public class AuthService {
                 .build();
     }
 
-    public void forgotPassword(ForgotPasswordRequest request) {
+    public void forgotPassword(ForgotPasswordRequest request, String lang) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -86,7 +86,7 @@ public class AuthService {
         user.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
         userRepository.save(user);
 
-        emailService.sendPasswordResetEmail(user.getEmail(), token);
+        emailService.sendPasswordResetEmail(user.getEmail(), token, lang);
     }
 
     public void resetPassword(ResetPasswordRequest request) {
