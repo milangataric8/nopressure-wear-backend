@@ -29,9 +29,10 @@ public class OrderController {
             @PathVariable Long userId,
             @RequestParam(required = false) String couponCode,
             @RequestParam(required = false) String paymentMethod,
+            @RequestParam(required = false) String paymentIntentId,
             @RequestParam(defaultValue = "en") String lang) {
         return ResponseEntity.status(CREATED)
-                .body(orderService.checkout(userId, couponCode, paymentMethod, lang));
+                .body(orderService.checkout(userId, couponCode, paymentMethod, paymentIntentId, lang));
     }
 
     @PostMapping("/guest-checkout")

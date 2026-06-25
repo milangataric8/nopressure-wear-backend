@@ -9,6 +9,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import rs.nopressurewear.dto.category.CategoryRequest;
 import rs.nopressurewear.dto.category.CategoryResponse;
+import rs.nopressurewear.repository.StoreSettingsRepository;
 import rs.nopressurewear.security.JwtUtil;
 import rs.nopressurewear.security.UserDetailsServiceImpl;
 import org.springframework.data.domain.PageImpl;
@@ -41,6 +42,9 @@ class CategoryControllerTest {
 
     @MockitoBean
     private UserDetailsServiceImpl userDetailsService;
+
+    @MockitoBean
+    private StoreSettingsRepository storeSettingsRepository;
 
     @Test
     @WithMockUser(roles = "ADMIN")

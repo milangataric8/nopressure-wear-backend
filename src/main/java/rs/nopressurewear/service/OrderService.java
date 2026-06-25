@@ -40,11 +40,12 @@ public class OrderService {
     private final CouponRepository couponRepository;
     private final EmailService emailService;
 
-    private record ProductWithQuantity(Product product, int quantity) {}
+    private record ProductWithQuantity(Long productId, int quantity) {}
 
     @Transactional
-    public OrderResponse checkout(Long userId, String couponCode, String paymentMethod, String lang) {
-        Cart cart = cartRepository.findByUserId(userId)
+    public OrderResponse checkout(Long userId, String couponCode, String paymentMethod, String paymentIntentId, String lang) {
+        // Pessimistic lock on cart prevents concurrent double-checkout of the same cart
+        Cart cart = cartRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
 
         if (cart.getCartItems().isEmpty()) {
@@ -57,14 +58,14 @@ public class OrderService {
         Order order = createOrder(user);
 
         List<ProductWithQuantity> pairs = cart.getCartItems().stream()
-                .map(cartItem -> new ProductWithQuantity(cartItem.getProduct(), cartItem.getQuantity()))
+                .map(cartItem -> new ProductWithQuantity(cartItem.getProduct().getId(), cartItem.getQuantity()))
                 .toList();
 
         order.setOrderItems(buildOrderItems(pairs, order));
 
         BigDecimal total = calculateTotalOrderValue(order.getOrderItems());
         total = applyCouponToOrder(order, couponCode, total);
-        setPaymentFields(order, paymentMethod);
+        setPaymentFields(order, paymentMethod, paymentIntentId);
         order.setTotalAmount(total);
 
         cart.getCartItems().clear();
@@ -99,18 +100,14 @@ public class OrderService {
                 .build();
 
         List<ProductWithQuantity> pairs = request.getItems().stream()
-                .map(reqItem -> {
-                    Product product = productRepository.findById(reqItem.getProductId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + reqItem.getProductId()));
-                    return new ProductWithQuantity(product, reqItem.getQuantity());
-                })
+                .map(reqItem -> new ProductWithQuantity(reqItem.getProductId(), reqItem.getQuantity()))
                 .toList();
 
         order.setOrderItems(buildOrderItems(pairs, order));
 
         BigDecimal total = calculateTotalOrderValue(order.getOrderItems());
         total = applyCouponToOrder(order, request.getCouponCode(), total);
-        setPaymentFields(order, request.getPaymentMethod());
+        setPaymentFields(order, request.getPaymentMethod(), null);
         order.setTotalAmount(total);
 
         sendOrderConfirmation(order, lang);
@@ -120,7 +117,10 @@ public class OrderService {
 
     private List<OrderItem> buildOrderItems(List<ProductWithQuantity> pairs, Order order) {
         return pairs.stream().map(pair -> {
-            Product product = pair.product();
+            // Pessimistic write lock prevents two concurrent orders from overselling the same product
+            Product product = productRepository.findByIdForUpdate(pair.productId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + pair.productId()));
+
             Integer stock = product.getStockQuantity();
             if (nonNull(stock) && stock < pair.quantity()) {
                 throw new RuntimeException("Insufficient stock for product: " + product.getName());
@@ -164,9 +164,19 @@ public class OrderService {
         return total.subtract(discountAmount);
     }
 
-    private static void setPaymentFields(Order order, String paymentMethod) {
+    private static void setPaymentFields(Order order, String paymentMethod, String paymentIntentId) {
         order.setPaymentMethod(nonNull(paymentMethod) ? paymentMethod : "COD");
-        order.setPaymentStatus("CARD".equals(paymentMethod) ? "PAID" : "PENDING");
+        if ("CARD".equals(paymentMethod)) {
+            if (nonNull(paymentIntentId) && !paymentIntentId.isBlank()) {
+                // Webhook will confirm payment; keep PENDING_PAYMENT until payment_intent.succeeded fires
+                order.setStripePaymentId(paymentIntentId);
+                order.setPaymentStatus("PENDING_PAYMENT");
+            } else {
+                order.setPaymentStatus("PAID");
+            }
+        } else {
+            order.setPaymentStatus("PENDING");
+        }
     }
 
     private static BigDecimal calculateTotalOrderValue(List<OrderItem> orderItems) {

@@ -11,6 +11,7 @@ import rs.nopressurewear.model.Category;
 import rs.nopressurewear.model.Product;
 import rs.nopressurewear.model.ProductImage;
 import rs.nopressurewear.repository.*;
+import rs.nopressurewear.util.HtmlSanitizer;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -37,7 +38,7 @@ public class ProductService {
 
         Product product = Product.builder()
                 .name(request.getName())
-                .description(request.getDescription())
+                .description(HtmlSanitizer.sanitize(request.getDescription()))
                 .price(request.getPrice())
                 .stockQuantity(request.getStockQuantity())
                 .sku(request.getSku())
@@ -208,7 +209,7 @@ public class ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         product.setName(request.getName());
-        product.setDescription(request.getDescription());
+        product.setDescription(HtmlSanitizer.sanitize(request.getDescription()));
         product.setPrice(request.getPrice());
         product.setStockQuantity(request.getStockQuantity());
         product.setImageUrl(request.getImageUrl());

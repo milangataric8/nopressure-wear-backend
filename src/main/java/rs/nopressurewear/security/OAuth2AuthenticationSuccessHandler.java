@@ -2,7 +2,6 @@ package rs.nopressurewear.security;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -17,15 +16,22 @@ import java.io.IOException;
 import static rs.nopressurewear.constants.Role.CUSTOMER;
 
 @Component
-@RequiredArgsConstructor
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
     private final StoreSettingsRepository storeSettingsRepository;
+    private final String frontendUrl;
 
-    @Value("${app.frontend-url}")
-    private String frontendUrl;
+    public OAuth2AuthenticationSuccessHandler(JwtUtil jwtUtil,
+                                              UserRepository userRepository,
+                                              StoreSettingsRepository storeSettingsRepository,
+                                              @Value("${app.frontend-url}") String frontendUrl) {
+        this.jwtUtil = jwtUtil;
+        this.userRepository = userRepository;
+        this.storeSettingsRepository = storeSettingsRepository;
+        this.frontendUrl = frontendUrl;
+    }
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,

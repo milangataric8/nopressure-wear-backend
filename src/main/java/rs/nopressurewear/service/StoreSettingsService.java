@@ -8,6 +8,7 @@ import rs.nopressurewear.dto.settings.StoreSettingsResponse;
 import rs.nopressurewear.exception.ResourceNotFoundException;
 import rs.nopressurewear.model.StoreSettings;
 import rs.nopressurewear.repository.StoreSettingsRepository;
+import rs.nopressurewear.util.HtmlSanitizer;
 
 import java.util.List;
 import java.util.Map;
@@ -41,7 +42,10 @@ public class StoreSettingsService {
     public StoreSettingsResponse update(Long id, StoreSettingsRequest request) {
         StoreSettings setting = storeSettingsRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Setting not found"));
-        setting.setValue(request.getValue());
+        String value = "store_tagline".equals(setting.getKey())
+                ? HtmlSanitizer.sanitize(request.getValue())
+                : request.getValue();
+        setting.setValue(value);
         return toResponse(storeSettingsRepository.save(setting));
     }
 

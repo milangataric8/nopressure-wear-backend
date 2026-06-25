@@ -1,6 +1,5 @@
 package rs.nopressurewear.config;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,7 +27,6 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 
 @Configuration
 @EnableMethodSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
@@ -36,9 +34,21 @@ public class SecurityConfig {
     private final OAuth2UserService oAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler;
     private final JwtAuthEntryPoint jwtAuthEntryPoint;
+    private final String frontendUrl;
 
-    @Value("${app.frontend-url}")
-    private String frontendUrl;
+    public SecurityConfig(JwtFilter jwtFilter,
+                          UserDetailsServiceImpl userDetailsService,
+                          OAuth2UserService oAuth2UserService,
+                          OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler,
+                          JwtAuthEntryPoint jwtAuthEntryPoint,
+                          @Value("${app.frontend-url}") String frontendUrl) {
+        this.jwtFilter = jwtFilter;
+        this.userDetailsService = userDetailsService;
+        this.oAuth2UserService = oAuth2UserService;
+        this.oAuth2SuccessHandler = oAuth2SuccessHandler;
+        this.jwtAuthEntryPoint = jwtAuthEntryPoint;
+        this.frontendUrl = frontendUrl;
+    }
     @Bean
     @Order(1)
     public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
@@ -88,8 +98,10 @@ public class SecurityConfig {
                         .requestMatchers(PUT, "/api/settings/**").hasRole("ADMIN")
                         .requestMatchers(GET, "/api/filters/visible").permitAll()
                         .requestMatchers("/api/filters/**").hasRole("ADMIN")
+                        .requestMatchers(POST, "/api/payments/webhook").permitAll()
                         .requestMatchers(POST, "/api/payments/guest-payment-intent").permitAll()
                         .requestMatchers("/api/payments/**").authenticated()
+                        .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(GET, "/api/popups/active").permitAll()
                         .requestMatchers("/api/popups/**").hasRole("ADMIN")
                         .requestMatchers(GET, "/api/stores/active").permitAll()

@@ -10,6 +10,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import rs.nopressurewear.dto.auth.AuthResponse;
 import rs.nopressurewear.dto.auth.LoginRequest;
 import rs.nopressurewear.dto.auth.RegisterRequest;
+import rs.nopressurewear.repository.StoreSettingsRepository;
 import rs.nopressurewear.security.JwtUtil;
 import rs.nopressurewear.security.UserDetailsServiceImpl;
 import rs.nopressurewear.service.AuthService;
@@ -38,6 +39,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private UserDetailsServiceImpl userDetailsService;
+
+    @MockitoBean
+    private StoreSettingsRepository storeSettingsRepository;
 
     @Test
     @WithMockUser

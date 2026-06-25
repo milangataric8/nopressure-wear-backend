@@ -13,6 +13,8 @@ import rs.nopressurewear.service.StripeService;
 import java.util.List;
 import java.util.Map;
 
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+
 @RestController
 @RequestMapping("/api/payments")
 @RequiredArgsConstructor
@@ -30,6 +32,7 @@ public class PaymentController {
         );
 
         return ResponseEntity.ok(PaymentIntentResponse.builder()
+                .paymentIntentId(paymentIntent.getId())
                 .clientSecret(paymentIntent.getClientSecret())
                 .amount(paymentIntent.getAmount())
                 .currency(paymentIntent.getCurrency())
@@ -53,10 +56,19 @@ public class PaymentController {
         PaymentIntent paymentIntent = stripeService.createGuestPaymentIntent(items, couponCode);
 
         return ResponseEntity.ok(PaymentIntentResponse.builder()
+                .paymentIntentId(paymentIntent.getId())
                 .clientSecret(paymentIntent.getClientSecret())
                 .amount(paymentIntent.getAmount())
                 .currency(paymentIntent.getCurrency())
                 .build());
+    }
+
+    @PostMapping(value = "/webhook", consumes = APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> handleWebhook(
+            @RequestBody byte[] payload,
+            @RequestHeader("Stripe-Signature") String sigHeader) {
+        stripeService.handleWebhookEvent(payload, sigHeader);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/cards/{userId}")

@@ -15,8 +15,10 @@ import rs.nopressurewear.dto.auth.LoginRequest;
 import rs.nopressurewear.dto.auth.RegisterRequest;
 import rs.nopressurewear.exception.DuplicateResourceException;
 import rs.nopressurewear.model.User;
+import rs.nopressurewear.repository.StoreSettingsRepository;
 import rs.nopressurewear.repository.UserRepository;
 import rs.nopressurewear.security.JwtUtil;
+import rs.nopressurewear.service.EmailService;
 
 import java.util.Optional;
 
@@ -39,6 +41,12 @@ class AuthServiceTest {
 
     @Mock
     private AuthenticationManager authenticationManager;
+
+    @Mock
+    private EmailService emailService;
+
+    @Mock
+    private StoreSettingsRepository storeSettingsRepository;
 
     @InjectMocks
     private AuthService authService;
@@ -68,6 +76,8 @@ class AuthServiceTest {
         loginRequest = new LoginRequest();
         loginRequest.setEmail("milan@nopressurewear.com");
         loginRequest.setPassword("password123");
+
+        lenient().when(storeSettingsRepository.findByKey(anyString())).thenReturn(Optional.empty());
     }
 
     @Test

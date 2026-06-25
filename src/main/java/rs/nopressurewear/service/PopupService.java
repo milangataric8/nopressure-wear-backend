@@ -8,6 +8,7 @@ import rs.nopressurewear.dto.popup.PopupResponse;
 import rs.nopressurewear.exception.ResourceNotFoundException;
 import rs.nopressurewear.model.Popup;
 import rs.nopressurewear.repository.PopupRepository;
+import rs.nopressurewear.util.HtmlSanitizer;
 
 import java.util.List;
 
@@ -37,7 +38,7 @@ public class PopupService {
         Popup popup = Popup.builder()
                 .title(request.getTitle())
                 .subtitle(request.getSubtitle())
-                .content(request.getContent())
+                .content(HtmlSanitizer.sanitize(request.getContent()))
                 .mediaUrl(request.getMediaUrl())
                 .mediaType(nonNull(request.getMediaType()) ? request.getMediaType() : "IMAGE")
                 .buttonText(request.getButtonText())
@@ -58,7 +59,7 @@ public class PopupService {
 
         popup.setTitle(request.getTitle());
         popup.setSubtitle(request.getSubtitle());
-        popup.setContent(request.getContent());
+        popup.setContent(HtmlSanitizer.sanitize(request.getContent()));
         popup.setMediaUrl(request.getMediaUrl());
         popup.setMediaType(request.getMediaType());
         popup.setButtonText(request.getButtonText());

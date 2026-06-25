@@ -8,6 +8,7 @@ import rs.nopressurewear.model.User;
 import rs.nopressurewear.notification.NotificationChannel;
 import rs.nopressurewear.repository.NotificationRepository;
 import rs.nopressurewear.repository.UserRepository;
+import rs.nopressurewear.util.HtmlSanitizer;
 
 import java.util.List;
 import java.util.Map;
@@ -62,7 +63,7 @@ public class NotificationService {
 
         Notification notification = Notification.builder()
                 .subject(request.getSubject())
-                .message(request.getMessage())
+                .message(HtmlSanitizer.sanitize(request.getMessage()))
                 .imageUrl(request.getImageUrl())
                 .bgColor(request.getBgColor())
                 .textColor(request.getTextColor())

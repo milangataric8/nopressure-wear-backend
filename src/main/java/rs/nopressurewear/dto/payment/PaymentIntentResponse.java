@@ -8,6 +8,7 @@ import lombok.Setter;
 @Setter
 @Builder
 public class PaymentIntentResponse {
+    private String paymentIntentId;
     private String clientSecret;
     private Long amount;
     private String currency;

@@ -138,6 +138,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findAllByOrderByCreatedAtDesc();
 
+    java.util.Optional<Order> findByStripePaymentId(String stripePaymentId);
+
     @Query(
     value = """
         SELECT u.first_name || ' ' || u.last_name AS name,
