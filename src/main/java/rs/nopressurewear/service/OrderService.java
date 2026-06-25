@@ -39,8 +39,9 @@ public class OrderService {
     private final UserRepository userRepository;
     private final CouponRepository couponRepository;
     private final EmailService emailService;
+    private final ProductVariantRepository productVariantRepository;
 
-    private record ProductWithQuantity(Long productId, int quantity) {}
+    private record ProductWithQuantity(Long productId, int quantity, ProductSize size) {}
 
     @Transactional
     public OrderResponse checkout(Long userId, String couponCode, String paymentMethod, String paymentIntentId, String lang) {
@@ -58,7 +59,7 @@ public class OrderService {
         Order order = createOrder(user);
 
         List<ProductWithQuantity> pairs = cart.getCartItems().stream()
-                .map(cartItem -> new ProductWithQuantity(cartItem.getProduct().getId(), cartItem.getQuantity()))
+                .map(cartItem -> new ProductWithQuantity(cartItem.getProduct().getId(), cartItem.getQuantity(), cartItem.getSize()))
                 .toList();
 
         order.setOrderItems(buildOrderItems(pairs, order));
@@ -100,7 +101,7 @@ public class OrderService {
                 .build();
 
         List<ProductWithQuantity> pairs = request.getItems().stream()
-                .map(reqItem -> new ProductWithQuantity(reqItem.getProductId(), reqItem.getQuantity()))
+                .map(reqItem -> new ProductWithQuantity(reqItem.getProductId(), reqItem.getQuantity(), reqItem.getSize()))
                 .toList();
 
         order.setOrderItems(buildOrderItems(pairs, order));
@@ -121,13 +122,29 @@ public class OrderService {
             Product product = productRepository.findByIdForUpdate(pair.productId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + pair.productId()));
 
-            Integer stock = product.getStockQuantity();
-            if (nonNull(stock) && stock < pair.quantity()) {
-                throw new RuntimeException("Insufficient stock for product: " + product.getName());
+            if (nonNull(pair.size())) {
+                ProductVariant variant = productVariantRepository
+                        .findWithLockByProductIdAndSize(product.getId(), pair.size())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Size " + pair.size() + " not available for: " + product.getName()));
+                if (variant.getStockQuantity() < pair.quantity()) {
+                    throw new RuntimeException("Insufficient stock for " + product.getName() + " (size " + pair.size() + ")");
+                }
+                variant.setStockQuantity(variant.getStockQuantity() - pair.quantity());
+                productVariantRepository.save(variant);
+                if (nonNull(product.getStockQuantity())) {
+                    product.setStockQuantity(Math.max(0, product.getStockQuantity() - pair.quantity()));
+                }
+            } else {
+                Integer stock = product.getStockQuantity();
+                if (nonNull(stock) && stock < pair.quantity()) {
+                    throw new RuntimeException("Insufficient stock for product: " + product.getName());
+                }
+                if (nonNull(stock)) {
+                    product.setStockQuantity(stock - pair.quantity());
+                }
             }
-            if (nonNull(stock)) {
-                product.setStockQuantity(stock - pair.quantity());
-            }
+
             product.setSalesCount((nonNull(product.getSalesCount()) ? product.getSalesCount() : 0) + pair.quantity());
             productRepository.save(product);
 
@@ -141,6 +158,7 @@ public class OrderService {
                     .priceAtPurchase(nonNull(product.getDiscountPrice())
                             ? product.getDiscountPrice()
                             : product.getPrice())
+                    .size(pair.size())
                     .build();
         }).toList();
     }
@@ -264,12 +282,13 @@ public class OrderService {
                 ? item.getProductName()
                 : (nonNull(item.getProduct()) ? item.getProduct().getName() : "—");
 
+        String sizeLabel = nonNull(item.getSize()) ? " | Size: " + item.getSize() : "";
         productRows.append("""
                 <div class="item-row">
                     %s
                     <div>
                         <p class="item-name">%s</p>
-                        <p class="item-qty">Qty: %d × %s RSD</p>
+                        <p class="item-qty">Qty: %d × %s RSD%s</p>
                     </div>
                     <span class="item-price">%s RSD</span>
                 </div>
@@ -278,6 +297,7 @@ public class OrderService {
                 productName,
                 item.getQuantity(),
                 item.getPriceAtPurchase(),
+                sizeLabel,
                 item.getPriceAtPurchase().multiply(quantity)
         ));
     }
@@ -384,24 +404,45 @@ public class OrderService {
         if (status == CANCELLED && previousStatus != CANCELLED) {
             for (OrderItem item : order.getOrderItems()) {
                 Product product = item.getProduct();
-                product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
-
-                int restoredSales = (nonNull(product.getSalesCount()) ? product.getSalesCount() : 0) - item.getQuantity();
-                product.setSalesCount(Math.max(restoredSales, 0));
-
-                productRepository.save(product);
+                if (nonNull(item.getSize()) && nonNull(product)) {
+                    productVariantRepository.findByProductIdAndSize(product.getId(), item.getSize())
+                            .ifPresent(v -> {
+                                v.setStockQuantity(v.getStockQuantity() + item.getQuantity());
+                                productVariantRepository.save(v);
+                            });
+                }
+                if (nonNull(product)) {
+                    product.setStockQuantity((nonNull(product.getStockQuantity()) ? product.getStockQuantity() : 0) + item.getQuantity());
+                    int restoredSales = (nonNull(product.getSalesCount()) ? product.getSalesCount() : 0) - item.getQuantity();
+                    product.setSalesCount(Math.max(restoredSales, 0));
+                    productRepository.save(product);
+                }
             }
         }
 
         if (previousStatus == CANCELLED && status != CANCELLED) {
             for (OrderItem item : order.getOrderItems()) {
                 Product product = item.getProduct();
-                if (product.getStockQuantity() < item.getQuantity()) {
-                    throw new RuntimeException("Insufficient stock to reactivate order for product: " + product.getName());
+                if (nonNull(item.getSize()) && nonNull(product)) {
+                    ProductVariant variant = productVariantRepository
+                            .findByProductIdAndSize(product.getId(), item.getSize())
+                            .orElseThrow(() -> new ResourceNotFoundException(
+                                    "Size " + item.getSize() + " no longer available for: " + product.getName()));
+                    if (variant.getStockQuantity() < item.getQuantity()) {
+                        throw new RuntimeException("Insufficient stock to reactivate order for product: "
+                                + product.getName() + " (size " + item.getSize() + ")");
+                    }
+                    variant.setStockQuantity(variant.getStockQuantity() - item.getQuantity());
+                    productVariantRepository.save(variant);
                 }
-                product.setStockQuantity(product.getStockQuantity() - item.getQuantity());
-                product.setSalesCount((nonNull(product.getSalesCount()) ? product.getSalesCount() : 0) + item.getQuantity());
-                productRepository.save(product);
+                if (nonNull(product)) {
+                    if (nonNull(product.getStockQuantity()) && product.getStockQuantity() < item.getQuantity()) {
+                        throw new RuntimeException("Insufficient stock to reactivate order for product: " + product.getName());
+                    }
+                    product.setStockQuantity((nonNull(product.getStockQuantity()) ? product.getStockQuantity() : 0) - item.getQuantity());
+                    product.setSalesCount((nonNull(product.getSalesCount()) ? product.getSalesCount() : 0) + item.getQuantity());
+                    productRepository.save(product);
+                }
             }
         }
     }
@@ -452,7 +493,7 @@ public class OrderService {
     private OrderItemResponse toItemResponse(OrderItem item) {
         return OrderItemResponse.builder()
                 .id(item.getId())
-                .productId(item.getProduct().getId())
+                .productId(nonNull(item.getProduct()) ? item.getProduct().getId() : null)
                 .productName(nonNull(item.getProductName())
                         ? item.getProductName()
                         : (nonNull(item.getProduct()) ? item.getProduct().getName() : "—"))
@@ -460,7 +501,8 @@ public class OrderService {
                 .priceAtPurchase(item.getPriceAtPurchase())
                 .subtotal(item.getPriceAtPurchase()
                         .multiply(BigDecimal.valueOf(item.getQuantity())))
-                .imageUrl(item.getProduct().getImageUrl())
+                .imageUrl(nonNull(item.getProduct()) ? item.getProduct().getImageUrl() : null)
+                .size(item.getSize())
                 .build();
     }
 }

@@ -57,6 +57,10 @@ public class Product {
     @OrderBy("displayOrder ASC")
     private List<ProductImage> images = new ArrayList<>();
 
+    @OneToMany(mappedBy = "product")
+    @Builder.Default
+    private List<ProductVariant> variants = new ArrayList<>();
+
     @Column(nullable = false)
     private boolean isActive = true;
 

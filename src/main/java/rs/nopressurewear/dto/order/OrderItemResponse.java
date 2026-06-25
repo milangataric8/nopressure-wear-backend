@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import rs.nopressurewear.model.ProductSize;
 
 @Getter
 @Setter
@@ -19,4 +20,5 @@ public class OrderItemResponse {
     private BigDecimal subtotal;
     private String imageUrl;
     private String orderCode;
+    private ProductSize size;
 }

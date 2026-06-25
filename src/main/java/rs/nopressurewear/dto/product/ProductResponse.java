@@ -37,4 +37,6 @@ public class ProductResponse {
     private BigDecimal discountPrice;
     private String material;
     private Integer salesCount;
+    private List<ProductVariantResponse> variants;
+    private Integer totalStock;
 }

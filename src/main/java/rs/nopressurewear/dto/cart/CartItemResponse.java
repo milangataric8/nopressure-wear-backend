@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import rs.nopressurewear.model.ProductSize;
 
 @Getter
 @Setter
@@ -21,4 +22,5 @@ public class CartItemResponse {
     private String imageUrl;
     private BigDecimal discountPrice;
     private BigDecimal discountPercentage;
+    private ProductSize size;
 }

@@ -19,6 +19,7 @@ import rs.nopressurewear.repository.CategoryRepository;
 import rs.nopressurewear.repository.ProductColorVariantRepository;
 import rs.nopressurewear.repository.ProductImageRepository;
 import rs.nopressurewear.repository.ProductRepository;
+import rs.nopressurewear.repository.ProductVariantRepository;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -27,6 +28,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.atLeastOnce;
 
 @ExtendWith(MockitoExtension.class)
 class ProductServiceTest {
@@ -42,6 +44,9 @@ class ProductServiceTest {
 
     @Mock
     private ProductColorVariantRepository colorVariantRepository;
+
+    @Mock
+    private ProductVariantRepository productVariantRepository;
 
     @InjectMocks
     private ProductService productService;
@@ -79,6 +84,8 @@ class ProductServiceTest {
         lenient().when(productImageRepository.findByProductIdOrderByDisplayOrderAsc(anyLong())).thenReturn(List.of());
         lenient().when(colorVariantRepository.findByProductId(anyLong())).thenReturn(List.of());
         lenient().when(productRepository.findBySkuContainingAndIdNot(anyString(), anyLong())).thenReturn(List.of());
+        lenient().when(productVariantRepository.findByProductId(anyLong())).thenReturn(List.of());
+        lenient().when(productVariantRepository.saveAll(any())).thenReturn(List.of());
     }
 
     @Test
@@ -91,7 +98,7 @@ class ProductServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.getName()).isEqualTo("iPhone 15 Pro");
         assertThat(response.getPrice()).isEqualTo(new BigDecimal("999.99"));
-        verify(productRepository, times(1)).save(any(Product.class));
+        verify(productRepository, atLeastOnce()).save(any(Product.class));
     }
 
     @Test

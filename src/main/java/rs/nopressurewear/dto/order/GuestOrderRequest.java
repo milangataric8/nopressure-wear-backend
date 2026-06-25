@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
+import rs.nopressurewear.model.ProductSize;
 
 @Getter
 @Setter
@@ -47,5 +48,6 @@ public class GuestOrderRequest {
         @NotNull
         @Min(1)
         private Integer quantity;
+        private ProductSize size;
     }
 }

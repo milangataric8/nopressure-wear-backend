@@ -13,8 +13,12 @@ import rs.nopressurewear.model.ProductImage;
 import rs.nopressurewear.repository.*;
 import rs.nopressurewear.util.HtmlSanitizer;
 
+import rs.nopressurewear.model.ProductVariant;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,15 +36,16 @@ public class ProductService {
     private final CategoryRepository categoryRepository;
     private final ProductImageRepository productImageRepository;
     private final ProductColorVariantRepository colorVariantRepository;
+    private final ProductVariantRepository productVariantRepository;
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @Transactional
     public ProductResponse create(ProductRequest request) {
 
         Product product = Product.builder()
                 .name(request.getName())
                 .description(HtmlSanitizer.sanitize(request.getDescription()))
                 .price(request.getPrice())
-                .stockQuantity(request.getStockQuantity())
                 .sku(request.getSku())
                 .imageUrl(request.getImageUrl())
                 .isActive(true)
@@ -63,6 +68,13 @@ public class ProductService {
         calculateDiscountPrice(product);
 
         Product saved = productRepository.save(product);
+
+        List<ProductVariant> variants = buildVariants(saved, request.getVariants());
+        productVariantRepository.saveAll(variants);
+        int total = variants.stream().mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0).sum();
+        saved.setStockQuantity(total);
+        productRepository.save(saved);
+
         return toResponse(saved);
     }
 
@@ -204,6 +216,7 @@ public class ProductService {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @Transactional
     public ProductResponse update(Long id, ProductRequest request) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
@@ -211,7 +224,6 @@ public class ProductService {
         product.setName(request.getName());
         product.setDescription(HtmlSanitizer.sanitize(request.getDescription()));
         product.setPrice(request.getPrice());
-        product.setStockQuantity(request.getStockQuantity());
         product.setImageUrl(request.getImageUrl());
         product.setSku(request.getSku());
 
@@ -233,6 +245,12 @@ public class ProductService {
                 ? request.getDiscountPercentage()
                 : ZERO);
         calculateDiscountPrice(product);
+
+        productVariantRepository.deleteByProductId(id);
+        List<ProductVariant> variants = buildVariants(product, request.getVariants());
+        productVariantRepository.saveAll(variants);
+        int total = variants.stream().mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0).sum();
+        product.setStockQuantity(total);
 
         Product saved = productRepository.save(product);
         return toResponse(saved);
@@ -341,6 +359,22 @@ public class ProductService {
                 })
                 .toList();
 
+        List<ProductVariantResponse> variants = productVariantRepository.findByProductId(product.getId())
+                .stream()
+                .sorted(Comparator.comparingInt(v -> v.getSize().ordinal()))
+                .map(v -> ProductVariantResponse.builder()
+                        .id(v.getId())
+                        .size(v.getSize())
+                        .stockQuantity(v.getStockQuantity())
+                        .sku(v.getSku())
+                        .inStock(v.getStockQuantity() != null && v.getStockQuantity() > 0)
+                        .build())
+                .toList();
+
+        int totalStock = variants.stream()
+                .mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0)
+                .sum();
+
         return ProductResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
@@ -366,6 +400,23 @@ public class ProductService {
                 .discountPrice(product.getDiscountPrice())
                 .material(product.getMaterial())
                 .salesCount(product.getSalesCount())
+                .variants(variants)
+                .totalStock(totalStock)
                 .build();
+    }
+
+    private List<ProductVariant> buildVariants(Product product, List<ProductVariantRequest> requested) {
+        if (requested == null || requested.isEmpty()) {
+            return List.of();
+        }
+        return requested.stream()
+                .filter(v -> v.getSize() != null)
+                .map(v -> ProductVariant.builder()
+                        .product(product)
+                        .size(v.getSize())
+                        .stockQuantity(v.getStockQuantity() != null ? v.getStockQuantity() : 0)
+                        .sku(v.getSku())
+                        .build())
+                .toList();
     }
 }

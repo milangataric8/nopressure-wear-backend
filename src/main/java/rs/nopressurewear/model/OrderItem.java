@@ -43,4 +43,8 @@ public class OrderItem {
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal priceAtPurchase;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "size")
+    private ProductSize size;
 }

@@ -6,32 +6,31 @@ import lombok.*;
 import static jakarta.persistence.FetchType.LAZY;
 import static jakarta.persistence.GenerationType.IDENTITY;
 
-
 @Entity
-@Table(name = "cart_item")
+@Table(name = "product_variant",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"product_id", "size"}))
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CartItem {
+public class ProductVariant {
 
     @Id
     @GeneratedValue(strategy = IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = LAZY)
-    @JoinColumn(name = "cart_id", nullable = false)
-    private Cart cart;
-
-    @ManyToOne(fetch = LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @Column(nullable = false)
-    private Integer quantity;
-
     @Enumerated(EnumType.STRING)
-    @Column(name = "size")
+    @Column(name = "size", nullable = false, length = 10)
     private ProductSize size;
+
+    @Column(name = "stock_quantity", nullable = false)
+    private Integer stockQuantity = 0;
+
+    @Column(name = "sku")
+    private String sku;
 }

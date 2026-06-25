@@ -8,14 +8,9 @@ import rs.nopressurewear.dto.cart.CartItemRequest;
 import rs.nopressurewear.dto.cart.CartItemResponse;
 import rs.nopressurewear.dto.cart.CartResponse;
 import rs.nopressurewear.exception.ResourceNotFoundException;
-import rs.nopressurewear.model.Cart;
-import rs.nopressurewear.model.CartItem;
-import rs.nopressurewear.model.Product;
-import rs.nopressurewear.model.User;
-import rs.nopressurewear.repository.CartItemRepository;
-import rs.nopressurewear.repository.CartRepository;
-import rs.nopressurewear.repository.ProductRepository;
-import rs.nopressurewear.repository.UserRepository;
+import rs.nopressurewear.model.*;
+import rs.nopressurewear.repository.*;
+
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -32,6 +27,7 @@ public class CartService {
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final ProductVariantRepository productVariantRepository;
 
     @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
     public CartResponse getCart(Long userId) {
@@ -51,12 +47,20 @@ public class CartService {
             throw new RuntimeException("Product is not available");
         }
 
-        if (product.getStockQuantity() < request.getQuantity()) {
-            throw new RuntimeException("Insufficient stock");
+        if (request.getSize() == null) {
+            throw new RuntimeException("Size is required");
+        }
+
+        ProductVariant variant = productVariantRepository
+                .findByProductIdAndSize(product.getId(), request.getSize())
+                .orElseThrow(() -> new ResourceNotFoundException("Size " + request.getSize() + " is not available for this product"));
+
+        if (variant.getStockQuantity() < request.getQuantity()) {
+            throw new RuntimeException("Insufficient stock for size " + request.getSize());
         }
 
         Optional<CartItem> existingItem = cartItemRepository
-                .findByCartIdAndProductId(cart.getId(), product.getId());
+                .findByCartIdAndProductIdAndSize(cart.getId(), product.getId(), request.getSize());
 
         if (existingItem.isPresent()) {
             CartItem item = existingItem.get();
@@ -67,6 +71,7 @@ public class CartService {
                     .cart(cart)
                     .product(product)
                     .quantity(request.getQuantity())
+                    .size(request.getSize())
                     .build();
             cart.getCartItems().add(newItem);
             cartItemRepository.save(newItem);
@@ -171,6 +176,7 @@ public class CartService {
                 .subtotal(subtotal)
                 .discountPrice(item.getProduct().getDiscountPrice())
                 .discountPercentage(item.getProduct().getDiscountPercentage())
+                .size(item.getSize())
                 .build();
     }
 }
