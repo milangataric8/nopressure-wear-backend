@@ -1,0 +1,41 @@
+app:
+  frontend-url: http://localhost:5173
+  base-url: http://localhost:8080
+  upload:
+    dir: uploads/products
+  removebg:
+    api-key: CHANGE_ME
+  stripe:
+    secret-key: sk_test_CHANGE_ME
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/nopressure_wear
+    username: CHANGE_ME
+    password: CHANGE_ME
+    driver-class-name: org.postgresql.Driver
+
+  mail:
+    host: sandbox.smtp.mailtrap.io
+    port: 587
+    username: CHANGE_ME
+    password: CHANGE_ME
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: CHANGE_ME
+            client-secret: CHANGE_ME
+            scope:
+              - email
+              - profile
+
+jwt:
+  secret: CHANGE_ME_min_32_chars_long_random_string
+  expiration: 86400000

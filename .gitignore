@@ -11,6 +11,10 @@ target/
 
 # Environment
 .env
+*.env
+
+# Local Spring config (contains secrets — use application-local.yml.example as template)
+src/main/resources/application-local.yml
 
 # Logs
 *.log

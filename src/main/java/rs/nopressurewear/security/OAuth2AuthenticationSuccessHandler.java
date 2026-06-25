@@ -3,11 +3,11 @@ package rs.nopressurewear.security;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
-import rs.nopressurewear.constants.Role;
 import rs.nopressurewear.model.User;
 import rs.nopressurewear.repository.StoreSettingsRepository;
 import rs.nopressurewear.repository.UserRepository;
@@ -23,6 +23,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
     private final StoreSettingsRepository storeSettingsRepository;
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
@@ -40,13 +43,13 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         if (!loginEnabled && user.getRole() == CUSTOMER) {
             getRedirectStrategy().sendRedirect(request, response,
-                    "http://localhost:5173/login?error=login_disabled");
+                    frontendUrl + "/login?error=login_disabled");
             return;
         }
 
         String token = jwtUtil.generateToken(user);
 
-        String redirectUrl = "http://localhost:5173/oauth2/callback" +
+        String redirectUrl = frontendUrl + "/oauth2/callback" +
                 "?token=" + token +
                 "&id=" + user.getId() +
                 "&email=" + user.getEmail() +

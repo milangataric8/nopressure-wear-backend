@@ -35,12 +35,15 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
+
     @Value("${app.upload.dir:uploads/products}")
     private String uploadDir;
 
     public void sendPasswordResetEmail(String to, String token, String lang) {
         Map<String, String> t = getEmailTranslations(lang);
-        String resetUrl = "http://localhost:5173/reset-password?token=" + token;
+        String resetUrl = frontendUrl + "/reset-password?token=" + token;
 
         String html = """
             <!DOCTYPE html>
@@ -105,7 +108,7 @@ public class EmailService {
 
         Map<String, String> t = getEmailTranslations(lang);
 
-        String orderUrl = "http://localhost:5173/orders/" + orderId;
+        String orderUrl = frontendUrl + "/orders/" + orderId;
 
         String statusColor = switch (status) {
             case "CONFIRMED" -> "#2563eb";

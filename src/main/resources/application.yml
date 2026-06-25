@@ -2,15 +2,12 @@ spring:
   application:
     name: nopressure-wear-webshop
 
-  datasource:
-    url: jdbc:postgresql://localhost:5432/nopressure_wear
-    username: postgres
-    password: nopressure8
-    driver-class-name: org.postgresql.Driver
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
@@ -23,57 +20,19 @@ spring:
     validate-on-migrate: false
     ignore-migration-patterns: "*:missing"
 
-
-  mail:
-    host: sandbox.smtp.mailtrap.io
-    port: 587
-    username: 3c10a071699111
-    password: bed3c0a7314b29
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
   servlet:
     multipart:
       enabled: true
       max-file-size: 20MB
       max-request-size: 20MB
 
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ${GOOGLE_CLIENT_ID:329610978446-lvvufrh9ovkqflm52hg2gkdep11qbole.apps.googleusercontent.com}
-            client-secret: ${GOOGLE_CLIENT_SECRET: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}
-            scope:
-              - email
-              - profile
-
-app:
-  upload:
-    dir: uploads/products
-
-  removebg:
-    api-key: ${REMOVEBG_API_KEY:SHucNLs42vYjzuLoLD6jkPca}
-
-  stripe:
-    secret-key: ${STRIPE_SECRET_KEY:sk_test_51TagIqHCn4yqn3qWqSaPdnEy28o9BaC4tumn6G1vfVxcUAoQ2fvujcM75BarnpsGkx1Trdj0hPUafY1ZP1qWR1CF00rGsMc4Bd}
-
-#  twilio:
-#    enabled: false
-#    account-sid: ${TWILIO_ACCOUNT_SID:}
-#    auth-token: ${TWILIO_AUTH_TOKEN:}
-#    whatsapp-from: ${TWILIO_WHATSAPP_FROM:}
-#    viber:
-#      enabled: false
-#      auth-token: ${VIBER_AUTH_TOKEN:}
+  mail:
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 server:
   port: 8080
-
-jwt:
-  secret: 66f8140ee8ac6984b1ec79b84e941da90a2b7e57e9319798f4839e964ad6db7e
-  expiration: 86400000
