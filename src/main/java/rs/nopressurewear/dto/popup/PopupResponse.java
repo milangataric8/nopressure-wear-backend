@@ -23,5 +23,6 @@ public class PopupResponse {
     private String textColor;
     private Boolean active;
     private Boolean showOnce;
+    private Integer displayDuration;
     private LocalDateTime createdAt;
 }

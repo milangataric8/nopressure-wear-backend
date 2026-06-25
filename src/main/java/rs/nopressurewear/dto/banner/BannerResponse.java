@@ -20,4 +20,5 @@ public class BannerResponse {
     private Integer displayOrder;
     private Boolean active;
     private Boolean displayTitle;
+    private Integer displayDuration;
 }

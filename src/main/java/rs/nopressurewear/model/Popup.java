@@ -51,6 +51,9 @@ public class Popup {
     @Column(nullable = false)
     private boolean showOnce = false;
 
+    @Column(name = "display_duration")
+    private Integer displayDuration = 0;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

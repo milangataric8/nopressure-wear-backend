@@ -47,4 +47,7 @@ public class Banner {
 
     @Column(name = "display_title")
     private Boolean displayTitle = true;
+
+    @Column(name = "display_duration")
+    private Integer displayDuration = 5;
 }
