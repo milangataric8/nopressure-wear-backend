@@ -18,7 +18,8 @@
       "Bash(xargs grep -l -i \"product_color_variant\")",
       "Bash(mvn compile *)",
       "PowerShell(New-Item *)",
-      "Bash(xargs grep -l -i \"broadcast\")"
+      "Bash(xargs grep -l -i \"broadcast\")",
+      "Bash(mvn test *)"
     ]
   }
 }
