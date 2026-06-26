@@ -220,14 +220,36 @@ Returns HTTP 429 with JSON error when exceeded. Uses `X-Forwarded-For` for proxy
 
 ### Tier 1 — Important (Soon After Launch)
 
-#### Email Verification on Registration ❌ NOT DONE
-**Status:** Not implemented.
+#### Email Verification on Registration ✅ DONE
+**Status:** Fully implemented (soft gate — checkout blocked, login allowed).
 
-Users can register with any email address (including typos or fake ones) and immediately access the account. 
-Add a token-based email verification step:
-1. On register: generate a verification token, save to user, send verification email
-2. User clicks link → `GET /api/auth/verify-email?token=...` → activate account
-3. Block login until verified (or allow login but restrict checkout)
+**Files changed — Backend:**
+- `V__add_email_verification_token.sql` *(Flyway migration)* — creates `email_verification_token` table (id, token, user_id FK, expires_at, used, created_at)
+- `model/EmailVerificationToken.java` *(new)* — JPA entity; `@Builder.Default` on `createdAt` so Lombok builder sets it correctly
+- `model/User.java` — added `emailVerified` boolean field
+- `repository/EmailVerificationTokenRepository.java` *(new)* — `findByToken`, `invalidatePreviousTokens`, `deleteExpiredBefore`
+- `service/AuthService.java` — `register()` calls `sendVerificationEmail()` after save (wrapped in try/catch so email failure doesn't break registration); added `sendVerificationEmail()`, `verifyEmail()`, `resendVerification()` methods; `@Scheduled` `purgeExpiredTokens()` runs nightly at 3 AM
+- `service/EmailService.java` — added `sendVerificationEmail()` method with branded HTML template (EN + SR)
+- `exception/EmailNotVerifiedException.java` *(new)*
+- `exception/GlobalExceptionHandler.java` — handler for `EmailNotVerifiedException` → 403; handler for `DuplicateResourceException` → 409; handler for `BadCredentialsException` → 401
+- `controller/AuthController.java` — added `GET /api/auth/verify-email`, `POST /api/auth/resend-verification` endpoints
+- `dto/auth/AuthResponse.java` — added `emailVerified` field
+- `application-local.yml` — fixed YAML nesting bug: mail was nested under `spring.mail.mail.*` instead of `spring.mail.*`; `JavaMailSender` now auto-configures correctly
+
+**Files changed — Frontend:**
+- `pages/VerifyEmailPage.jsx` *(new)* — handles the `/verify-email?token=` callback; shows success/failure state
+- `pages/RegisterPage.jsx` — after successful register, shows "Check your inbox" screen with resend button instead of navigating away; inline email-already-exists error under the email field (clears on edit); 409 status OR message-content detection
+- `pages/LoginPage.jsx` — inline "Invalid email or password" error above email field (instead of toast); clears on any field change; all non-403 login errors show as inline error
+- `api/authApi.js` — added `verifyEmail(token)`, `resendVerification(email)` calls
+- `api/axiosInstance.js` — 401 redirect exempts `/auth/` endpoints so bad-credential 401s reach the component
+- `i18n/en.json` + `sr.json` — added `auth.checkInboxTitle`, `auth.checkInbox`, `auth.resend`, `auth.verifying`, `auth.verifiedTitle`, `auth.verifiedText`, `auth.verifyFailedTitle`, `auth.verifyFailedText`, `auth.goToLogin`, `auth.notVerifiedCheckout`, `auth.emailAlreadyExists`
+
+**Behaviour:**
+- Register → verification email sent → "Check your inbox" screen with resend link
+- Click link → `/verify-email?token=...` → success screen → can log in
+- Checkout while unverified → blocked with translated message
+- Duplicate email on register → inline field error (translated, EN + SR)
+- Bad credentials on login → inline field error (translated, EN + SR)
 
 #### Error Monitoring (Sentry) ❌ NOT DONE
 **Status:** Not implemented.
