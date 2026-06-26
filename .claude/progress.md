@@ -4,30 +4,37 @@
 
 ## Done
 
-### 1. Config & Secrets Externalization (`feature-config-env-vars-and-profiles.md`)
+### 1. Config & Secrets Externalization (`feature-config-env-vars-and-profiles.md`) ✅ DONE
 
 **Files changed:**
-- `nopressure-wear-backend/src/main/resources/application.yml` — stripped to shared base config (profile switch, JPA, Flyway, multipart, mail SMTP properties, server port, actuator). Zero secrets.
-- `nopressure-wear-backend/src/main/resources/application-local.yml` *(new, gitignored)* — all local dev values (DB, Mailtrap, JWT, Stripe, removebg, Google OAuth2, frontend/base URLs, `ddl-auto: update`)
-- `nopressure-wear-backend/src/main/resources/application-prod.yml` *(new)* — all values as `${ENV_VAR}` references only; missing required vars fail fast at startup
-- `nopressure-wear-backend/src/main/resources/application-local.yml.example` *(new, committed)* — placeholder template with `CHANGE_ME` values for teammates
+- `nopressure-wear-backend/src/main/resources/application.yml` — stripped to shared base config (profile switch, JPA, 
+   Flyway, multipart, mail SMTP properties, server port, actuator). Zero secrets.
+- `nopressure-wear-backend/src/main/resources/application-local.yml` *(new, gitignored)* — all local dev values 
+   (DB, Mailtrap, JWT, Stripe, removebg, Google OAuth2, frontend/base URLs, `ddl-auto: update`)
+- `nopressure-wear-backend/src/main/resources/application-prod.yml` *(new)* — all values as `${ENV_VAR}` references only; 
+   missing required vars fail fast at startup
+- `nopressure-wear-backend/src/main/resources/application-local.yml.example` *(new, committed)* — placeholder template 
+   with `CHANGE_ME` values for teammates
 - `nopressure-wear-backend/.gitignore` — added `application-local.yml` and `*.env`
 - `nopressure-wear-frontend/.gitignore` — added `.env.local` and `.env.*.local`
 
 **Hardcoded URLs replaced:**
-- `OAuth2AuthenticationSuccessHandler.java` — injected `@Value("${app.frontend-url}")`, replaced two hardcoded `localhost:5173` redirect URLs
+- `OAuth2AuthenticationSuccessHandler.java` — injected `@Value("${app.frontend-url}")`, replaced two hardcoded 
+  `localhost:5173` redirect URLs
 - `EmailService.java` — injected `@Value("${app.frontend-url}")`, replaced password-reset and order-detail hardcoded URLs
 - `SecurityConfig.java` — injected `@Value("${app.frontend-url}")`, replaced hardcoded CORS allowed origins
 
-> **Action required:** Secrets that were previously committed to git (DB password, JWT secret, Stripe key, Google OAuth credentials) must be rotated — treat them as compromised.
+> **Action required:** Secrets that were previously committed to git (DB password, JWT secret, Stripe key, 
+                       Google OAuth credentials) must be rotated — treat them as compromised.
 
 ---
 
 ### 2. Go-Live Hardening (`go-live-readiness-audit.md`)
 
-#### Tier 0.1 — Stripe Webhooks
+#### Tier 0.1 — Stripe Webhooks ✅ DONE
 
-**Problem fixed:** Orders confirmed client-side only; a user who paid then closed the tab before redirect left a charged card with no confirmed order.
+**Problem fixed:** Orders confirmed client-side only; a user who paid then closed the tab before redirect left a charged 
+                   card with no confirmed order.
 
 **Files changed:**
 - `pom.xml` — no new dep needed (stripe-java already included)
@@ -35,25 +42,32 @@
 - `application-prod.yml` — added `app.stripe.webhook-secret: ${STRIPE_WEBHOOK_SECRET}`
 - `PaymentIntentResponse.java` — added `paymentIntentId` field so frontend can pass it to checkout
 - `PaymentController.java` — added `POST /api/payments/webhook` (raw `byte[]` body, no auth, Stripe-Signature verified)
-- `StripeService.java` — added `handleWebhookEvent()` with signature verification; handles `payment_intent.succeeded` → PAID and `payment_intent.payment_failed` → FAILED, idempotently
+- `StripeService.java` — added `handleWebhookEvent()` with signature verification; handles `payment_intent.succeeded` 
+                       → PAID and `payment_intent.payment_failed` → FAILED, idempotently
 - `OrderRepository.java` — added `findByStripePaymentId(String)`
 - `OrderController.java` — added optional `paymentIntentId` request param to `/{userId}/checkout`
-- `OrderService.java` — updated `setPaymentFields()`: when CARD + paymentIntentId provided, stores it and sets `paymentStatus = PENDING_PAYMENT` (webhook confirms); without it, keeps old `PAID` behavior for backward compat
+- `OrderService.java` — updated `setPaymentFields()`: when CARD + paymentIntentId provided, stores it and sets 
+                        `paymentStatus = PENDING_PAYMENT` (webhook confirms); without it, keeps old `PAID` behavior for 
+                        backward compat
 - `SecurityConfig.java` — added `permitAll` for `POST /api/payments/webhook`
 
-**How to activate on frontend:** After Stripe `confirmPayment()` succeeds, pass the PaymentIntent ID (returned from `/api/payments/create-payment-intent` as `paymentIntentId`) as a request param when calling `/{userId}/checkout`. The webhook will then set the order to PAID server-side.
+**How to activate on frontend:** After Stripe `confirmPayment()` succeeds, pass the PaymentIntent ID (returned from
+                                 `/api/payments/create-payment-intent` as `paymentIntentId`) as a request param when 
+                                 calling `/{userId}/checkout`. The webhook will then set the order to PAID server-side.
 
 **Env var to add on prod host:** `STRIPE_WEBHOOK_SECRET` — get it from the Stripe Dashboard → Webhooks → your endpoint → signing secret.
 
 ---
 
-#### Tier 0.4 — XSS Sanitization
+#### Tier 0.4 — XSS Sanitization ✅ DONE
 
-**Problem fixed:** Admin-submitted HTML (popup content, product descriptions, store tagline, broadcast messages) was stored and rendered raw via `dangerouslySetInnerHTML` with no server-side sanitization.
+**Problem fixed:** Admin-submitted HTML (popup content, product descriptions, store tagline, broadcast messages) was 
+stored and rendered raw via `dangerouslySetInnerHTML` with no server-side sanitization.
 
 **Files changed:**
 - `pom.xml` — added `jsoup 1.18.3`
-- `util/HtmlSanitizer.java` *(new)* — Jsoup `Safelist.relaxed()` strips `<script>`, event handlers, iframes, `javascript:` hrefs; allows standard formatting tags (b, i, u, em, strong, p, ul, ol, li, a, h1-3, br, etc.)
+- `util/HtmlSanitizer.java` *(new)* — Jsoup `Safelist.relaxed()` strips `<script>`, event handlers, iframes, 
+- `javascript:` hrefs; allows standard formatting tags (b, i, u, em, strong, p, ul, ol, li, a, h1-3, br, etc.)
 - `PopupService.java` — sanitize `content` on create and update
 - `ProductService.java` — sanitize `description` on create and update
 - `StoreSettingsService.java` — sanitize value when key is `store_tagline`
@@ -61,45 +75,47 @@
 
 ---
 
-#### Tier 0.6 — Rate Limiting
+#### Tier 0.6 — Rate Limiting ✅ DONE
 
 **Problem fixed:** No brute-force protection on login, registration, password reset, or contact endpoints.
 
 **Files changed:**
 - `security/RateLimitFilter.java` *(new)* — sliding-window in-memory filter (no extra dependency):
 
-| Endpoint | Limit |
-|---|---|
-| `POST /api/auth/login` | 10 req/min per IP |
-| `POST /api/auth/forgot-password` | 5 req/min per IP |
-| `POST /api/auth/register` | 20 req/min per IP |
-| `POST /api/contact` | 10 req/min per IP |
+| Endpoint                         | Limit             |
+|----------------------------------|-------------------|
+| `POST /api/auth/login`           | 10 req/min per IP |
+| `POST /api/auth/forgot-password` | 5 req/min per IP  |
+| `POST /api/auth/register`        | 20 req/min per IP |
+| `POST /api/contact`              | 10 req/min per IP |
 
 Returns HTTP 429 with JSON error when exceeded. Uses `X-Forwarded-For` for proxy-aware IP resolution.
 
 ---
 
-#### Tier 1 — Stock Race Conditions
+#### Tier 1 — Stock Race Conditions ✅ DONE
 
 **Problem fixed:** Two concurrent checkouts could both pass the stock check and both decrement, resulting in negative stock (oversell).
 
 **Files changed:**
 - `ProductRepository.java` — added `findByIdForUpdate(@Lock PESSIMISTIC_WRITE)` query
-- `OrderService.buildOrderItems()` — re-fetches each product with a pessimistic write lock instead of using the pre-loaded cart item reference; second concurrent transaction blocks until the first commits
+- `OrderService.buildOrderItems()` — re-fetches each product with a pessimistic write lock instead of using the 
+                                     pre-loaded cart item reference; second concurrent transaction blocks until the first commits
 
 ---
 
-#### Tier 1 — Order Idempotency (Cart-Level)
+#### Tier 1 — Order Idempotency (Cart-Level) ✅ DONE
 
 **Problem fixed:** Two simultaneous checkout requests for the same cart could both create orders.
 
 **Files changed:**
 - `CartRepository.java` — added `findByUserIdForUpdate(@Lock PESSIMISTIC_WRITE)`
-- `OrderService.checkout()` — now locks the cart row before reading; second concurrent checkout blocks, then sees an empty cart and throws `"Cart is empty"`
+- `OrderService.checkout()` — now locks the cart row before reading; second concurrent checkout blocks, then sees an 
+                              empty cart and throws `"Cart is empty"`
 
 ---
 
-#### Tier 1 — Health Checks
+#### Tier 1 — Health Checks ✅ DONE
 
 **Problem fixed:** No `/actuator/health` endpoint for load balancers or uptime monitors.
 
@@ -114,42 +130,70 @@ Returns HTTP 429 with JSON error when exceeded. Uses `X-Forwarded-For` for proxy
 
 ### Tier 0 — Go-Live Blockers
 
-#### 0.2 Production File Storage ⚠️
+#### 0.2 Production File Storage ❌ NOT DONE
 **Status:** Not implemented — requires infrastructure decision.
 
-**Problem:** Images upload to local disk (`app.upload.dir`). Most PaaS hosts have ephemeral filesystems — uploaded images vanish on every redeploy. Email inline images also read from local files.
+**Problem:** Images upload to local disk (`app.upload.dir`). Most PaaS hosts have ephemeral filesystems 
+             — uploaded images vanish on every redeploy. Email inline images also read from local files.
 
 **Options:**
-- **Cloudinary** (recommended) — free tier, built-in CDN + image resize, returns a public URL. Integrate via their Java SDK or a simple `RestTemplate`/`WebClient` call to the upload API.
+- **Cloudinary** (recommended) — free tier, built-in CDN + image resize, returns a public URL. Integrate via their 
+                                 Java SDK or a simple `RestTemplate`/`WebClient` call to the upload API.
 - **AWS S3 / Backblaze B2** — store objects, serve via CDN URL.
-- **Persistent volume** — only if your host supports a mounted disk that survives deploys (e.g. Railway volumes, Render disks, VPS with mounted storage).
+- **Persistent volume** — only if your host supports a mounted disk that survives deploys (e.g. Railway volumes, 
+                          Render disks, VPS with mounted storage).
 
 **What needs changing once you pick a provider:**
-- `UploadService` / `UploadController` — replace local `Files.write()` with SDK upload call; return the public CDN URL instead of a relative path
-- `EmailService` — product images in emails currently embed from local file; with object storage they become `<img src="https://cdn.example.com/...">` (no inline embedding needed)
+- `UploadService` / `UploadController` — replace local `Files.write()` with SDK upload call; return the public CDN URL 
+                                         instead of a relative path
+- `EmailService` — product images in emails currently embed from local file; with object storage they become 
+                   `<img src="https://cdn.example.com/...">` (no inline embedding needed)
 - Remove `uploads/` directory from `.gitignore` exception; it becomes irrelevant
 
 ---
 
-#### 0.3 Size Variants ⚠️
-**Status:** Not implemented — requires architectural decision first.
+#### 0.3 Size Variants ✅ DONE
 
-**Problem:** No size field exists anywhere (Product, CartItem, OrderItem, DB migrations). Customers currently cannot select a size before adding to cart.
+**Status:** Fully implemented.
 
-**If sizes are required for your products, build:**
-1. Flyway migration — `product_size` table: `(id, product_id, size_label, stock_quantity)`
-2. `ProductSize` entity + `ProductSizeRepository`
-3. Size CRUD on admin product form
-4. Size selector on `ProductDetailPage` (required before "Add to Cart")
-5. `CartItem` — add `size` field (+ migration)
-6. `OrderItem` — add `size` field (snapshot on purchase)
-7. Stock decrement at checkout per size, not per product total
+**Files changed — Backend:**
+- `V46__add_size_variants.sql` — creates `product_variant` table (product_id, size, stock_quantity, sku, 
+                                 unique constraint on product+size); backfills S/M/L/XL for all existing products 
+                                 splitting stock evenly; adds `size VARCHAR(10)` to `cart_item` and `order_item`
+- `model/ProductSize.java` *(new)* — enum: `S, M, L, XL`
+- `model/ProductVariant.java` *(new)* — `@Entity` with `@ManyToOne(LAZY) product`, `@Enumerated(STRING) size`, `stockQuantity`, `sku`
+- `repository/ProductVariantRepository.java` *(new)* — includes `findWithLockByProductIdAndSize` (`@Lock PESSIMISTIC_WRITE`) 
+                                                       and `deleteByProductId`
+- `model/Product.java` — added `@OneToMany(mappedBy="product") variants`
+- `model/CartItem.java` / `model/OrderItem.java` — added `@Enumerated(STRING) size`
+- `dto/product/ProductVariantRequest.java` / `ProductVariantResponse.java` *(new)*
+- `dto/product/ProductRequest.java` — added `List<ProductVariantRequest> variants`
+- `dto/product/ProductResponse.java` — added `List<ProductVariantResponse> variants`, `Integer totalStock`
+- `dto/cart/CartItemRequest.java` / `CartItemResponse.java` — added `ProductSize size`
+- `dto/order/OrderItemResponse.java` — added `ProductSize size`
+- `dto/order/GuestOrderRequest.GuestOrderItem` — added `ProductSize size`
+- `repository/CartItemRepository.java` — added `findByCartIdAndProductIdAndSize`
+- `service/ProductService.java` — `create`/`update` call `buildVariants()` + `saveAll()`; stock total computed as sum of variant stocks; `toResponse()` includes sorted variants + totalStock; `@Transactional` added to mutating methods
+- `service/CartService.java` — `addItem()` now requires size, checks variant stock (not product stock), matches cart items by (product, size); `toItemResponse()` includes size; added `ProductVariantRepository` dependency
+- `service/OrderService.java` — `ProductWithQuantity` record gains `size`; `buildOrderItems()` locks and decrements variant stock (falls back to product stock for old size-less items); `restoreStockIfOrderCanceled()` restores variant stock on cancel/un-cancel; order email rows include "Size: XL" label; `toItemResponse()` includes size; added `ProductVariantRepository` dependency
+- `test/service/ProductServiceTest.java` — added `@Mock ProductVariantRepository`
 
-> **Confirm first:** Do your products actually need sizes, or do you sell one-size / size-free items? If size-free, skip this entirely.
+**Files changed — Frontend:**
+- `i18n/en.json` + `sr.json` — added `product.size`, `product.selectSizePrompt`, `product.selectSizeFirst`, `product.sizeSoldOut`; `admin.sizesAndStock`, `admin.sizesHint`, `admin.sizeSku`
+- `context/GuestCartContext.jsx` — `addToGuestCart(product, qty, size)` accepts size; guest cart items keyed by (productId, size); `updateGuestCartItem`/`removeFromGuestCart` match by both
+- `pages/ProductDetailPage.jsx` — `selectedSize` state; size selector buttons (sold-out sizes disabled with strikethrough); quantity selector gated on selected size; max quantity from `selectedVariant.stockQuantity`; add-to-cart button shows "Select a size" until size chosen; size sent to API and guest cart
+- `pages/CartPage.jsx` — size label shown per item below SKU; guest cart item `id` is composite `productId+size`; update/remove handlers pass size
+- `pages/admin/AdminProducts.jsx` — `formData.variants` replaces `stockQuantity`; 4-row size table (stock + optional SKU per size) replaces the stock quantity field; `handleEdit` populates variants from product; `handleSubmit` sends variants array; `resetForm` resets to 0-stock defaults; `stockQuantity` is computed server-side from variant sum
+
+**Smoke test items to add:**
+- [ ] Select a size → add to cart → checkout → order item shows correct size
+- [ ] Out-of-stock size button is disabled on product page
+- [ ] Cancel order → variant stock restored correctly
+- [ ] Admin saves product with per-size stock → `totalStock` in API response equals sum of variants
 
 ---
 
-#### 0.5 Legal & GDPR Pages
+#### 0.5 Legal & GDPR Pages ❌ NOT DONE
 **Status:** Not implemented — requires content + design work.
 
 **Required if selling to EU customers or Serbian residents:**
@@ -160,11 +204,12 @@ Returns HTTP 429 with JSON error when exceeded. Uses `X-Forwarded-For` for proxy
 - Cookie consent banner (if you use Google Analytics or other non-essential cookies)
 - GDPR right to erasure — at minimum a documented manual process; ideally an admin "Delete customer data" action
 
-**Implementation:** These are mostly static React pages + links in the footer. The cookie banner can be a lightweight library (e.g. `react-cookie-consent`) or a custom component that sets a `localStorage` flag.
+**Implementation:** These are mostly static React pages + links in the footer. The cookie banner can be a lightweight
+                    library (e.g. `react-cookie-consent`) or a custom component that sets a `localStorage` flag.
 
 ---
 
-#### 0.6 HTTPS / TLS
+#### 0.6 HTTPS / TLS ❌ NOT DONE
 **Status:** Infrastructure-level — not a code change.
 
 - Force HTTP → HTTPS redirect on your host (Vercel, Render, Railway, Nginx, etc. all have a one-click toggle)
@@ -175,27 +220,28 @@ Returns HTTP 429 with JSON error when exceeded. Uses `X-Forwarded-For` for proxy
 
 ### Tier 1 — Important (Soon After Launch)
 
-#### Email Verification on Registration
+#### Email Verification on Registration ❌ NOT DONE
 **Status:** Not implemented.
 
-Users can register with any email address (including typos or fake ones) and immediately access the account. Add a token-based email verification step:
+Users can register with any email address (including typos or fake ones) and immediately access the account. 
+Add a token-based email verification step:
 1. On register: generate a verification token, save to user, send verification email
 2. User clicks link → `GET /api/auth/verify-email?token=...` → activate account
 3. Block login until verified (or allow login but restrict checkout)
 
-#### Error Monitoring (Sentry)
+#### Error Monitoring (Sentry) ❌ NOT DONE
 **Status:** Not implemented.
 
 Add Sentry to both backend and frontend so you know about 500s before customers report them.
 - Backend: `sentry-spring-boot-starter` — one dependency + `SENTRY_DSN` env var
 - Frontend: `@sentry/react` — wrap `<App />` with `Sentry.init()`
 
-#### Automated Database Backups
+#### Automated Database Backups ❌ NOT DONE
 **Status:** Infrastructure — not a code change.
 
 Set up daily snapshots on your PostgreSQL host. Verify you can restore from a backup before going live.
 
-#### Shipping Cost
+#### Shipping Cost ❌ NOT DONE
 **Status:** Emails currently hardcode "Delivery: Free".
 
 If shipping is not actually free, add calculation (flat rate / by weight / by region) and reflect it in:
@@ -204,7 +250,7 @@ If shipping is not actually free, add calculation (flat rate / by weight / by re
 - Order confirmation email
 - Invoice PDF
 
-#### Tax / VAT (PDV)
+#### Tax / VAT (PDV) ❌ NOT DONE
 **Status:** Not implemented.
 
 If legally required for your business, compute and display VAT on:
@@ -213,25 +259,27 @@ If legally required for your business, compute and display VAT on:
 - Invoice PDF
 - Stripe amount (must include tax)
 
-#### Account Lockout After Failed Logins
+#### Account Lockout After Failed Logins ❌ NOT DONE
 **Status:** Not implemented.
 
-The `RateLimitFilter` added above limits request rate per IP, but does not lock an account after N failed attempts against a specific email. For stronger protection, track failed attempts per email in Redis or DB and lock the account for a period.
+The `RateLimitFilter` added above limits request rate per IP, but does not lock an account after N failed attempts 
+against a specific email. For stronger protection, track failed attempts per email in Redis or DB and lock the account 
+for a period.
 
 ---
 
 ### Tier 2 — Nice to Have (Post-Launch)
 
-| Item | Notes |
-|---|---|
-| SEO — per-product meta + Open Graph | React Helmet or `<head>` tags per page |
-| `sitemap.xml` + `robots.txt` | Static files in `public/` or generated at build |
-| Google Analytics / Plausible | Add after cookie consent banner is in place |
-| Abandoned cart recovery emails | Scheduled job: find carts older than X hours with items, send reminder |
-| Image optimization | Automatic if you use Cloudinary (see 0.2) |
-| DB indexes on filter/search columns | Check `product.brand`, `product.color_name`, `product.category_id`, `order.status`, `order.customer_email` |
-| Low-stock admin alerts | Trigger a notification when stock drops below threshold (you already have the low-stock report) |
-| Response caching on catalog/filter endpoints | Spring Cache + Caffeine for `/api/products/active`, `/api/categories/active`, `/api/settings/map` |
+| Status | Item | Notes |
+|--------|------|-------|
+| ❌ | SEO — per-product meta + Open Graph | React Helmet or `<head>` tags per page |
+| ❌ | `sitemap.xml` + `robots.txt` | Static files in `public/` or generated at build |
+| ❌ | Google Analytics / Plausible | Add after cookie consent banner is in place |
+| ❌ | Abandoned cart recovery emails | Scheduled job: find carts older than X hours with items, send reminder |
+| ❌ | Image optimization | Automatic if you use Cloudinary (see 0.2) |
+| ❌ | DB indexes on filter/search columns | Check `product.brand`, `product.color_name`, `product.category_id`, `order.status`, `order.customer_email` |
+| ❌ | Low-stock admin alerts | Trigger a notification when stock drops below threshold (you already have the low-stock report) |
+| ❌ | Response caching on catalog/filter endpoints | Spring Cache + Caffeine for `/api/products/active`, `/api/categories/active`, `/api/settings/map` |
 
 ---
 
@@ -240,8 +288,11 @@ The `RateLimitFilter` added above limits request rate per IP, but does not lock 
 - [ ] Place a real card order → webhook fires → order shows PAID → confirmation email arrives
 - [ ] Guest checkout → order created → confirmation email sent to guest address
 - [ ] COD order flow works end to end
-- [ ] Cancel order → stock restored correctly
-- [ ] Out-of-stock product cannot be added past available quantity
+- [ ] Cancel order → stock restored correctly (both variant stock and product total)
+- [ ] Out-of-stock product/size cannot be added past available quantity
+- [ ] Size selector on product page — sold-out sizes disabled, selected size sent to cart
+- [ ] Cart shows size label per item; same product in different sizes = separate line items
+- [ ] Admin product form: per-size stock table saves correctly, totalStock = sum of variants
 - [ ] Password reset email arrives with correct prod domain (not localhost)
 - [ ] Google OAuth2 login works on prod domain (redirect URI whitelisted in Google Console)
 - [ ] All images load (from object storage, post-deploy)
