@@ -1,16 +1,20 @@
 package rs.nopressurewear.service;
 
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import rs.nopressurewear.constants.Role;
 import rs.nopressurewear.dto.auth.*;
-import rs.nopressurewear.exception.DuplicateResourceException;
-import rs.nopressurewear.exception.LoginDisabledException;
-import rs.nopressurewear.exception.RegistrationDisabledException;
-import rs.nopressurewear.exception.ResourceNotFoundException;
+import rs.nopressurewear.exception.*;
+import rs.nopressurewear.model.EmailVerificationToken;
 import rs.nopressurewear.model.User;
+import rs.nopressurewear.repository.EmailVerificationTokenRepository;
 import rs.nopressurewear.repository.StoreSettingsRepository;
 import rs.nopressurewear.repository.UserRepository;
 import rs.nopressurewear.security.JwtUtil;
@@ -24,21 +28,27 @@ import static rs.nopressurewear.constants.Role.CUSTOMER;
 @RequiredArgsConstructor
 public class AuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
     private final StoreSettingsRepository storeSettingsRepository;
+    private final EmailVerificationTokenRepository tokenRepository;
 
-    private boolean isSettingEnabled(String key, boolean defaultValue) {
+    private static final long VERIFICATION_TTL_HOURS = 24;
+
+    private boolean isSettingEnabled(String key) {
         return storeSettingsRepository.findByKey(key)
                 .map(s -> !"false".equalsIgnoreCase(s.getValue()))
-                .orElse(defaultValue);
+                .orElse(true);
     }
 
-    public AuthResponse register(RegisterRequest request) {
-        if (!isSettingEnabled("registration_enabled", true)) {
+    @Transactional
+    public AuthResponse register(RegisterRequest request, String lang) {
+        if (!isSettingEnabled("registration_enabled")) {
             throw new RegistrationDisabledException("Registration is currently disabled");
         }
 
@@ -53,19 +63,72 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(CUSTOMER)
                 .isActive(true)
+                .emailVerified(false)
                 .build();
 
-        userRepository.save(user);
-        String token = jwtUtil.generateToken(user);
+        User saved = userRepository.save(user);
+
+        try {
+            sendVerificationEmail(saved, lang);
+        } catch (Exception e) {
+            log.error("Verification email failed for {}: {}", saved.getEmail(), e.getMessage());
+        }
+
+        String jwtToken = jwtUtil.generateToken(saved);
 
         return AuthResponse.builder()
-                .id(user.getId())
-                .token(token)
-                .email(user.getEmail())
-                .role(user.getRole().name())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
+                .id(saved.getId())
+                .token(jwtToken)
+                .email(saved.getEmail())
+                .role(saved.getRole().name())
+                .firstName(saved.getFirstName())
+                .lastName(saved.getLastName())
+                .emailVerified(false)
                 .build();
+    }
+
+    public void sendVerificationEmail(User user, String lang) {
+        tokenRepository.invalidatePreviousTokens(user);
+        String token = UUID.randomUUID().toString();
+        EmailVerificationToken vt = EmailVerificationToken.builder()
+                .token(token)
+                .user(user)
+                .expiresAt(LocalDateTime.now().plusHours(VERIFICATION_TTL_HOURS))
+                .used(false)
+                .build();
+        tokenRepository.save(vt);
+        emailService.sendVerificationEmail(user.getEmail(), token, lang);
+    }
+
+    @Transactional
+    public void verifyEmail(String token) {
+        EmailVerificationToken vt = tokenRepository.findByToken(token)
+                .orElseThrow(() -> new InvalidTokenException("Invalid verification link"));
+
+        if (vt.isUsed()) throw new InvalidTokenException("This link has already been used");
+        if (vt.getExpiresAt().isBefore(LocalDateTime.now()))
+            throw new InvalidTokenException("This verification link has expired");
+
+        User user = vt.getUser();
+        user.setEmailVerified(true);
+        userRepository.save(user);
+
+        vt.setUsed(true);
+        tokenRepository.save(vt);
+    }
+
+    @Transactional
+    public void resendVerification(String email, String lang) {
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user != null && !user.isEmailVerified()) {
+            sendVerificationEmail(user, lang);
+        }
+    }
+
+    @Scheduled(cron = "0 0 3 * * *")
+    @Transactional
+    public void purgeExpiredTokens() {
+        tokenRepository.deleteExpiredBefore(LocalDateTime.now());
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -79,7 +142,11 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!isSettingEnabled("login_enabled", true) && user.getRole() == CUSTOMER) {
+        if (!user.isEmailVerified() && isCustomer(user.getRole())) {
+            throw new EmailNotVerifiedException("Please verify your email before logging in");
+        }
+
+        if (!isSettingEnabled("login_enabled") && isCustomer(user.getRole())) {
             throw new LoginDisabledException("Login is currently disabled");
         }
 
@@ -92,7 +159,12 @@ public class AuthService {
                 .lastName(user.getLastName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .emailVerified(user.isEmailVerified())
                 .build();
+    }
+
+    private static boolean isCustomer(Role role) {
+        return role == CUSTOMER;
     }
 
     public void forgotPassword(ForgotPasswordRequest request, String lang) {

@@ -15,6 +15,7 @@ import rs.nopressurewear.dto.auth.LoginRequest;
 import rs.nopressurewear.dto.auth.RegisterRequest;
 import rs.nopressurewear.exception.DuplicateResourceException;
 import rs.nopressurewear.model.User;
+import rs.nopressurewear.repository.EmailVerificationTokenRepository;
 import rs.nopressurewear.repository.StoreSettingsRepository;
 import rs.nopressurewear.repository.UserRepository;
 import rs.nopressurewear.security.JwtUtil;
@@ -48,6 +49,9 @@ class AuthServiceTest {
     @Mock
     private StoreSettingsRepository storeSettingsRepository;
 
+    @Mock
+    private EmailVerificationTokenRepository tokenRepository;
+
     @InjectMocks
     private AuthService authService;
 
@@ -65,6 +69,7 @@ class AuthServiceTest {
                 .password("encodedPassword")
                 .role(CUSTOMER)
                 .isActive(true)
+                .emailVerified(true)
                 .build();
 
         registerRequest = new RegisterRequest();
@@ -78,6 +83,9 @@ class AuthServiceTest {
         loginRequest.setPassword("password123");
 
         lenient().when(storeSettingsRepository.findByKey(anyString())).thenReturn(Optional.empty());
+        lenient().when(tokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        lenient().doNothing().when(tokenRepository).invalidatePreviousTokens(any());
+        lenient().doNothing().when(emailService).sendVerificationEmail(anyString(), anyString(), anyString());
     }
 
     @Test
@@ -87,7 +95,7 @@ class AuthServiceTest {
         when(userRepository.save(any(User.class))).thenReturn(user);
         when(jwtUtil.generateToken(any())).thenReturn("jwt-token");
 
-        AuthResponse response = authService.register(registerRequest);
+        AuthResponse response = authService.register(registerRequest, "en");
 
         assertThat(response).isNotNull();
         assertThat(response.getToken()).isEqualTo("jwt-token");
@@ -99,7 +107,7 @@ class AuthServiceTest {
     void register_ShouldThrowDuplicateException_WhenEmailExists() {
         when(userRepository.existsByEmail(anyString())).thenReturn(true);
 
-        assertThatThrownBy(() -> authService.register(registerRequest))
+        assertThatThrownBy(() -> authService.register(registerRequest, "en"))
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("email already exists");
 

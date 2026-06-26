@@ -43,6 +43,11 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        if (!user.isEmailVerified()) {
+            user.setEmailVerified(true);
+            userRepository.save(user);
+        }
+
         boolean loginEnabled = storeSettingsRepository.findByKey("login_enabled")
                 .map(s -> !"false".equalsIgnoreCase(s.getValue()))
                 .orElse(true);

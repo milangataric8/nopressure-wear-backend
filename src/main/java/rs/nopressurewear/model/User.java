@@ -69,6 +69,9 @@ public class User implements UserDetails {
     @Column
     private String phone;
 
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = false;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

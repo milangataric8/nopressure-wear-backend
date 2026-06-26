@@ -17,8 +17,22 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.status(CREATED).body(authService.register(request));
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request,
+                                                 @RequestParam(defaultValue = "en") String lang) {
+        return ResponseEntity.status(CREATED).body(authService.register(request, lang));
+    }
+
+    @GetMapping("/verify-email")
+    public ResponseEntity<Void> verifyEmail(@RequestParam String token) {
+        authService.verifyEmail(token);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<Void> resendVerification(@RequestBody ResendRequest req,
+                                                   @RequestParam(defaultValue = "en") String lang) {
+        authService.resendVerification(req.getEmail(), lang);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/login")

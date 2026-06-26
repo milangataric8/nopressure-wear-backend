@@ -41,6 +41,49 @@ public class EmailService {
     @Value("${app.upload.dir:uploads/products}")
     private String uploadDir;
 
+    public void sendVerificationEmail(String to, String token, String lang) {
+        Map<String, String> t = getEmailTranslations(lang);
+        String verifyUrl = frontendUrl + "/verify-email?token=" + token;
+
+        String html = """
+            <!DOCTYPE html>
+            <html>
+            <head><meta charset="UTF-8">
+                <style>
+                    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
+                    .container { max-width: 560px; margin: 40px auto; background: #fff; border: 1px solid #e5e5e5; }
+                    .header { padding: 32px 40px; border-bottom: 1px solid #e5e5e5; text-align: center; }
+                    .header h1 { margin: 0; font-size: 20px; font-weight: 900; text-transform: uppercase; color: #111; }
+                    .body { padding: 40px; }
+                    .body p { font-size: 14px; color: #555; line-height: 1.6; margin: 0 0 24px; }
+                    .button { display: inline-block; background: #111; color: #fff !important; text-decoration: none; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; padding: 14px 32px; }
+                    .footer { padding: 24px 40px; border-top: 1px solid #e5e5e5; text-align: center; }
+                    .footer p { font-size: 12px; color: #999; margin: 0; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header"><h1>NoPressure wear</h1></div>
+                    <div class="body">
+                        <p>%s</p>
+                        <a href="%s" class="button">%s</a>
+                        <p style="margin-top: 32px; font-size: 13px; color: #999;">%s</p>
+                    </div>
+                    <div class="footer"><p>© 2026 NoPressure. %s</p></div>
+                </div>
+            </body>
+            </html>
+            """.formatted(
+                t.get("verifyText"),
+                verifyUrl,
+                t.get("verifyButton"),
+                t.get("verifyExpire"),
+                t.get("allRightsReserved")
+            );
+
+        sendHtmlEmail(to, t.get("verifySubject"), html, t.get("allRightsReserved"));
+    }
+
     public void sendPasswordResetEmail(String to, String token, String lang) {
         Map<String, String> t = getEmailTranslations(lang);
         String resetUrl = frontendUrl + "/reset-password?token=" + token;
@@ -473,6 +516,10 @@ public class EmailService {
             t.put("orderFree", "Besplatno");
             t.put("orderStatusUpdatedNote", "Status ažuriran");
             t.put("allRightsReserved", "Sva prava zadržana.");
+            t.put("verifySubject", "Potvrdite vaš email");
+            t.put("verifyText", "Dobrodošli! Molimo potvrdite vašu email adresu da biste aktivirali nalog.");
+            t.put("verifyButton", "Potvrdi email");
+            t.put("verifyExpire", "Link ističe za 24 sata. Ako se niste registrovali, ignorišite ovaj email.");
         } else {
             t.put("resetSubject", "Password Reset Request");
             t.put("resetTitle", "Reset Your Password");
@@ -502,6 +549,10 @@ public class EmailService {
             t.put("orderFree", "Free");
             t.put("orderStatusUpdatedNote", "Status updated");
             t.put("allRightsReserved", "All rights reserved.");
+            t.put("verifySubject", "Verify your email");
+            t.put("verifyText", "Welcome! Please confirm your email address to activate your account.");
+            t.put("verifyButton", "Verify Email");
+            t.put("verifyExpire", "This link expires in 24 hours. If you didn't sign up, ignore this email.");
         }
         return t;
     }

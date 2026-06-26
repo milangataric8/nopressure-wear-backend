@@ -16,6 +16,7 @@ import rs.nopressurewear.security.UserDetailsServiceImpl;
 import rs.nopressurewear.service.AuthService;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -61,7 +62,7 @@ class AuthControllerTest {
                 .lastName("Gataric")
                 .build();
 
-        when(authService.register(any())).thenReturn(response);
+        when(authService.register(any(), anyString())).thenReturn(response);
 
         mockMvc.perform(post("/api/auth/register")
                         .with(csrf())

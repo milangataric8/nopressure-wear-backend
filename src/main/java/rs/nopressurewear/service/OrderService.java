@@ -13,6 +13,7 @@ import rs.nopressurewear.constants.OrderStatus;
 import rs.nopressurewear.dto.order.GuestOrderRequest;
 import rs.nopressurewear.dto.order.OrderItemResponse;
 import rs.nopressurewear.dto.order.OrderResponse;
+import rs.nopressurewear.exception.EmailNotVerifiedException;
 import rs.nopressurewear.exception.ResourceNotFoundException;
 import rs.nopressurewear.model.*;
 import rs.nopressurewear.repository.*;
@@ -55,6 +56,10 @@ public class OrderService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!user.isEmailVerified()) {
+            throw new EmailNotVerifiedException("Please verify your email before placing an order");
+        }
 
         Order order = createOrder(user);
 
