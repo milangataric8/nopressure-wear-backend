@@ -27,6 +27,7 @@ public class OrderResponse {
     private List<OrderItemResponse> orderItems;
     private OrderStatus status;
     private BigDecimal totalAmount;
+    private BigDecimal deliveryFee;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String paymentMethod;

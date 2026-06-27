@@ -41,6 +41,7 @@ public class OrderService {
     private final CouponRepository couponRepository;
     private final EmailService emailService;
     private final ProductVariantRepository productVariantRepository;
+    private final DeliveryService deliveryService;
 
     private record ProductWithQuantity(Long productId, int quantity, ProductSize size) {}
 
@@ -71,8 +72,10 @@ public class OrderService {
 
         BigDecimal total = calculateTotalOrderValue(order.getOrderItems());
         total = applyCouponToOrder(order, couponCode, total);
+        BigDecimal deliveryFee = deliveryService.calculateDeliveryFee(total);
+        order.setDeliveryFee(deliveryFee);
         setPaymentFields(order, paymentMethod, paymentIntentId);
-        order.setTotalAmount(total);
+        order.setTotalAmount(total.add(deliveryFee));
 
         cart.getCartItems().clear();
         cartRepository.save(cart);
@@ -113,8 +116,10 @@ public class OrderService {
 
         BigDecimal total = calculateTotalOrderValue(order.getOrderItems());
         total = applyCouponToOrder(order, request.getCouponCode(), total);
+        BigDecimal guestDeliveryFee = deliveryService.calculateDeliveryFee(total);
+        order.setDeliveryFee(guestDeliveryFee);
         setPaymentFields(order, request.getPaymentMethod(), null);
-        order.setTotalAmount(total);
+        order.setTotalAmount(total.add(guestDeliveryFee));
 
         sendOrderConfirmation(order, lang);
 
@@ -262,6 +267,7 @@ public class OrderService {
                     postalCode,
                     country,
                     productImageUrls,
+                    order.getDeliveryFee(),
                     lang
             );
         } catch (Exception e) {
@@ -396,6 +402,7 @@ public class OrderService {
                     shippingPostalCode,
                     shippingCountry,
                     productImageUrls,
+                    order.getDeliveryFee(),
                     lang
             );
         } catch (Exception e) {
@@ -488,6 +495,7 @@ public class OrderService {
                 .orderCode(order.getOrderCode())
                 .status(order.getStatus())
                 .totalAmount(order.getTotalAmount())
+                .deliveryFee(order.getDeliveryFee())
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
                 .paymentMethod(order.getPaymentMethod())

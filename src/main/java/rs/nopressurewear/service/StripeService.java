@@ -58,6 +58,7 @@ public class StripeService {
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
+    private final DeliveryService deliveryService;
 
     @PostConstruct
     public void init() {
@@ -85,6 +86,7 @@ public class StripeService {
                 .reduce(ZERO, BigDecimal::add);
 
         total = applyCartCoupon(total, couponCode);
+        total = total.add(deliveryService.calculateDeliveryFee(total));
 
         long amountInCents = toStripeAmount(total);
 
@@ -181,6 +183,7 @@ public class StripeService {
         }
 
         total = applyCartCoupon(total, couponCode);
+        total = total.add(deliveryService.calculateDeliveryFee(total));
 
         PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
                 .setAmount(toStripeAmount(total))

@@ -85,6 +85,10 @@ public class Order {
     @Column
     private String stripePaymentId;
 
+    @Column(name = "delivery_fee", nullable = false)
+    @Builder.Default
+    private BigDecimal deliveryFee = BigDecimal.ZERO;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

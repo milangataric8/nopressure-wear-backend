@@ -13,6 +13,7 @@ import rs.nopressurewear.model.StoreSettings;
 import rs.nopressurewear.repository.StoreSettingsRepository;
 
 import java.io.File;
+import java.math.BigDecimal;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -141,15 +142,25 @@ public class EmailService {
                                      String status,
                                      String customerFirstName,
                                      String productRows,
-                                     String subtotal,
+                                     String total,
                                      String shippingStreet,
                                      String shippingCity,
                                      String shippingPostalCode,
                                      String shippingCountry,
                                      List<String> productImageUrls,
+                                     BigDecimal deliveryFee,
                                      String lang) {
 
         Map<String, String> t = getEmailTranslations(lang);
+        BigDecimal delivery = nonNull(deliveryFee) ? deliveryFee : BigDecimal.ZERO;
+        BigDecimal subtotalBD = new BigDecimal(total).subtract(delivery);
+        String subtotalDisplay = subtotalBD.toPlainString();
+        String deliveryDisplay = delivery.compareTo(BigDecimal.ZERO) == 0
+                ? t.get("orderFree")
+                : delivery.toPlainString() + " RSD";
+        String deliveryStyle = delivery.compareTo(BigDecimal.ZERO) == 0
+                ? "color: #16a34a;"
+                : "";
 
         String orderUrl = frontendUrl + "/orders/" + orderId;
 
@@ -222,9 +233,9 @@ public class EmailService {
                         %s
 
                         <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e5e5;">
-                            <div class="summary-row"><span>%s</span><span>$%s</span></div>
-                            <div class="summary-row"><span>%s</span><span style="color: #16a34a;">%s</span></div>
-                            <div class="summary-total"><span>%s</span><span>$%s</span></div>
+                            <div class="summary-row"><span>%s</span><span>%s RSD</span></div>
+                            <div class="summary-row"><span>%s</span><span style="%s">%s</span></div>
+                            <div class="summary-total"><span>%s</span><span>%s RSD</span></div>
                         </div>
 
                         %s
@@ -244,9 +255,9 @@ public class EmailService {
                 greeting,
                 t.get("orderItems"),
                 productRows,
-                t.get("orderSubtotal"), subtotal,
-                t.get("orderDelivery"), t.get("orderFree"),
-                t.get("orderTotal"), subtotal,
+                t.get("orderSubtotal"), subtotalDisplay,
+                t.get("orderDelivery"), deliveryStyle, deliveryDisplay,
+                t.get("orderTotal"), total,
                 shippingSection,
                 orderUrl,
                 t.get("orderViewButton"),

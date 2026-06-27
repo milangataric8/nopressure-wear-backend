@@ -299,13 +299,15 @@ public class ReportService {
             createDiscountPart(order, t, totalsTable);
         }
 
-        addTotalRow(totalsTable, t.get("delivery"), t.get("free"));
+        BigDecimal deliveryFeeValue = order.getDeliveryFee() != null ? order.getDeliveryFee() : ZERO;
+        String deliveryValue = deliveryFeeValue.compareTo(ZERO) == 0 ? t.get("free") : formatPrice(deliveryFeeValue);
+        addTotalRow(totalsTable, t.get("delivery"), deliveryValue);
 
         PdfPCell totalLabel = new PdfPCell(new Phrase(t.get("totalLabel"), new Font(HELVETICA, 11, BOLD)));
         totalLabel.setBorderWidth(0);
         totalLabel.setBorderWidthTop(1);
         totalLabel.setPaddingTop(8);
-        totalLabel.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        totalLabel.setHorizontalAlignment(ALIGN_RIGHT);
         totalsTable.addCell(totalLabel);
 
         PdfPCell totalValue = new PdfPCell(
