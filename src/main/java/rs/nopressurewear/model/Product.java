@@ -95,6 +95,10 @@ public class Product {
     @Column
     private Integer salesCount = 0;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender", nullable = false, length = 20)
+    private Gender gender = Gender.UNISEX;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

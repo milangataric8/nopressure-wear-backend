@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import rs.nopressurewear.dto.product.*;
 import rs.nopressurewear.exception.ResourceNotFoundException;
 import rs.nopressurewear.model.Category;
+import rs.nopressurewear.model.Gender;
 import rs.nopressurewear.model.Product;
 import rs.nopressurewear.model.ProductImage;
 import rs.nopressurewear.repository.*;
@@ -24,9 +25,11 @@ import java.util.List;
 import java.util.Map;
 
 
+import static java.lang.Boolean.TRUE;
 import static java.math.BigDecimal.ZERO;
 import static java.math.RoundingMode.HALF_UP;
 import static java.util.Objects.nonNull;
+import static rs.nopressurewear.model.Gender.UNISEX;
 
 @Service
 @RequiredArgsConstructor
@@ -62,6 +65,7 @@ public class ProductService {
         }
 
         product.setMaterial(request.getMaterial());
+        product.setGender(nonNull(request.getGender()) ? request.getGender() : UNISEX);
         product.setDiscountPercentage(nonNull(request.getDiscountPercentage())
                 ? request.getDiscountPercentage()
                 : ZERO);
@@ -116,23 +120,16 @@ public class ProductService {
                                         String brand,
                                         String colorName,
                                         String material,
+                                        String gender,
                                         Pageable pageable) {
         String searchParam = (nonNull(search) && !search.isBlank()) ? search : null;
         String brandParam = (nonNull(brand) && !brand.isBlank()) ? brand : null;
         String colorParam = (nonNull(colorName) && !colorName.isBlank()) ? colorName : null;
         String materialParam = (nonNull(material) && !material.isBlank()) ? material : null;
+        String genderParam = (nonNull(gender) && !gender.isBlank()) ? gender : null;
 
-        return findByFilters(categoryId, searchParam, brandParam, colorParam, materialParam, active, pageable);
-    }
-
-    private Page<ProductResponse> findByFilters(Long categoryId,
-                                                      String searchParam,
-                                                      String brandParam,
-                                                      String colorParam,
-                                                      String material,
-                                                      Boolean active,
-                                                      Pageable pageable) {
-        return productRepository.findByFilters(categoryId, searchParam, null, null, brandParam, colorParam, material, active, pageable)
+        return productRepository
+                .findByFilters(categoryId, searchParam, null, null, brandParam, colorParam, materialParam, active, genderParam, pageable)
                 .map(this::toResponse);
     }
 
@@ -143,14 +140,20 @@ public class ProductService {
                                                    String brand,
                                                    String colorName,
                                                    String material,
+                                                   String gender,
                                                    Pageable pageable) {
         String searchParam = (nonNull(search) && !search.isBlank()) ? search : null;
         String brandParam = (nonNull(brand) && !brand.isBlank()) ? brand : null;
         String colorParam = (nonNull(colorName) && !colorName.isBlank()) ? colorName : null;
         String materialParam = (nonNull(material) && !material.isBlank()) ? material : null;
+        String genderParam = (nonNull(gender) && !gender.isBlank()) ? gender : null;
 
         return productRepository
-                .findByFilters(categoryId, searchParam, minPrice, maxPrice, brandParam, colorParam, materialParam, Boolean.TRUE, pageable)
+                .findByFilters(categoryId, searchParam,
+                        minPrice, maxPrice,
+                        brandParam, colorParam,
+                        materialParam, TRUE,
+                        genderParam, pageable)
                 .map(this::toResponse);
     }
 
@@ -240,6 +243,7 @@ public class ProductService {
         product.setVideoUrl(request.getVideoUrl());
         product.setBrand(request.getBrand());
         product.setMaterial(request.getMaterial());
+        product.setGender(nonNull(request.getGender()) ? request.getGender() : UNISEX);
 
         product.setDiscountPercentage(nonNull(request.getDiscountPercentage())
                 ? request.getDiscountPercentage()
@@ -249,7 +253,11 @@ public class ProductService {
         productVariantRepository.deleteByProductId(id);
         List<ProductVariant> variants = buildVariants(product, request.getVariants());
         productVariantRepository.saveAll(variants);
-        int total = variants.stream().mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0).sum();
+        int total = variants.stream().mapToInt(v ->
+                nonNull(v.getStockQuantity())
+                ? v.getStockQuantity()
+                : 0)
+                .sum();
         product.setStockQuantity(total);
 
         Product saved = productRepository.save(product);
@@ -402,6 +410,7 @@ public class ProductService {
                 .salesCount(product.getSalesCount())
                 .variants(variants)
                 .totalStock(totalStock)
+                .gender(product.getGender())
                 .build();
     }
 

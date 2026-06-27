@@ -3,6 +3,7 @@ package rs.nopressurewear.dto.product;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
+import rs.nopressurewear.model.Gender;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -44,4 +45,6 @@ public class ProductRequest {
     private String material;
 
     private List<ProductVariantRequest> variants;
+
+    private Gender gender;
 }

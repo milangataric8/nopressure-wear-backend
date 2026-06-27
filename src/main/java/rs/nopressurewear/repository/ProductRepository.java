@@ -51,6 +51,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
           AND (:brand IS NULL OR LOWER(p.brand) = LOWER(:brand))
           AND (:colorName IS NULL OR LOWER(p.color_name) = LOWER(:colorName))
           AND (:material IS NULL OR LOWER(p.material) = LOWER(:material))
+          AND (:gender IS NULL OR p.gender = :gender)
         ORDER BY p.name ASC
         """,
     countQuery = """
@@ -68,6 +69,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
           AND (:brand IS NULL OR LOWER(p.brand) = LOWER(:brand))
           AND (:colorName IS NULL OR LOWER(p.color_name) = LOWER(:colorName))
           AND (:material IS NULL OR LOWER(p.material) = LOWER(:material))
+          AND (:gender IS NULL OR p.gender = :gender)
         """,
     nativeQuery = true)
     Page<Product> findByFilters(
@@ -79,6 +81,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         @Param("colorName") String colorName,
         @Param("material") String material,
         @Param("active") Boolean active,
+        @Param("gender") String gender,
         Pageable pageable);
 
     @Query(

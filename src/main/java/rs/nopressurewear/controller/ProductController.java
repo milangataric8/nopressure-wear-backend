@@ -56,10 +56,11 @@ public class ProductController {
             @RequestParam(required = false) String brand,
             @RequestParam(required = false) String colorName,
             @RequestParam(required = false) String material,
+            @RequestParam(required = false) String gender,
             @PageableDefault(sort = "name") Pageable pageable) {
 
-        if (haveFilters(categoryId, search, active, brand, colorName, material)) {
-            return ResponseEntity.ok(productService.filter(categoryId, search, active, brand, colorName, material, pageable));
+        if (haveFilters(categoryId, search, active, brand, colorName, material, gender)) {
+            return ResponseEntity.ok(productService.filter(categoryId, search, active, brand, colorName, material, gender, pageable));
         }
 
         return ResponseEntity.ok(productService.getAll(pageable));
@@ -83,13 +84,16 @@ public class ProductController {
                                        Boolean active,
                                        String brand,
                                        String colorName,
-                                       String material) {
+                                       String material,
+                                       String gender) {
         return (nonNull(search) && !search.isBlank())
                 || nonNull(categoryId)
                 || nonNull(active)
                 || nonNull(brand)
                 || nonNull(colorName)
-                || nonNull(material);
+                || nonNull(material)
+                || (nonNull(gender)
+                && !gender.isBlank());
     }
 
     @GetMapping("/filter")
@@ -133,10 +137,11 @@ public class ProductController {
             @RequestParam(required = false) String brand,
             @RequestParam(required = false) String colorName,
             @RequestParam(required = false) String material,
+            @RequestParam(required = false) String gender,
             @PageableDefault(sort = "name") Pageable pageable) {
 
         return ResponseEntity.ok(productService.getActiveFiltered(
-                categoryId, search, minPrice, maxPrice, brand, colorName, material, pageable));
+                categoryId, search, minPrice, maxPrice, brand, colorName, material, gender, pageable));
     }
 
     @PutMapping("/{id}")
