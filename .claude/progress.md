@@ -193,31 +193,6 @@ Returns HTTP 429 with JSON error when exceeded. Uses `X-Forwarded-For` for proxy
 
 ---
 
-#### 0.5 Legal & GDPR Pages ❌ NOT DONE
-**Status:** Not implemented — requires content + design work.
-
-**Required if selling to EU customers or Serbian residents:**
-- Privacy Policy page
-- Terms of Service page
-- Return / Refund Policy page
-- Company Imprint (legal name, address, registration number, contact)
-- Cookie consent banner (if you use Google Analytics or other non-essential cookies)
-- GDPR right to erasure — at minimum a documented manual process; ideally an admin "Delete customer data" action
-
-**Implementation:** These are mostly static React pages + links in the footer. The cookie banner can be a lightweight
-                    library (e.g. `react-cookie-consent`) or a custom component that sets a `localStorage` flag.
-
----
-
-#### 0.6 HTTPS / TLS ❌ NOT DONE
-**Status:** Infrastructure-level — not a code change.
-
-- Force HTTP → HTTPS redirect on your host (Vercel, Render, Railway, Nginx, etc. all have a one-click toggle)
-- Ensure the production `FRONTEND_URL` and `BASE_URL` env vars use `https://`
-- Add `Strict-Transport-Security` header (most hosts do this automatically with HTTPS enabled)
-
----
-
 ### Tier 1 — Important (Soon After Launch)
 
 #### Email Verification on Registration ✅ DONE
@@ -251,6 +226,24 @@ Returns HTTP 429 with JSON error when exceeded. Uses `X-Forwarded-For` for proxy
 - Duplicate email on register → inline field error (translated, EN + SR)
 - Bad credentials on login → inline field error (translated, EN + SR)
 
+---
+
+#### 0.5 Legal & GDPR Pages ❌ NOT DONE
+**Status:** Not implemented — requires content + design work.
+
+**Required if selling to EU customers or Serbian residents:**
+- Privacy Policy page
+- Terms of Service page
+- Return / Refund Policy page
+- Company Imprint (legal name, address, registration number, contact)
+- Cookie consent banner (if you use Google Analytics or other non-essential cookies)
+- GDPR right to erasure — at minimum a documented manual process; ideally an admin "Delete customer data" action
+
+**Implementation:** These are mostly static React pages + links in the footer. The cookie banner can be a lightweight
+library (e.g. `react-cookie-consent`) or a custom component that sets a `localStorage` flag.
+
+---
+
 #### Error Monitoring (Sentry) ❌ NOT DONE
 **Status:** Not implemented.
 
@@ -258,19 +251,29 @@ Add Sentry to both backend and frontend so you know about 500s before customers 
 - Backend: `sentry-spring-boot-starter` — one dependency + `SENTRY_DSN` env var
 - Frontend: `@sentry/react` — wrap `<App />` with `Sentry.init()`
 
-#### Automated Database Backups ❌ NOT DONE
-**Status:** Infrastructure — not a code change.
+---
 
-Set up daily snapshots on your PostgreSQL host. Verify you can restore from a backup before going live.
+#### Shipping Cost ✅ DONE
+**Status:** Flat delivery fee with optional free-shipping threshold — fully implemented.
 
-#### Shipping Cost ❌ NOT DONE
-**Status:** Emails currently hardcode "Delivery: Free".
+**Files changed — Backend:**
+- `V49__add_delivery_settings_and_fee.sql` — inserts `delivery_enabled`, `delivery_fee`, `free_shipping_threshold` into `store_settings`; adds `delivery_fee NUMERIC(10,2) NOT NULL DEFAULT 0` column to `orders`
+- `model/Order.java` — added `@Builder.Default deliveryFee = ZERO` field
+- `dto/order/OrderResponse.java` — added `deliveryFee` field
+- `service/DeliveryService.java` *(new)* — reads settings, computes fee: disabled → 0, subtotal ≥ threshold → 0, else flat fee; exposes `calculateDeliveryFee(subtotal)` + getters
+- `service/OrderService.java` — injected `DeliveryService`; `checkout` and `guestCheckout` apply fee after coupon (`total + deliveryFee`), snapshot fee on order; email call passes `order.getDeliveryFee()`; `toResponse()` includes `deliveryFee`
+- `service/StripeService.java` — injected `DeliveryService`; `createPaymentIntent` and `createGuestPaymentIntent` add delivery fee to Stripe amount so charge matches order total
+- `service/EmailService.java` — added `BigDecimal deliveryFee` param; computes `subtotalDisplay = total − deliveryFee`; delivery row shows real fee (or "Free" in green); total row shows full amount
+- `service/ReportService.java` — invoice PDF delivery row now uses `order.getDeliveryFee()` instead of hardcoded "Free"
 
-If shipping is not actually free, add calculation (flat rate / by weight / by region) and reflect it in:
-- Order total
-- Stripe payment amount
-- Order confirmation email
-- Invoice PDF
+**Files changed — Frontend:**
+- `pages/admin/AdminSettings.jsx` — added Delivery section (toggle for `delivery_enabled`, numeric RSD inputs for `delivery_fee` and `free_shipping_threshold` with hint text)
+- `pages/CartPage.jsx` — reads delivery settings from `getSettingsMap()`; mirrors backend logic to compute `deliveryFee`/`grandTotal`/`remainingForFree`; both order-summary blocks show real delivery line and free-shipping nudge
+- `i18n/en.json` + `sr.json` — added `cart.freeShippingNudge`; settings keys `delivery`, `delivery_enabled`, `delivery_fee`, `free_shipping_threshold`, `freeShippingHint`
+
+**Defaults:** delivery enabled, 400 RSD flat fee, free shipping above 5 000 RSD (admin can change all three).
+
+---
 
 #### Tax / VAT (PDV) ❌ NOT DONE
 **Status:** Not implemented.
@@ -280,6 +283,24 @@ If legally required for your business, compute and display VAT on:
 - Order summary
 - Invoice PDF
 - Stripe amount (must include tax)
+
+---
+
+#### Automated Database Backups ❌ NOT DONE
+**Status:** Infrastructure — not a code change.
+
+Set up daily snapshots on your PostgreSQL host. Verify you can restore from a backup before going live.
+
+---
+
+#### 0.6 HTTPS / TLS ❌ NOT DONE
+**Status:** Infrastructure-level — not a code change.
+
+- Force HTTP → HTTPS redirect on your host (Vercel, Render, Railway, Nginx, etc. all have a one-click toggle)
+- Ensure the production `FRONTEND_URL` and `BASE_URL` env vars use `https://`
+- Add `Strict-Transport-Security` header (most hosts do this automatically with HTTPS enabled)
+- 
+---
 
 #### Account Lockout After Failed Logins ❌ NOT DONE
 **Status:** Not implemented.
@@ -292,16 +313,16 @@ for a period.
 
 ### Tier 2 — Nice to Have (Post-Launch)
 
-| Status | Item | Notes |
-|--------|------|-------|
-| ❌ | SEO — per-product meta + Open Graph | React Helmet or `<head>` tags per page |
-| ❌ | `sitemap.xml` + `robots.txt` | Static files in `public/` or generated at build |
-| ❌ | Google Analytics / Plausible | Add after cookie consent banner is in place |
-| ❌ | Abandoned cart recovery emails | Scheduled job: find carts older than X hours with items, send reminder |
-| ❌ | Image optimization | Automatic if you use Cloudinary (see 0.2) |
-| ❌ | DB indexes on filter/search columns | Check `product.brand`, `product.color_name`, `product.category_id`, `order.status`, `order.customer_email` |
-| ❌ | Low-stock admin alerts | Trigger a notification when stock drops below threshold (you already have the low-stock report) |
-| ❌ | Response caching on catalog/filter endpoints | Spring Cache + Caffeine for `/api/products/active`, `/api/categories/active`, `/api/settings/map` |
+| Status | Item                                         | Notes                                                                                                      |
+|--------|----------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| ❌     | SEO — per-product meta + Open Graph          | React Helmet or `<head>` tags per page                                                                     |
+| ❌     | `sitemap.xml` + `robots.txt`                 | Static files in `public/` or generated at build                                                            |
+| ❌     | Google Analytics / Plausible                 | Add after cookie consent banner is in place                                                                |
+| ❌     | Abandoned cart recovery emails               | Scheduled job: find carts older than X hours with items, send reminder                                     |
+| ❌     | Image optimization                           | Automatic if you use Cloudinary (see 0.2)                                                                  |
+| ❌     | DB indexes on filter/search columns          | Check `product.brand`, `product.color_name`, `product.category_id`, `order.status`, `order.customer_email` |
+| ❌     | Low-stock admin alerts                       | Trigger a notification when stock drops below threshold (you already have the low-stock report)            |
+| ❌     | Response caching on catalog/filter endpoints | Spring Cache + Caffeine for `/api/products/active`, `/api/categories/active`, `/api/settings/map`          |
 
 ---
 
