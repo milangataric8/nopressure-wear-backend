@@ -1,5 +1,6 @@
 package rs.nopressurewear.exception;
 
+import io.sentry.Sentry;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
@@ -56,6 +57,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+        Sentry.captureException(ex);
         ErrorResponse error = ErrorResponse.builder()
                 .status(INTERNAL_SERVER_ERROR.value())
                 .message("An unexpected error occurred")

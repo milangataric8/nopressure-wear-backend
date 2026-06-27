@@ -36,3 +36,8 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:86400000}
+
+sentry:
+  dsn: ${SENTRY_DSN}
+  environment: prod
+  release: ${SENTRY_RELEASE:1.0.0}
