@@ -244,12 +244,26 @@ library (e.g. `react-cookie-consent`) or a custom component that sets a `localSt
 
 ---
 
-#### Error Monitoring (Sentry) ❌ NOT DONE
-**Status:** Not implemented.
+#### Error Monitoring (Sentry) ✅ DONE
+**Status:** Fully implemented — unhandled backend exceptions and frontend crashes reported to Sentry automatically.
 
-Add Sentry to both backend and frontend so you know about 500s before customers report them.
-- Backend: `sentry-spring-boot-starter` — one dependency + `SENTRY_DSN` env var
-- Frontend: `@sentry/react` — wrap `<App />` with `Sentry.init()`
+**Files changed — Backend:**
+- `pom.xml` — added `sentry-spring-boot-starter-jakarta 7.14.0`
+- `application.yml` — added `sentry:` block (`dsn: ${SENTRY_DSN:}` empty default = off locally, `traces-sample-rate: 0.0`, `send-default-pii: false`)
+- `application-prod.yml` — added `sentry: dsn: ${SENTRY_DSN}` + `environment: prod`
+- `exception/GlobalExceptionHandler.java` — added `Sentry.captureException(ex)` to the catch-all `Exception` handler only; expected business exceptions (404, validation, auth-disabled, etc.) are left unreported to avoid dashboard noise
+
+**Files changed — Frontend:**
+- `npm install @sentry/react` installed
+- `main.jsx` — `Sentry.init()` (enabled only in prod builds via `import.meta.env.PROD`); `SentryApp = Sentry.withErrorBoundary(App, { fallback })` catches React render crashes and shows a "Something went wrong / Reload" fallback instead of a blank screen
+- `context/AuthContext.jsx` — `Sentry.setUser({ id })` on login + initial localStorage restore; `Sentry.setUser(null)` on logout
+
+**Env vars to add in prod:**
+- `SENTRY_DSN` — backend DSN (Java project in Sentry dashboard)
+- `VITE_SENTRY_DSN` — frontend DSN (React project in Sentry dashboard)
+- `SENTRY_ENV=prod`, `SENTRY_RELEASE=1.0.0` (optional but useful)
+
+**Dev behaviour:** empty DSN default + `enabled: PROD` → Sentry is completely silent during local development.
 
 ---
 
@@ -299,7 +313,7 @@ Set up daily snapshots on your PostgreSQL host. Verify you can restore from a ba
 - Force HTTP → HTTPS redirect on your host (Vercel, Render, Railway, Nginx, etc. all have a one-click toggle)
 - Ensure the production `FRONTEND_URL` and `BASE_URL` env vars use `https://`
 - Add `Strict-Transport-Security` header (most hosts do this automatically with HTTPS enabled)
-- 
+
 ---
 
 #### Account Lockout After Failed Logins ❌ NOT DONE
@@ -367,7 +381,13 @@ GOOGLE_CLIENT_SECRET=...
 STRIPE_SECRET_KEY=sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...       # from Stripe Dashboard → Webhooks
 REMOVEBG_API_KEY=...
+SENTRY_DSN=https://...@oXXXX.ingest.sentry.io/XXXX
+SENTRY_ENV=prod
+SENTRY_RELEASE=1.0.0
 FRONTEND_URL=https://yourdomain.com
 BASE_URL=https://api.yourdomain.com
 UPLOAD_DIR=/data/uploads/products     # only until object storage is set up
+
+# Frontend (host env panel e.g. Vercel)
+VITE_SENTRY_DSN=https://...@oXXXX.ingest.sentry.io/YYYY
 ```
