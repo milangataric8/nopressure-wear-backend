@@ -94,4 +94,10 @@ public class UserController {
         userService.unlockAccount(id);
         return ResponseEntity.noContent().build();
     }
+
+    @DeleteMapping("/{id}/personal-data")
+    public ResponseEntity<Void> anonymize(@PathVariable Long id) {
+        userService.anonymizeCustomer(id);
+        return ResponseEntity.noContent().build();
+    }
 }

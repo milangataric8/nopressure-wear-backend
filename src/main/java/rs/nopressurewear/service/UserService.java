@@ -6,16 +6,22 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import rs.nopressurewear.constants.Role;
 import rs.nopressurewear.dto.user.UserRequest;
 import rs.nopressurewear.dto.user.UserResponse;
 import rs.nopressurewear.dto.user.UserUpdateRequest;
 import rs.nopressurewear.exception.DuplicateResourceException;
 import rs.nopressurewear.exception.ResourceNotFoundException;
 import rs.nopressurewear.model.User;
+import rs.nopressurewear.repository.AddressRepository;
+import rs.nopressurewear.repository.CartRepository;
+import rs.nopressurewear.repository.OrderRepository;
 import rs.nopressurewear.repository.UserRepository;
 import rs.nopressurewear.security.AuthUtil;
 
 import java.util.List;
+import java.util.UUID;
 
 import static java.util.Objects.nonNull;
 import static rs.nopressurewear.constants.Role.CUSTOMER;
@@ -27,6 +33,9 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthUtil authUtil;
+    private final AddressRepository addressRepository;
+    private final OrderRepository orderRepository;
+    private final CartRepository cartRepository;
 
     public UserResponse create(UserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -130,6 +139,42 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         userRepository.delete(user);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public void anonymizeCustomer(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (user.getRole() != Role.CUSTOMER) {
+            throw new IllegalStateException("Only customer accounts can be anonymized");
+        }
+
+        String anonEmail = "deleted-" + user.getId() + "@anonymized.local";
+        user.setFirstName("Deleted");
+        user.setLastName("User");
+        user.setEmail(anonEmail);
+        user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+        user.setActive(false);
+        user.setEmailVerified(false);
+        userRepository.save(user);
+
+        addressRepository.findByUserId(id).forEach(addr -> {
+            addr.setStreet("[removed]");
+            addr.setCity("[removed]");
+            addr.setPostalCode("[removed]");
+            addressRepository.save(addr);
+        });
+
+        orderRepository.findByUserId(id, Pageable.unpaged()).getContent().forEach(order -> {
+            order.setCustomerFullName("Deleted User");
+            order.setCustomerEmail(anonEmail);
+            order.setCustomerPhone(null);
+            orderRepository.save(order);
+        });
+
+        cartRepository.findByUserId(id).ifPresent(cartRepository::delete);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
