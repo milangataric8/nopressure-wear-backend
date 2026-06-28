@@ -42,12 +42,12 @@ public class OrderService {
     private final EmailService emailService;
     private final ProductVariantRepository productVariantRepository;
     private final DeliveryService deliveryService;
+    private final LowStockService lowStockService;
 
     private record ProductWithQuantity(Long productId, int quantity, ProductSize size) {}
 
     @Transactional
     public OrderResponse checkout(Long userId, String couponCode, String paymentMethod, String paymentIntentId, String lang) {
-        // Pessimistic lock on cart prevents concurrent double-checkout of the same cart
         Cart cart = cartRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
 
@@ -128,7 +128,6 @@ public class OrderService {
 
     private List<OrderItem> buildOrderItems(List<ProductWithQuantity> pairs, Order order) {
         return pairs.stream().map(pair -> {
-            // Pessimistic write lock prevents two concurrent orders from overselling the same product
             Product product = productRepository.findByIdForUpdate(pair.productId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + pair.productId()));
 
@@ -142,6 +141,7 @@ public class OrderService {
                 }
                 variant.setStockQuantity(variant.getStockQuantity() - pair.quantity());
                 productVariantRepository.save(variant);
+                lowStockService.checkAndAlertVariant(product, variant);
                 if (nonNull(product.getStockQuantity())) {
                     product.setStockQuantity(Math.max(0, product.getStockQuantity() - pair.quantity()));
                 }

@@ -410,6 +410,69 @@ public class EmailService {
         }
     }
 
+    public void sendAdminLowStockAlert(String productName, String sku, String size, int stock, int threshold, String lang) {
+        Map<String, String> t = getEmailTranslations(lang);
+        String sizeRow = size != null
+                ? "<tr><td style=\"color:#999;padding:4px 0;\">%s</td><td style=\"padding:4px 0;\"><strong>%s</strong></td></tr>".formatted(t.get("lowStockSize"), size)
+                : "";
+        String subject = t.get("lowStockSubject").formatted(productName);
+        String html = """
+                <!DOCTYPE html>
+                <html>
+                <head><meta charset="UTF-8">
+                    <style>
+                        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
+                        .container { max-width: 560px; margin: 40px auto; background: #fff; border: 1px solid #e5e5e5; }
+                        .header { padding: 32px 40px; border-bottom: 1px solid #e5e5e5; text-align: center; }
+                        .header h1 { margin: 0; font-size: 20px; font-weight: 900; text-transform: uppercase; color: #111; }
+                        .body { padding: 40px; }
+                        .body p { font-size: 14px; color: #555; line-height: 1.6; margin: 0 0 24px; }
+                        .badge { display: inline-block; background: #111; color: #fff; font-size: 24px; font-weight: 900; padding: 12px 24px; margin: 0 0 24px; }
+                        table { border-collapse: collapse; font-size: 14px; color: #555; }
+                        td { padding: 4px 16px 4px 0; vertical-align: top; }
+                        .footer { padding: 24px 40px; border-top: 1px solid #e5e5e5; text-align: center; }
+                        .footer p { font-size: 12px; color: #999; margin: 0; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header"><h1>NoPressure wear</h1></div>
+                        <div class="body">
+                            <p>%s</p>
+                            <div class="badge">%d</div>
+                            <table>
+                                %s
+                                <tr><td style="color:#999;padding:4px 0;">%s</td><td style="padding:4px 0;"><strong>%s</strong></td></tr>
+                                <tr><td style="color:#999;padding:4px 0;">%s</td><td style="padding:4px 0;">%d</td></tr>
+                            </table>
+                            <p style="margin-top:24px;">%s</p>
+                        </div>
+                        <div class="footer"><p>© 2026 NoPressure. %s</p></div>
+                    </div>
+                </body>
+                </html>
+                """.formatted(
+                t.get("lowStockIntro").formatted(productName),
+                stock,
+                sizeRow,
+                t.get("lowStockSku"), sku,
+                t.get("lowStockThresholdLabel"), threshold,
+                t.get("lowStockRestock"),
+                t.get("allRightsReserved")
+        );
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            helper.setTo(fromEmail);
+            helper.setSubject(subject);
+            helper.setFrom(fromEmail);
+            helper.setText(html, true);
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            throw new RuntimeException("Failed to send low-stock alert: " + e.getMessage());
+        }
+    }
+
     public void sendContactEmail(String fromName, String fromEmail, String subject, String message) {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
@@ -531,6 +594,12 @@ public class EmailService {
             t.put("verifyText", "Dobrodošli! Molimo potvrdite vašu email adresu da biste aktivirali nalog.");
             t.put("verifyButton", "Potvrdi email");
             t.put("verifyExpire", "Link ističe za 24 sata. Ako se niste registrovali, ignorišite ovaj email.");
+            t.put("lowStockSubject", "Upozorenje o zalihama: %s");
+            t.put("lowStockIntro", "Zalihe za proizvod <strong>%s</strong> su dostigle kritičan nivo.");
+            t.put("lowStockSize", "Veličina");
+            t.put("lowStockSku", "SKU");
+            t.put("lowStockThresholdLabel", "Prag upozorenja ");
+            t.put("lowStockRestock", "Razmotrite dopunu zaliha što pre.");
         } else {
             t.put("resetSubject", "Password Reset Request");
             t.put("resetTitle", "Reset Your Password");
@@ -564,6 +633,12 @@ public class EmailService {
             t.put("verifyText", "Welcome! Please confirm your email address to activate your account.");
             t.put("verifyButton", "Verify Email");
             t.put("verifyExpire", "This link expires in 24 hours. If you didn't sign up, ignore this email.");
+            t.put("lowStockSubject", "Low stock alert: %s");
+            t.put("lowStockIntro", "Stock for <strong>%s</strong> has reached a critical level.");
+            t.put("lowStockSize", "Size");
+            t.put("lowStockSku", "SKU");
+            t.put("lowStockThresholdLabel", "Alert threshold ");
+            t.put("lowStockRestock", "Consider restocking soon.");
         }
         return t;
     }

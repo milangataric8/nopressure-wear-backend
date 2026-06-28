@@ -33,4 +33,8 @@ public class ProductVariant {
 
     @Column(name = "sku")
     private String sku;
+
+    @Builder.Default
+    @Column(name = "low_stock_alerted", nullable = false)
+    private boolean lowStockAlerted = false;
 }
