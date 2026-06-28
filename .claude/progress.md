@@ -316,12 +316,30 @@ Set up daily snapshots on your PostgreSQL host. Verify you can restore from a ba
 
 ---
 
-#### Account Lockout After Failed Logins ❌ NOT DONE
-**Status:** Not implemented.
+#### Account Lockout After Failed Logins ✅ DONE
+**Status:** Fully implemented — DB-backed per-email counter, 5 attempts → 15-minute lock, self-expiring, admin unlock.
 
-The `RateLimitFilter` added above limits request rate per IP, but does not lock an account after N failed attempts 
-against a specific email. For stronger protection, track failed attempts per email in Redis or DB and lock the account 
-for a period.
+**Files changed — Backend:**
+- `V50__add_account_lockout_fields.sql` — adds `failed_login_attempts INTEGER NOT NULL DEFAULT 0` and `lock_until TIMESTAMP` to `users`
+- `model/User.java` — added `failedLoginAttempts` + `lockUntil` fields; `@Transient isLocked()` helper (true while `lockUntil` is in the future)
+- `application.yml` — added `security.lockout.max-attempts: ${LOCKOUT_MAX_ATTEMPTS:5}` and `lock-minutes: ${LOCKOUT_LOCK_MINUTES:15}` (env-tunable)
+- `exception/AccountLockedException.java` *(new)* — `RuntimeException` subclass
+- `exception/GlobalExceptionHandler.java` — `AccountLockedException` → HTTP 423 Locked with message body
+- `service/AuthService.java` — reworked `login()` to be `@Transactional`: load user first → reset counter if expired lock → reject with 423 if actively locked → `authenticationManager.authenticate()` → catch `BadCredentialsException` to call `registerFailedAttempt()` → on success call `resetFailedAttempts()`; added `registerFailedAttempt` and `resetFailedAttempts` helpers
+- `service/UserService.java` — added `unlockAccount(Long id)` (`@PreAuthorize("hasRole('ADMIN')")`)
+- `controller/UserController.java` — added `PATCH /api/users/{id}/unlock`
+
+**Files changed — Frontend:**
+- `pages/LoginPage.jsx` — 423 response shows backend message (e.g. "Account locked. Try again in 14 minute(s).") or fallback `t('auth.accountLocked')`
+- `i18n/en.json` + `sr.json` — added `auth.accountLocked` fallback key
+
+**Behaviour:**
+- 5 consecutive wrong passwords → account locked for 15 minutes
+- While locked: immediate rejection before password check; message includes minutes remaining
+- Lock is self-expiring: first attempt after `lockUntil` resets counter and proceeds to password check
+- Successful login always resets the counter
+- Admin can unlock via `PATCH /api/users/{id}/unlock` (ADMIN role only)
+- Threshold tunable: set `LOCKOUT_MAX_ATTEMPTS` and `LOCKOUT_LOCK_MINUTES` env vars
 
 ---
 
