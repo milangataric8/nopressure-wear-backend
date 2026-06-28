@@ -228,19 +228,41 @@ Returns HTTP 429 with JSON error when exceeded. Uses `X-Forwarded-For` for proxy
 
 ---
 
-#### 0.5 Legal & GDPR Pages ❌ NOT DONE
-**Status:** Not implemented — requires content + design work.
+#### 0.5 Legal & GDPR Pages ✅ DONE
+**Status:** Fully implemented — DB-backed content editable by admin, cookie consent banner, GDPR erasure.
 
-**Required if selling to EU customers or Serbian residents:**
-- Privacy Policy page
-- Terms of Service page
-- Return / Refund Policy page
-- Company Imprint (legal name, address, registration number, contact)
-- Cookie consent banner (if you use Google Analytics or other non-essential cookies)
-- GDPR right to erasure — at minimum a documented manual process; ideally an admin "Delete customer data" action
+**Files changed — Backend:**
+- `V51__add_legal_content.sql` — creates `legal_content` table (`type`, `language`, `content TEXT`, `last_updated`; unique on `type+language`); seeds 8 empty rows (4 pages × EN/SR)
+- `model/LegalContent.java` *(new)* — JPA entity; `@PrePersist`/`@PreUpdate` sets `lastUpdated` automatically
+- `repository/LegalContentRepository.java` *(new)* — `findByTypeIgnoreCaseAndLanguageIgnoreCase`
+- `dto/legal/LegalContentRequest.java` + `LegalContentResponse.java` *(new)*
+- `service/LegalContentService.java` *(new)* — `get(type, lang)` public; `update(type, lang, content)` ADMIN only + `@Transactional`
+- `controller/LegalContentController.java` *(new)* — `GET /api/legal/{type}?lang=en` (public); `PUT /api/legal/{type}` (ADMIN)
+- `service/UserService.java` — added `anonymizeCustomer(Long id)` (`@PreAuthorize("hasRole('ADMIN')")`, `@Transactional`): erases PII (name → "Deleted User", email → `deleted-{id}@anonymized.local`, unusable password), anonymizes order snapshots (`customerFullName`, `customerEmail`, `customerPhone`), wipes addresses, deletes cart; guards against non-CUSTOMER accounts
+- `controller/UserController.java` — added `DELETE /api/users/{id}/personal-data`
 
-**Implementation:** These are mostly static React pages + links in the footer. The cookie banner can be a lightweight
-library (e.g. `react-cookie-consent`) or a custom component that sets a `localStorage` flag.
+**Files changed — Frontend:**
+- `src/api/legalApi.js` *(new)* — `getLegalContent(type, lang)`, `updateLegalContent(type, lang, content)`
+- `src/components/legal/LegalPage.jsx` *(new)* — shared layout wrapper (title, children)
+- `src/pages/legal/PrivacyPolicyPage.jsx` *(new)* — fetches content from API by current language, renders HTML via `dangerouslySetInnerHTML`
+- `src/pages/legal/TermsPage.jsx` *(new)* — same pattern
+- `src/pages/legal/ReturnsPage.jsx` *(new)* — same pattern
+- `src/pages/legal/ImprintPage.jsx` *(new)* — same pattern
+- `src/pages/admin/AdminLegal.jsx` *(new)* — 4 page tabs × 2 language tabs (EN/SR); ReactQuill rich-text editor; Save button; `/admin/legal` route (ADMIN only)
+- `src/components/common/CookieBanner.jsx` *(new)* — fixed bottom banner; stores `np_cookie_consent` in `localStorage`; Accept/Decline; links to Privacy Policy; no third-party dependency
+- `src/components/common/ScrollToTop.jsx` *(new)* — `useEffect` on `pathname` calls `window.scrollTo(0, 0)` on every route change
+- `App.jsx` — added routes `/privacy-policy`, `/terms`, `/returns`, `/imprint`, `/admin/legal`; renders `<CookieBanner />` and `<ScrollToTop />` globally
+- `Footer.jsx` — added legal links row (Privacy Policy, Terms, Returns, Imprint) above copyright line
+- `pages/admin/AdminCustomerDetail.jsx` — added "Delete Personal Data" button (ADMIN only) in account info card with `window.confirm` guard; navigates to `/admin/customers` after success
+- `pages/admin/AdminDashboard.jsx` — Legal Pages added to Management section; Reports moved to Management section
+- `components/common/Navbar.jsx` — Legal Pages + Reports added to Management section in admin dropdown; Reports removed from Sales section
+- `i18n/en.json` + `sr.json` — added `legal.*` (privacyTitle, termsTitle, returnsTitle, imprintTitle), `cookie.*` (message, accept, decline, learnMore), `admin.legal`, `admin.manageLegal`, `admin.legalSaved`, `admin.legalSaveFailed`, `admin.deletePersonalData`, `admin.confirmAnonymize`, `admin.customerAnonymized`, `admin.anonymizeFailed`
+
+**How it works:**
+- Public visitors: `/privacy-policy`, `/terms`, `/returns`, `/imprint` — content fetched from DB in current language
+- Admin: `/admin/legal` — pick page + language tab, edit with ReactQuill, Save
+- Cookie banner appears on first visit; choice stored in `localStorage('np_cookie_consent')`; no analytics loaded until accepted (no analytics currently wired)
+- GDPR erasure: admin opens customer detail → "Delete Personal Data" → confirm → PII anonymized, orders kept for legal retention
 
 ---
 
@@ -325,13 +347,15 @@ Set up daily snapshots on your PostgreSQL host. Verify you can restore from a ba
 - `application.yml` — added `security.lockout.max-attempts: ${LOCKOUT_MAX_ATTEMPTS:5}` and `lock-minutes: ${LOCKOUT_LOCK_MINUTES:15}` (env-tunable)
 - `exception/AccountLockedException.java` *(new)* — `RuntimeException` subclass
 - `exception/GlobalExceptionHandler.java` — `AccountLockedException` → HTTP 423 Locked with message body
-- `service/AuthService.java` — reworked `login()` to be `@Transactional`: load user first → reset counter if expired lock → reject with 423 if actively locked → `authenticationManager.authenticate()` → catch `BadCredentialsException` to call `registerFailedAttempt()` → on success call `resetFailedAttempts()`; added `registerFailedAttempt` and `resetFailedAttempts` helpers
+- `service/LoginAttemptService.java` *(new)* — extracted `registerFailedAttempt()` into its own `@Service` with `@Transactional(propagation = REQUIRES_NEW)` so the counter increment commits in its own transaction, independent of the parent; fixes the bug where `BadCredentialsException` rollback was silently discarding every failed-attempt save
+- `service/AuthService.java` — `login()` is `@Transactional`: load user → reset counter if expired lock → reject with 423 if locked → `authenticationManager.authenticate()` → catch `BadCredentialsException` → delegate to `loginAttemptService.registerFailedAttempt()` (REQUIRES_NEW) → on success call `resetFailedAttempts()`
 - `service/UserService.java` — added `unlockAccount(Long id)` (`@PreAuthorize("hasRole('ADMIN')")`)
 - `controller/UserController.java` — added `PATCH /api/users/{id}/unlock`
+- `test/service/AuthServiceTest.java` — added `@Mock LoginAttemptService loginAttemptService` (was missing after service extraction, causing NPE in the bad-credentials test)
 
 **Files changed — Frontend:**
-- `pages/LoginPage.jsx` — 423 response shows backend message (e.g. "Account locked. Try again in 14 minute(s).") or fallback `t('auth.accountLocked')`
-- `i18n/en.json` + `sr.json` — added `auth.accountLocked` fallback key
+- `pages/LoginPage.jsx` — 423 response parses minutes from backend message with regex (`/(\d+) minute/`), renders translated key with interpolation (`auth.accountLockedMinutes`); error shown above the email input field
+- `i18n/en.json` + `sr.json` — added `auth.accountLocked` fallback; added `auth.accountLockedMinutes` with `{{count}}` interpolation (EN: "Account locked. Try again in {{count}} minute(s)." / SR: "Nalog je zaključan. Pokušajte ponovo za {{count}} minut(a).")
 
 **Behaviour:**
 - 5 consecutive wrong passwords → account locked for 15 minutes
