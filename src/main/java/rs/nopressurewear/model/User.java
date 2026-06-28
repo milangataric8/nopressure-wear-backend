@@ -15,6 +15,7 @@ import rs.nopressurewear.constants.Role;
 import static jakarta.persistence.CascadeType.ALL;
 import static jakarta.persistence.FetchType.LAZY;
 import static jakarta.persistence.GenerationType.IDENTITY;
+import static java.util.Objects.nonNull;
 
 @Entity
 @Table(name = "users")
@@ -71,6 +72,17 @@ public class User implements UserDetails {
 
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;
+
+    @Column(name = "failed_login_attempts", nullable = false)
+    private int failedLoginAttempts = 0;
+
+    @Column(name = "lock_until")
+    private LocalDateTime lockUntil;
+
+    @Transient
+    public boolean isLocked() {
+        return nonNull(lockUntil) && lockUntil.isAfter(LocalDateTime.now());
+    }
 
     @PrePersist
     protected void onCreate() {

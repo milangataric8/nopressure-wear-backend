@@ -299,7 +299,7 @@ public class ReportService {
             createDiscountPart(order, t, totalsTable);
         }
 
-        BigDecimal deliveryFeeValue = order.getDeliveryFee() != null ? order.getDeliveryFee() : ZERO;
+        BigDecimal deliveryFeeValue = nonNull(order.getDeliveryFee()) ? order.getDeliveryFee() : ZERO;
         String deliveryValue = deliveryFeeValue.compareTo(ZERO) == 0 ? t.get("free") : formatPrice(deliveryFeeValue);
         addTotalRow(totalsTable, t.get("delivery"), deliveryValue);
 

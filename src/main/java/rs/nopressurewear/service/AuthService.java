@@ -3,8 +3,10 @@ package rs.nopressurewear.service;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,9 +21,11 @@ import rs.nopressurewear.repository.StoreSettingsRepository;
 import rs.nopressurewear.repository.UserRepository;
 import rs.nopressurewear.security.JwtUtil;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import static java.util.Objects.nonNull;
 import static rs.nopressurewear.constants.Role.CUSTOMER;
 
 @Service
@@ -31,14 +35,21 @@ public class AuthService {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
+    private final StoreSettingsRepository storeSettingsRepository;
+    private final EmailVerificationTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
-    private final StoreSettingsRepository storeSettingsRepository;
-    private final EmailVerificationTokenRepository tokenRepository;
+    private final LoginAttemptService loginAttemptService;
 
     private static final long VERIFICATION_TTL_HOURS = 24;
+
+    @Value("${security.lockout.max-attempts:5}")
+    private int maxAttempts;
+
+    @Value("${security.lockout.lock-minutes:15}")
+    private int lockMinutes;
 
     private boolean isSettingEnabled(String key) {
         return storeSettingsRepository.findByKey(key)
@@ -120,7 +131,7 @@ public class AuthService {
     @Transactional
     public void resendVerification(String email, String lang) {
         User user = userRepository.findByEmail(email).orElse(null);
-        if (user != null && !user.isEmailVerified()) {
+        if (nonNull(user) && !user.isEmailVerified()) {
             sendVerificationEmail(user, lang);
         }
     }
@@ -131,16 +142,31 @@ public class AuthService {
         tokenRepository.deleteExpiredBefore(LocalDateTime.now());
     }
 
+    @Transactional
     public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
+        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (user == null) {
+            throw new BadCredentialsException("Invalid email or password");
+        }
+
+        resetCounterIfLockExpired(user);
+
+        if (user.isLocked()) {
+            long minutesLeft = Duration.between(LocalDateTime.now(), user.getLockUntil()).toMinutes() + 1;
+            throw new AccountLockedException("Account locked. Try again in " + minutesLeft + " minute(s).");
+        }
+
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
+        } catch (BadCredentialsException ex) {
+            loginAttemptService.registerFailedAttempt(user);
+            throw ex;
+        }
+
+        resetFailedAttempts(user);
 
         if (!user.isEmailVerified() && isCustomer(user.getRole())) {
             throw new EmailNotVerifiedException("Please verify your email before logging in");
@@ -161,6 +187,31 @@ public class AuthService {
                 .role(user.getRole().name())
                 .emailVerified(user.isEmailVerified())
                 .build();
+    }
+
+    private void resetCounterIfLockExpired(User user) {
+        if (nonNull(user.getLockUntil()) && user.getLockUntil().isBefore(LocalDateTime.now())) {
+            user.setFailedLoginAttempts(0);
+            user.setLockUntil(null);
+            userRepository.save(user);
+        }
+    }
+
+    private void registerFailedAttempt(User user) {
+        int attempts = user.getFailedLoginAttempts() + 1;
+        user.setFailedLoginAttempts(attempts);
+        if (attempts >= maxAttempts) {
+            user.setLockUntil(LocalDateTime.now().plusMinutes(lockMinutes));
+        }
+        userRepository.save(user);
+    }
+
+    private void resetFailedAttempts(User user) {
+        if (user.getFailedLoginAttempts() != 0 || nonNull(user.getLockUntil())) {
+            user.setFailedLoginAttempts(0);
+            user.setLockUntil(null);
+            userRepository.save(user);
+        }
     }
 
     private static boolean isCustomer(Role role) {

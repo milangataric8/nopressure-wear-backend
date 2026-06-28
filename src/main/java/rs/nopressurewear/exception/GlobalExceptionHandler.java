@@ -125,4 +125,14 @@ public class GlobalExceptionHandler {
                 .build();
         return ResponseEntity.status(FORBIDDEN).body(error);
     }
+
+    @ExceptionHandler(AccountLockedException.class)
+    public ResponseEntity<ErrorResponse> handleAccountLocked(AccountLockedException ex) {
+        ErrorResponse error = ErrorResponse.builder()
+                .status(423)
+                .message(ex.getMessage())
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(423).body(error);
+    }
 }

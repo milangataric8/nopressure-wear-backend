@@ -47,7 +47,7 @@ public class PopupService {
                 .textColor(nonNull(request.getTextColor()) ? request.getTextColor() : "#000000")
                 .active(true)
                 .showOnce(nonNull(request.getShowOnce()) && request.getShowOnce())
-                .displayDuration(request.getDisplayDuration() != null ? request.getDisplayDuration() : 0)
+                .displayDuration(nonNull(request.getDisplayDuration()) ? request.getDisplayDuration() : 0)
                 .build();
         return toResponse(popupRepository.save(popup));
     }
@@ -67,7 +67,7 @@ public class PopupService {
         if (nonNull(request.getBackgroundColor())) popup.setBackgroundColor(request.getBackgroundColor());
         if (nonNull(request.getTextColor())) popup.setTextColor(request.getTextColor());
         if (nonNull(request.getShowOnce())) popup.setShowOnce(request.getShowOnce());
-        popup.setDisplayDuration(request.getDisplayDuration() != null ? request.getDisplayDuration() : 0);
+        popup.setDisplayDuration(nonNull(request.getDisplayDuration()) ? request.getDisplayDuration() : 0);
 
         return toResponse(popupRepository.save(popup));
     }
@@ -101,7 +101,7 @@ public class PopupService {
                 .textColor(popup.getTextColor())
                 .active(popup.isActive())
                 .showOnce(popup.isShowOnce())
-                .displayDuration(popup.getDisplayDuration() != null ? popup.getDisplayDuration() : 0)
+                .displayDuration(nonNull(popup.getDisplayDuration()) ? popup.getDisplayDuration() : 0)
                 .createdAt(popup.getCreatedAt())
                 .build();
     }

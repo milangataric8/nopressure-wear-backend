@@ -14,6 +14,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
+import static java.util.Objects.nonNull;
+
 @Component
 @Order(1)
 public class RateLimitFilter extends OncePerRequestFilter {
@@ -72,7 +74,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private static String resolveIp(HttpServletRequest request) {
         String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
+        if (nonNull(forwarded) && !forwarded.isBlank()) {
             return forwarded.split(",")[0].trim();
         }
         return request.getRemoteAddr();

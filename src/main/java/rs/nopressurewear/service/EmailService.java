@@ -378,7 +378,7 @@ public class EmailService {
     }
 
     private String buildLogoHtml(String logoUrl) {
-        if (logoUrl != null && !logoUrl.isBlank()) {
+        if (nonNull(logoUrl) && !logoUrl.isBlank()) {
             return "<img src=\"cid:emailLogo\" alt=\"NoPressure\" style=\"height: 48px; width: auto; display: block; margin: 0 auto;\" />";
         }
         return "<span style=\"font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px; color: #111;\">NoPressure wear</span>";
@@ -585,8 +585,8 @@ public class EmailService {
             helper.setSubject(hasImage(subject) ? subject : "Special Offer");
             helper.setFrom(fromEmail);
 
-            String bg = (bgColor != null && !bgColor.isBlank()) ? bgColor : "#ffffff";
-            String text = (textColor != null && !textColor.isBlank()) ? textColor : "#111111";
+            String bg = (nonNull(bgColor) && !bgColor.isBlank()) ? bgColor : "#ffffff";
+            String text = (nonNull(textColor) && !textColor.isBlank()) ? textColor : "#111111";
 
             String imageHtml = hasImage(imageUrl) ? """
                     <div style="margin: 0 0 24px;">

@@ -132,6 +132,15 @@ public class UserService {
         userRepository.delete(user);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    public void unlockAccount(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        user.setFailedLoginAttempts(0);
+        user.setLockUntil(null);
+        userRepository.save(user);
+    }
+
     private UserResponse toResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())

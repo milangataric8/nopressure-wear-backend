@@ -46,6 +46,11 @@ management:
     health:
       show-details: never
 
+security:
+  lockout:
+    max-attempts: ${LOCKOUT_MAX_ATTEMPTS:5}
+    lock-minutes: ${LOCKOUT_LOCK_MINUTES:15}
+
 sentry:
   dsn: ${SENTRY_DSN:}
   environment: ${SENTRY_ENV:local}

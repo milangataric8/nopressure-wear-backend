@@ -19,7 +19,6 @@ import rs.nopressurewear.repository.EmailVerificationTokenRepository;
 import rs.nopressurewear.repository.StoreSettingsRepository;
 import rs.nopressurewear.repository.UserRepository;
 import rs.nopressurewear.security.JwtUtil;
-import rs.nopressurewear.service.EmailService;
 
 import java.util.Optional;
 
@@ -51,6 +50,9 @@ class AuthServiceTest {
 
     @Mock
     private EmailVerificationTokenRepository tokenRepository;
+
+    @Mock
+    private LoginAttemptService loginAttemptService;
 
     @InjectMocks
     private AuthService authService;
@@ -131,6 +133,7 @@ class AuthServiceTest {
 
     @Test
     void login_ShouldThrowException_WhenInvalidCredentials() {
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(authenticationManager.authenticate(any()))
                 .thenThrow(new BadCredentialsException("Bad credentials"));
 

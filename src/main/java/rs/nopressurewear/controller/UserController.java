@@ -88,4 +88,10 @@ public class UserController {
         userService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{id}/unlock")
+    public ResponseEntity<Void> unlock(@PathVariable Long id) {
+        userService.unlockAccount(id);
+        return ResponseEntity.noContent().build();
+    }
 }

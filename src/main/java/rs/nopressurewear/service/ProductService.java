@@ -75,7 +75,7 @@ public class ProductService {
 
         List<ProductVariant> variants = buildVariants(saved, request.getVariants());
         productVariantRepository.saveAll(variants);
-        int total = variants.stream().mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0).sum();
+        int total = variants.stream().mapToInt(v -> nonNull(v.getStockQuantity()) ? v.getStockQuantity() : 0).sum();
         saved.setStockQuantity(total);
         productRepository.save(saved);
 
@@ -375,12 +375,12 @@ public class ProductService {
                         .size(v.getSize())
                         .stockQuantity(v.getStockQuantity())
                         .sku(v.getSku())
-                        .inStock(v.getStockQuantity() != null && v.getStockQuantity() > 0)
+                        .inStock(nonNull(v.getStockQuantity()) && v.getStockQuantity() > 0)
                         .build())
                 .toList();
 
         int totalStock = variants.stream()
-                .mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0)
+                .mapToInt(v -> nonNull(v.getStockQuantity()) ? v.getStockQuantity() : 0)
                 .sum();
 
         return ProductResponse.builder()
@@ -419,11 +419,11 @@ public class ProductService {
             return List.of();
         }
         return requested.stream()
-                .filter(v -> v.getSize() != null)
+                .filter(v -> nonNull(v.getSize()))
                 .map(v -> ProductVariant.builder()
                         .product(product)
                         .size(v.getSize())
-                        .stockQuantity(v.getStockQuantity() != null ? v.getStockQuantity() : 0)
+                        .stockQuantity(nonNull(v.getStockQuantity()) ? v.getStockQuantity() : 0)
                         .sku(v.getSku())
                         .build())
                 .toList();

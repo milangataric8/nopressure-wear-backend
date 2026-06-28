@@ -51,8 +51,8 @@ public class BannerService {
                 .buttonLink(request.getButtonLink())
                 .displayOrder(nonNull(request.getDisplayOrder()) ? request.getDisplayOrder() : 0)
                 .isActive(true)
-                .displayTitle(request.getDisplayTitle() != null ? request.getDisplayTitle() : true)
-                .displayDuration(request.getDisplayDuration() != null ? request.getDisplayDuration() : 5)
+                .displayTitle(nonNull(request.getDisplayTitle()) ? request.getDisplayTitle() : true)
+                .displayDuration(nonNull(request.getDisplayDuration()) ? request.getDisplayDuration() : 5)
                 .build();
         return toResponse(bannerRepository.save(banner));
     }
@@ -71,8 +71,8 @@ public class BannerService {
         if (nonNull(request.getDisplayOrder())) {
             banner.setDisplayOrder(request.getDisplayOrder());
         }
-        banner.setDisplayTitle(request.getDisplayTitle() != null ? request.getDisplayTitle() : true);
-        banner.setDisplayDuration(request.getDisplayDuration() != null ? request.getDisplayDuration() : 5);
+        banner.setDisplayTitle(nonNull(request.getDisplayTitle()) ? request.getDisplayTitle() : true);
+        banner.setDisplayDuration(nonNull(request.getDisplayDuration()) ? request.getDisplayDuration() : 5);
         return toResponse(bannerRepository.save(banner));
     }
 
@@ -102,8 +102,8 @@ public class BannerService {
                 .buttonLink(banner.getButtonLink())
                 .displayOrder(banner.getDisplayOrder())
                 .active(banner.isActive())
-                .displayTitle(banner.getDisplayTitle() != null ? banner.getDisplayTitle() : true)
-                .displayDuration(banner.getDisplayDuration() != null ? banner.getDisplayDuration() : 5)
+                .displayTitle(nonNull(banner.getDisplayTitle()) ? banner.getDisplayTitle() : true)
+                .displayDuration(nonNull(banner.getDisplayDuration()) ? banner.getDisplayDuration() : 5)
                 .build();
     }
 }
