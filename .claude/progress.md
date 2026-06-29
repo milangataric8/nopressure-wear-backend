@@ -367,6 +367,31 @@ Set up daily snapshots on your PostgreSQL host. Verify you can restore from a ba
 
 ---
 
+#### Low-Stock Admin Alerts ✅ DONE
+**Status:** Fully implemented — per-size variant tracking, one email per threshold crossing, re-arms on restock, translated by store language.
+
+**Files changed — Backend:**
+- `V52__add_low_stock_alerts.sql` — inserts `low_stock_alerts_enabled` (default `true`) and `low_stock_threshold` (default `5`) into `store_settings`; adds `low_stock_alerted BOOLEAN NOT NULL DEFAULT FALSE` to `product_variant`
+- `model/ProductVariant.java` — added `@Builder.Default boolean lowStockAlerted = false` field
+- `service/LowStockService.java` *(new)* — `checkAndAlertVariant(product, variant)`: reads `low_stock_alerts_enabled`, `low_stock_threshold`, and `default_language` from settings; fires `emailService.sendAdminLowStockAlert()` when `stock ≤ threshold` and flag is not set; sets flag after sending; entire method is try/catch so it never blocks checkout
+- `service/EmailService.java` — added `sendAdminLowStockAlert(productName, sku, size, stock, threshold, lang)` with branded HTML template matching other emails; added `lowStockSubject`, `lowStockIntro`, `lowStockSize`, `lowStockSku`, `lowStockThresholdLabel`, `lowStockRestock` keys to both EN and SR blocks in `getEmailTranslations()`
+- `service/OrderService.java` — injected `LowStockService`; calls `lowStockService.checkAndAlertVariant(product, variant)` after variant stock decrement in `buildOrderItems()`
+
+**Re-arm on restock:** `ProductService.update()` deletes and rebuilds all variants fresh — new `ProductVariant` objects start with `lowStockAlerted = false`, so the alert automatically re-arms whenever an admin saves updated stock.
+
+**Files changed — Frontend:**
+- `pages/admin/AdminSettings.jsx` — added `low_stock` section: toggle for `low_stock_alerts_enabled`, numeric input for `low_stock_threshold`
+- `i18n/en.json` + `sr.json` — added `settings.low_stock`, `settings.low_stock_alerts_enabled`, `settings.low_stock_threshold`, `settings.lowStockThresholdHint`
+
+**Behaviour:**
+- When any size variant's stock drops to/below the threshold at checkout, one email is sent to the store's email address
+- Subject and body are translated to the store's `default_language` (EN or SR)
+- Alert fires once per crossing; re-arms automatically when admin restocks via product edit
+- Toggle and threshold both admin-editable in Settings → Low-Stock Alerts
+- A mail failure never affects checkout (swallowed in `LowStockService`)
+
+---
+
 ### Tier 2 — Nice to Have (Post-Launch)
 
 | Status | Item                                         | Notes                                                                                                      |
@@ -374,10 +399,10 @@ Set up daily snapshots on your PostgreSQL host. Verify you can restore from a ba
 | ❌     | SEO — per-product meta + Open Graph          | React Helmet or `<head>` tags per page                                                                     |
 | ❌     | `sitemap.xml` + `robots.txt`                 | Static files in `public/` or generated at build                                                            |
 | ❌     | Google Analytics / Plausible                 | Add after cookie consent banner is in place                                                                |
-| ❌     | Abandoned cart recovery emails               | Scheduled job: find carts older than X hours with items, send reminder                                     |
+| ✅     | Abandoned cart recovery emails               | Scheduled job: find carts older than X hours with items, send reminder                                     |
 | ❌     | Image optimization                           | Automatic if you use Cloudinary (see 0.2)                                                                  |
 | ❌     | DB indexes on filter/search columns          | Check `product.brand`, `product.color_name`, `product.category_id`, `order.status`, `order.customer_email` |
-| ❌     | Low-stock admin alerts                       | Trigger a notification when stock drops below threshold (you already have the low-stock report)            |
+| ✅     | Low-stock admin alerts                       | Email sent to admin when any size variant drops to/below threshold; one alert per crossing, re-arms on restock |
 | ❌     | Response caching on catalog/filter endpoints | Spring Cache + Caffeine for `/api/products/active`, `/api/categories/active`, `/api/settings/map`          |
 
 ---
