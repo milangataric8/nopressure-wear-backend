@@ -13,6 +13,7 @@ import rs.nopressurewear.repository.*;
 
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -77,6 +78,7 @@ public class CartService {
             cartItemRepository.save(newItem);
         }
 
+        touchCart(cart);
         return toResponse(cartRepository.save(cart));
     }
 
@@ -100,6 +102,7 @@ public class CartService {
             cartItemRepository.save(item);
         }
 
+        touchCart(cart);
         return toResponse(cartRepository.save(cart));
     }
 
@@ -118,6 +121,7 @@ public class CartService {
         cart.getCartItems().remove(item);
         cartItemRepository.delete(item);
 
+        touchCart(cart);
         return toResponse(cartRepository.save(cart));
     }
 
@@ -136,10 +140,16 @@ public class CartService {
 
             Cart newCart = Cart.builder()
                     .user(user)
+                    .updatedAt(LocalDateTime.now())
                     .build();
 
             return cartRepository.save(newCart);
         });
+    }
+
+    private void touchCart(Cart cart) {
+        cart.setUpdatedAt(LocalDateTime.now());
+        cart.setReminderSentAt(null);
     }
 
     private CartResponse toResponse(Cart cart) {

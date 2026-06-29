@@ -3,6 +3,7 @@ package rs.nopressurewear.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,4 +31,10 @@ public class Cart {
     @OneToMany(mappedBy = "cart", cascade = ALL, orphanRemoval = true)
     @Builder.Default
     private List<CartItem> cartItems = new ArrayList<>();
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @Column(name = "reminder_sent_at")
+    private LocalDateTime reminderSentAt;
 }

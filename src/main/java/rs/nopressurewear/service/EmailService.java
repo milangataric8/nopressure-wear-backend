@@ -30,6 +30,8 @@ public class EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
+    private static final String NOPRESSURE_EMAIL = "nopressure.wear.official@gmail.com";
+
     private final JavaMailSender mailSender;
     private final StoreSettingsRepository storeSettingsRepository;
 
@@ -38,9 +40,6 @@ public class EmailService {
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
-
-    @Value("${app.upload.dir:uploads/products}")
-    private String uploadDir;
 
     public void sendVerificationEmail(String to, String token, String lang) {
         Map<String, String> t = getEmailTranslations(lang);
@@ -269,7 +268,7 @@ public class EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
             helper.setTo(to);
             helper.setSubject(t.get("orderSubject").formatted(orderCode, statusLabel));
-            helper.setFrom(fromEmail);
+            helper.setFrom(NOPRESSURE_EMAIL);
 
             setEmailLogoHeader(html, helper, t.get("allRightsReserved"));
 
@@ -308,7 +307,7 @@ public class EmailService {
 
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setFrom(fromEmail);
+            helper.setFrom(NOPRESSURE_EMAIL);
 
             String logoUrl = fetchLogoUrl();
             String tagline = fetchTagline();
@@ -412,7 +411,7 @@ public class EmailService {
 
     public void sendAdminLowStockAlert(String productName, String sku, String size, int stock, int threshold, String lang) {
         Map<String, String> t = getEmailTranslations(lang);
-        String sizeRow = size != null
+        String sizeRow = nonNull(size)
                 ? "<tr><td style=\"color:#999;padding:4px 0;\">%s</td><td style=\"padding:4px 0;\"><strong>%s</strong></td></tr>".formatted(t.get("lowStockSize"), size)
                 : "";
         String subject = t.get("lowStockSubject").formatted(productName);
@@ -463,13 +462,115 @@ public class EmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
-            helper.setTo(fromEmail);
+            helper.setTo(NOPRESSURE_EMAIL);
             helper.setSubject(subject);
-            helper.setFrom(fromEmail);
+            helper.setFrom(NOPRESSURE_EMAIL);
             helper.setText(html, true);
             mailSender.send(message);
         } catch (MessagingException e) {
             throw new RuntimeException("Failed to send low-stock alert: " + e.getMessage());
+        }
+    }
+
+    public void sendAbandonedCartEmail(String to, String firstName, List<rs.nopressurewear.model.CartItem> items, String lang) {
+        Map<String, String> t = getEmailTranslations(lang);
+        String cartUrl = frontendUrl + "/cart";
+
+        List<String> imageUrls = new java.util.ArrayList<>();
+        StringBuilder itemRows = new StringBuilder();
+        int imgIndex = 0;
+        for (rs.nopressurewear.model.CartItem item : items) {
+            String name = item.getProduct() != null ? item.getProduct().getName() : "—";
+            String sizeLabel = item.getSize() != null ? " &mdash; " + item.getSize() : "";
+            String imageUrl = item.getProduct() != null ? item.getProduct().getImageUrl() : null;
+            String imgHtml;
+            if (imageUrl != null && !imageUrl.isBlank()) {
+                imgHtml = "<img src=\"cid:cartProductImg" + imgIndex + "\" alt=\"\" width=\"56\" height=\"56\" style=\"object-fit:cover;border:1px solid #e5e5e5;display:block;\" />";
+                imageUrls.add(imageUrl);
+                imgIndex++;
+            } else {
+                imgHtml = "<div style=\"width:56px;height:56px;background:#f5f5f5;\"></div>";
+            }
+            String price = item.getProduct() != null ? item.getProduct().getPrice().toPlainString() : "—";
+            itemRows.append("""
+                    <div style="display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid #f0f0f0;">
+                        %s
+                        <div style="flex:1;">
+                            <p style="margin:0 0 4px;font-size:14px;font-weight:600;color:#111;">%s%s</p>
+                            <p style="margin:0;font-size:13px;color:#999;">%s: %d &times; %s RSD</p>
+                        </div>
+                    </div>
+                    """.formatted(imgHtml, name, sizeLabel, t.get("cartQty"), item.getQuantity(), price));
+        }
+
+        String html = """
+                <!DOCTYPE html>
+                <html>
+                <head><meta charset="UTF-8">
+                    <style>
+                        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
+                        .container { max-width: 560px; margin: 40px auto; background: #fff; border: 1px solid #e5e5e5; }
+                        .header { padding: 32px 40px; border-bottom: 1px solid #e5e5e5; text-align: center; }
+                        .header h1 { margin: 0; font-size: 20px; font-weight: 900; text-transform: uppercase; color: #111; }
+                        .body { padding: 40px; }
+                        .body p { font-size: 14px; color: #555; line-height: 1.6; margin: 0 0 16px; }
+                        .button { display: inline-block; background: #111; color: #fff !important; text-decoration: none; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; padding: 14px 32px; margin-top: 24px; }
+                        .footer { padding: 24px 40px; border-top: 1px solid #e5e5e5; text-align: center; }
+                        .footer p { font-size: 12px; color: #999; margin: 0; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header"><h1>NoPressure wear</h1></div>
+                        <div class="body">
+                            <p>%s</p>
+                            <p>%s</p>
+                            <div style="margin: 24px 0;">%s</div>
+                            <a href="%s" class="button">%s</a>
+                        </div>
+                        <div class="footer"><p>© 2026 NoPressure. %s</p></div>
+                    </div>
+                </body>
+                </html>
+                """.formatted(
+                t.get("cartHi").formatted(firstName),
+                t.get("cartReminder"),
+                itemRows,
+                cartUrl,
+                t.get("cartButton"),
+                t.get("allRightsReserved")
+        );
+
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            helper.setTo(to);
+            helper.setSubject(t.get("cartSubject"));
+            helper.setFrom(NOPRESSURE_EMAIL);
+
+            String logoUrl = fetchLogoUrl();
+            String tagline = fetchTagline();
+            String withLogo = html.replace("<h1>NoPressure wear</h1>", buildLogoHtml(logoUrl));
+            String htmlFinal = injectSignature(withLogo, tagline, lang);
+            helper.setText(htmlFinal, true);
+
+            attachLogo(helper, logoUrl);
+            attachSignature(helper);
+
+            for (int i = 0; i < imageUrls.size(); i++) {
+                String rawUrl = imageUrls.get(i);
+                String relativePath = rawUrl.startsWith("/") ? rawUrl.substring(1) : rawUrl;
+                File imageFile = new File(relativePath);
+                if (imageFile.exists()) {
+                    helper.addInline("cartProductImg" + i, new FileSystemResource(imageFile));
+                } else {
+                    log.warn("Cart product image not found for inline embedding: {}", imageFile.getAbsolutePath());
+                }
+            }
+
+            mailSender.send(mimeMessage);
+        } catch (MessagingException e) {
+            throw new RuntimeException("Failed to send abandoned cart email: " + e.getMessage());
         }
     }
 
@@ -478,7 +579,7 @@ public class EmailService {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
-            helper.setTo(this.fromEmail);
+            helper.setTo(NOPRESSURE_EMAIL);
             helper.setSubject("Contact: " + (hasImage(subject) ? subject : "No subject"));
             helper.setFrom(this.fromEmail);
             helper.setReplyTo(fromEmail);
@@ -527,7 +628,7 @@ public class EmailService {
 
             helper.setTo(to);
             helper.setSubject("sr".equals(lang) ? "Primili smo vašu poruku" : "We received your message");
-            helper.setFrom(this.fromEmail);
+            helper.setFrom(NOPRESSURE_EMAIL);
 
             String greeting = "sr".equals(lang) ? "Zdravo" : "Hi";
             String body = "sr".equals(lang)
@@ -600,6 +701,11 @@ public class EmailService {
             t.put("lowStockSku", "SKU");
             t.put("lowStockThresholdLabel", "Prag upozorenja ");
             t.put("lowStockRestock", "Razmotrite dopunu zaliha što pre.");
+            t.put("cartSubject", "Ostavili ste nešto u korpi");
+            t.put("cartHi", "Zdravo %s,");
+            t.put("cartReminder", "Još uvek imate artikle u korpi. Završite porudžbinu pre nego što nestanu.");
+            t.put("cartButton", "Nazad u korpu");
+            t.put("cartQty", "Kom");
         } else {
             t.put("resetSubject", "Password Reset Request");
             t.put("resetTitle", "Reset Your Password");
@@ -639,6 +745,11 @@ public class EmailService {
             t.put("lowStockSku", "SKU");
             t.put("lowStockThresholdLabel", "Alert threshold ");
             t.put("lowStockRestock", "Consider restocking soon.");
+            t.put("cartSubject", "You left something behind");
+            t.put("cartHi", "Hi %s,");
+            t.put("cartReminder", "You still have items waiting in your cart. Complete your order before they're gone.");
+            t.put("cartButton", "Return to cart");
+            t.put("cartQty", "Qty");
         }
         return t;
     }
@@ -658,7 +769,7 @@ public class EmailService {
 
             helper.setTo(to);
             helper.setSubject(hasImage(subject) ? subject : "Special Offer");
-            helper.setFrom(fromEmail);
+            helper.setFrom(NOPRESSURE_EMAIL);
 
             String bg = (nonNull(bgColor) && !bgColor.isBlank()) ? bgColor : "#ffffff";
             String text = (nonNull(textColor) && !textColor.isBlank()) ? textColor : "#111111";

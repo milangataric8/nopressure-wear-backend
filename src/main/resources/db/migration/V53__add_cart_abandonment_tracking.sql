@@ -1,0 +1,2 @@
+ALTER TABLE cart ADD COLUMN updated_at TIMESTAMP;
+ALTER TABLE cart ADD COLUMN reminder_sent_at TIMESTAMP;

@@ -51,6 +51,13 @@ security:
     max-attempts: ${LOCKOUT_MAX_ATTEMPTS:5}
     lock-minutes: ${LOCKOUT_LOCK_MINUTES:15}
 
+cart:
+  abandoned:
+    enabled: ${ABANDONED_CART_ENABLED:true}
+    after-minutes: ${ABANDONED_CART_AFTER_MINUTES:15}
+    after-hours: ${ABANDONED_CART_AFTER_HOURS:4}
+    max-age-hours: ${ABANDONED_CART_MAX_AGE_HOURS:72}
+
 sentry:
   dsn: ${SENTRY_DSN:}
   environment: ${SENTRY_ENV:local}
