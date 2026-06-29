@@ -123,6 +123,16 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
+    public SecurityFilterChain sitemapFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/sitemap.xml")
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+        return http.build();
+    }
+
+    @Bean
+    @Order(3)
     public SecurityFilterChain oauth2FilterChain(HttpSecurity http) throws Exception {
         http
                 .securityMatcher("/oauth2/**", "/login/oauth2/**")

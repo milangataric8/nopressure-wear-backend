@@ -23,6 +23,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     Page<Product> findByIsActiveTrue(Pageable pageable);
 
+    List<Product> findByIsActiveTrueOrderByIdAsc();
+
     List<Product> findByCategoryId(Long categoryId);
 
     Page<Product> findByCategoryId(Long categoryId, Pageable pageable);
