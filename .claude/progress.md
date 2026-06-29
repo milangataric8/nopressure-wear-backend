@@ -403,7 +403,7 @@ Set up daily snapshots on your PostgreSQL host. Verify you can restore from a ba
 | ❌     | Image optimization                           | Automatic if you use Cloudinary (see 0.2)                                                                  |
 | ❌     | DB indexes on filter/search columns          | Check `product.brand`, `product.color_name`, `product.category_id`, `order.status`, `order.customer_email` |
 | ✅     | Low-stock admin alerts                       | Email sent to admin when any size variant drops to/below threshold; one alert per crossing, re-arms on restock |
-| ❌     | Response caching on catalog/filter endpoints | Spring Cache + Caffeine for `/api/products/active`, `/api/categories/active`, `/api/settings/map`          |
+| ✅     | Response caching on catalog/filter endpoints | Spring Cache + Caffeine for `/api/products/active`, `/api/categories/active`, `/api/settings/map`          |
 
 ---
 
