@@ -1,6 +1,9 @@
 package rs.nopressurewear.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -41,6 +44,10 @@ public class ProductService {
     private final ProductColorVariantRepository colorVariantRepository;
     private final ProductVariantRepository productVariantRepository;
 
+    @Caching(evict = {
+        @CacheEvict(value = "productFilters", allEntries = true),
+        @CacheEvict(value = "featuredProducts", allEntries = true)
+    })
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     @Transactional
     public ProductResponse create(ProductRequest request) {
@@ -157,6 +164,7 @@ public class ProductService {
                 .map(this::toResponse);
     }
 
+    @Cacheable("productFilters")
     public Map<String, Object> getAvailableFilters() {
         List<String> brands = productRepository.findDistinctBrands();
         List<Object[]> colors = productRepository.findDistinctColors();
@@ -177,6 +185,7 @@ public class ProductService {
         return filters;
     }
 
+    @Cacheable(value = "featuredProducts", key = "#limit")
     public List<ProductResponse> getMostSold(int limit) {
         return productRepository.findMostSold(limit).stream()
                 .map(this::toResponse)
@@ -218,6 +227,10 @@ public class ProductService {
         similar.addAll(parentCategoryProducts);
     }
 
+    @Caching(evict = {
+        @CacheEvict(value = "productFilters", allEntries = true),
+        @CacheEvict(value = "featuredProducts", allEntries = true)
+    })
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     @Transactional
     public ProductResponse update(Long id, ProductRequest request) {
@@ -264,6 +277,10 @@ public class ProductService {
         return toResponse(saved);
     }
 
+    @Caching(evict = {
+        @CacheEvict(value = "productFilters", allEntries = true),
+        @CacheEvict(value = "featuredProducts", allEntries = true)
+    })
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public ProductResponse toggleActive(Long id) {
         Product product = productRepository.findById(id)
@@ -283,6 +300,10 @@ public class ProductService {
                 && !product.getCategory().isActive();
     }
 
+    @Caching(evict = {
+        @CacheEvict(value = "productFilters", allEntries = true),
+        @CacheEvict(value = "featuredProducts", allEntries = true)
+    })
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public void delete(Long id) {
         Product product = productRepository.findById(id)

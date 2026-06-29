@@ -1,6 +1,8 @@
 package rs.nopressurewear.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,6 +26,7 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final ProductService productService;
 
+    @CacheEvict(value = "categories", allEntries = true)
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public CategoryResponse create(CategoryRequest request) {
         if (categoryRepository.existsByName(request.getName())) {
@@ -55,6 +58,7 @@ public class CategoryService {
         return categoryRepository.findAll(pageable).map(this::toResponse);
     }
 
+    @Cacheable("categories")
     public List<CategoryResponse> getActive() {
         return categoryRepository.findByIsActiveTrueOrderByNameAsc()
                 .stream()
@@ -76,6 +80,7 @@ public class CategoryService {
                 .toList();
     }
 
+    @CacheEvict(value = "categories", allEntries = true)
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public CategoryResponse toggleActive(Long id) {
         Category category = categoryRepository.findById(id)
@@ -107,6 +112,7 @@ public class CategoryService {
         }
     }
 
+    @CacheEvict(value = "categories", allEntries = true)
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public CategoryResponse update(Long id, CategoryRequest request) {
         Category category = categoryRepository.findById(id)
@@ -126,6 +132,7 @@ public class CategoryService {
         return toResponse(categoryRepository.save(category));
     }
 
+    @CacheEvict(value = "categories", allEntries = true)
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public void delete(Long id) {
         Category category = categoryRepository.findById(id)

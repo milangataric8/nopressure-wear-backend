@@ -1,6 +1,8 @@
 package rs.nopressurewear.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import rs.nopressurewear.dto.settings.StoreSettingsRequest;
@@ -29,6 +31,7 @@ public class StoreSettingsService {
                 .toList();
     }
 
+    @Cacheable("settings")
     public Map<String, String> getAllAsMap() {
         return storeSettingsRepository.findAll()
                 .stream()
@@ -38,6 +41,7 @@ public class StoreSettingsService {
                 ));
     }
 
+    @CacheEvict(value = "settings", allEntries = true)
     @PreAuthorize("hasRole('ADMIN')")
     public StoreSettingsResponse update(Long id, StoreSettingsRequest request) {
         StoreSettings setting = storeSettingsRepository.findById(id)

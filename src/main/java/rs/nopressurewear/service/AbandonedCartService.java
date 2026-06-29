@@ -42,8 +42,8 @@ public class AbandonedCartService {
         if (!enabled) return;
 
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime idleBefore = now.minusHours(afterHours);
-//        LocalDateTime idleBefore = now.minusMinutes(afterMinutes);
+//        LocalDateTime idleBefore = now.minusHours(afterHours);
+        LocalDateTime idleBefore = now.minusMinutes(afterMinutes);
         LocalDateTime notOlderThan = now.minusHours(maxAgeHours);
 
         List<Cart> carts = cartRepository.findAbandonedCarts(idleBefore, notOlderThan);

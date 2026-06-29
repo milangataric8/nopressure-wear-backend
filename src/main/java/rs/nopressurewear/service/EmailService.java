@@ -528,7 +528,9 @@ public class EmailService {
                             <div style="margin: 24px 0;">%s</div>
                             <a href="%s" class="button">%s</a>
                         </div>
-                        <div class="footer"><p>© 2026 NoPressure. %s</p></div>
+                        <div class="footer">
+                            <p>© 2026 NoPressure. %s</p>
+                        </div>
                     </div>
                 </body>
                 </html>
@@ -551,7 +553,7 @@ public class EmailService {
             String logoUrl = fetchLogoUrl();
             String tagline = fetchTagline();
             String withLogo = html.replace("<h1>NoPressure wear</h1>", buildLogoHtml(logoUrl));
-            String htmlFinal = injectSignature(withLogo, tagline, lang);
+            String htmlFinal = injectSignature(withLogo, tagline, t.get("allRightsReserved"));
             helper.setText(htmlFinal, true);
 
             attachLogo(helper, logoUrl);
@@ -660,6 +662,95 @@ public class EmailService {
         }
     }
 
+    public void sendNotificationEmail(String to,
+                                      String subject,
+                                      String message,
+                                      String imageUrl,
+                                      String bgColor,
+                                      String textColor,
+                                      String lang) {
+        try {
+            Map<String, String> t = getEmailTranslations(lang);
+
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setTo(to);
+            helper.setSubject(hasImage(subject) ? subject : "Special Offer");
+            helper.setFrom(NOPRESSURE_EMAIL);
+
+            String bg = (nonNull(bgColor) && !bgColor.isBlank()) ? bgColor : "#ffffff";
+            String text = (nonNull(textColor) && !textColor.isBlank()) ? textColor : "#111111";
+
+            String imageHtml = hasImage(imageUrl) ? """
+                    <div style="margin: 0 0 24px;">
+                        <img src="cid:notificationImage" alt="" style="width: 100%; max-width: 100%; height: auto; display: block;" />
+                    </div>
+                    """ : "";
+
+            String subjectHtml = hasImage(subject) ? """
+                    <h2 style="font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.5px; margin: 0 0 20px; color: %s;">%s</h2>
+                    """.formatted(text, subject) : "";
+
+            String html = """
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <style>
+                            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
+                            .container { max-width: 560px; margin: 40px auto; background: %s; border: 1px solid #e5e5e5; }
+                            .header { padding: 32px 40px; border-bottom: 1px solid #e5e5e5; text-align: center; }
+                            .body { padding: 40px; }
+                            .footer { padding: 24px 40px; border-top: 1px solid #e5e5e5; text-align: center; }
+                            .footer p { font-size: 12px; color: #999; margin: 0; }
+                            .broadcast-content p { margin: 0 0 10px; }
+                            .broadcast-content ul { padding-left: 20px; margin: 0 0 10px; }
+                            .broadcast-content ol { padding-left: 20px; margin: 0 0 10px; }
+                            .broadcast-content strong { font-weight: 700; }
+                            .broadcast-content em { font-style: italic; }
+                            .broadcast-content h1, .broadcast-content h2, .broadcast-content h3 { margin: 0 0 8px; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="header">
+                                <h1>NoPressure wear</h1>
+                            </div>
+                            <div class="body">
+                                %s
+                                %s
+                                <div class="broadcast-content" style="font-size: 14px; color: %s; line-height: 1.6;">
+                                    %s
+                                </div>
+                            </div>
+                            <div class="footer">
+                                <p>© 2026 NoPressure. %s</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                    """.formatted(bg, imageHtml, subjectHtml, text, message, t.get("allRightsReserved"));
+
+            setEmailLogoHeader(html, helper, t.get("allRightsReserved"));
+
+            if (hasImage(imageUrl)) {
+                String relativePath = imageUrl.startsWith("/") ? imageUrl.substring(1) : imageUrl;
+                File imageFile = new File(relativePath);
+                if (imageFile.exists()) {
+                    helper.addInline("notificationImage", new FileSystemResource(imageFile));
+                } else {
+                    log.warn("Notification image file not found: {}", imageFile.getAbsolutePath());
+                }
+            }
+
+            attachSignature(helper);
+            mailSender.send(mimeMessage);
+        } catch (Exception e) {
+            log.error("Failed to send notification email to {}: {}", to, e.getMessage());
+        }
+    }
+
     private Map<String, String> getEmailTranslations(String lang) {
         Map<String, String> t = new HashMap<>();
         if ("sr".equals(lang)) {
@@ -752,95 +843,6 @@ public class EmailService {
             t.put("cartQty", "Qty");
         }
         return t;
-    }
-
-    public void sendNotificationEmail(String to,
-                                      String subject,
-                                      String message,
-                                      String imageUrl,
-                                      String bgColor,
-                                      String textColor,
-                                      String lang) {
-        try {
-            Map<String, String> t = getEmailTranslations(lang);
-
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-
-            helper.setTo(to);
-            helper.setSubject(hasImage(subject) ? subject : "Special Offer");
-            helper.setFrom(NOPRESSURE_EMAIL);
-
-            String bg = (nonNull(bgColor) && !bgColor.isBlank()) ? bgColor : "#ffffff";
-            String text = (nonNull(textColor) && !textColor.isBlank()) ? textColor : "#111111";
-
-            String imageHtml = hasImage(imageUrl) ? """
-                    <div style="margin: 0 0 24px;">
-                        <img src="cid:notificationImage" alt="" style="width: 100%; max-width: 100%; height: auto; display: block;" />
-                    </div>
-                    """ : "";
-
-            String subjectHtml = hasImage(subject) ? """
-                    <h2 style="font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.5px; margin: 0 0 20px; color: %s;">%s</h2>
-                    """.formatted(text, subject) : "";
-
-            String html = """
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <meta charset="UTF-8">
-                        <style>
-                            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
-                            .container { max-width: 560px; margin: 40px auto; background: %s; border: 1px solid #e5e5e5; }
-                            .header { padding: 32px 40px; border-bottom: 1px solid #e5e5e5; text-align: center; }
-                            .body { padding: 40px; }
-                            .footer { padding: 24px 40px; border-top: 1px solid #e5e5e5; text-align: center; }
-                            .footer p { font-size: 12px; color: #999; margin: 0; }
-                            .broadcast-content p { margin: 0 0 10px; }
-                            .broadcast-content ul { padding-left: 20px; margin: 0 0 10px; }
-                            .broadcast-content ol { padding-left: 20px; margin: 0 0 10px; }
-                            .broadcast-content strong { font-weight: 700; }
-                            .broadcast-content em { font-style: italic; }
-                            .broadcast-content h1, .broadcast-content h2, .broadcast-content h3 { margin: 0 0 8px; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="container">
-                            <div class="header">
-                                <h1>NoPressure wear</h1>
-                            </div>
-                            <div class="body">
-                                %s
-                                %s
-                                <div class="broadcast-content" style="font-size: 14px; color: %s; line-height: 1.6;">
-                                    %s
-                                </div>
-                            </div>
-                            <div class="footer">
-                                <p>© 2026 NoPressure. %s</p>
-                            </div>
-                        </div>
-                    </body>
-                    </html>
-                    """.formatted(bg, imageHtml, subjectHtml, text, message, t.get("allRightsReserved"));
-
-            setEmailLogoHeader(html, helper, t.get("allRightsReserved"));
-
-            if (hasImage(imageUrl)) {
-                String relativePath = imageUrl.startsWith("/") ? imageUrl.substring(1) : imageUrl;
-                File imageFile = new File(relativePath);
-                if (imageFile.exists()) {
-                    helper.addInline("notificationImage", new FileSystemResource(imageFile));
-                } else {
-                    log.warn("Notification image file not found: {}", imageFile.getAbsolutePath());
-                }
-            }
-
-            attachSignature(helper);
-            mailSender.send(mimeMessage);
-        } catch (Exception e) {
-            log.error("Failed to send notification email to {}: {}", to, e.getMessage());
-        }
     }
 
     private static boolean hasImage(String imageUrl) {
