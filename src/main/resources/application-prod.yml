@@ -3,6 +3,8 @@ app:
   base-url: ${BASE_URL}
   upload:
     dir: ${UPLOAD_DIR:/data/uploads/products}
+  cloudinary:
+    folder: nopressure/products
   removebg:
     api-key: ${REMOVEBG_API_KEY}
   stripe:
