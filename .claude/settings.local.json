@@ -20,7 +20,8 @@
       "PowerShell(New-Item *)",
       "Bash(xargs grep -l -i \"broadcast\")",
       "Bash(mvn test *)",
-      "Bash(mvn flyway:repair -Dflyway.url=jdbc:postgresql://localhost:5432/nopressure_wear -Dflyway.user=postgres -Dflyway.password=nopressure8 -Dflyway.locations=classpath:db/migration)"
+      "Bash(mvn flyway:repair -Dflyway.url=jdbc:postgresql://localhost:5432/nopressure_wear -Dflyway.user=postgres -Dflyway.password=nopressure8 -Dflyway.locations=classpath:db/migration)",
+      "Bash(python *)"
     ]
   }
 }
