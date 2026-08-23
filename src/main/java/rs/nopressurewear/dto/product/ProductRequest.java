@@ -3,7 +3,7 @@ package rs.nopressurewear.dto.product;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
-import rs.nopressurewear.model.Gender;
+import rs.nopressurewear.constants.Gender;
 
 import java.math.BigDecimal;
 import java.util.List;

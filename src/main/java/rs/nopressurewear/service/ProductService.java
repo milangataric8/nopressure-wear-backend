@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import rs.nopressurewear.dto.product.*;
 import rs.nopressurewear.exception.ResourceNotFoundException;
 import rs.nopressurewear.model.Category;
-import rs.nopressurewear.model.Gender;
 import rs.nopressurewear.model.Product;
 import rs.nopressurewear.model.ProductImage;
 import rs.nopressurewear.repository.*;
@@ -32,7 +31,7 @@ import static java.lang.Boolean.TRUE;
 import static java.math.BigDecimal.ZERO;
 import static java.math.RoundingMode.HALF_UP;
 import static java.util.Objects.nonNull;
-import static rs.nopressurewear.model.Gender.UNISEX;
+import static rs.nopressurewear.constants.Gender.UNISEX;
 
 @Service
 @RequiredArgsConstructor
@@ -59,6 +58,10 @@ public class ProductService {
                 .sku(request.getSku())
                 .imageUrl(request.getImageUrl())
                 .isActive(true)
+                .stockQuantity(request
+                        .getVariants()
+                        .stream().mapToInt(ProductVariantRequest::getStockQuantity)
+                        .sum())
                 .videoUrl(request.getVideoUrl())
                 .brand(request.getBrand())
                 .colorName(request.getColorName())

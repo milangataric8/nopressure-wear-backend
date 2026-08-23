@@ -2,6 +2,7 @@ package rs.nopressurewear.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import rs.nopressurewear.constants.ProductSize;
 
 import java.math.BigDecimal;
 

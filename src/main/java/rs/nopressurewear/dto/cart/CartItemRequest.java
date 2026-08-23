@@ -4,7 +4,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
-import rs.nopressurewear.model.ProductSize;
+import rs.nopressurewear.constants.ProductSize;
 
 @Getter
 @Setter

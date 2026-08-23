@@ -3,7 +3,7 @@ package rs.nopressurewear.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import rs.nopressurewear.model.CartItem;
-import rs.nopressurewear.model.ProductSize;
+import rs.nopressurewear.constants.ProductSize;
 
 import java.util.Optional;
 

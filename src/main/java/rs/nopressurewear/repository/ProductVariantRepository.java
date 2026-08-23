@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import rs.nopressurewear.model.ProductSize;
+import rs.nopressurewear.constants.ProductSize;
 import rs.nopressurewear.model.ProductVariant;
 
 import java.util.List;

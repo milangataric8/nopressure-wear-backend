@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rs.nopressurewear.constants.OrderStatus;
+import rs.nopressurewear.constants.ProductSize;
 import rs.nopressurewear.dto.order.GuestOrderRequest;
 import rs.nopressurewear.dto.order.OrderItemResponse;
 import rs.nopressurewear.dto.order.OrderResponse;

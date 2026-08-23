@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
-import rs.nopressurewear.model.ProductSize;
+import rs.nopressurewear.constants.ProductSize;
 
 @Getter
 @Setter

@@ -2,6 +2,7 @@ package rs.nopressurewear.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import rs.nopressurewear.constants.ProductSize;
 
 import static jakarta.persistence.FetchType.LAZY;
 import static jakarta.persistence.GenerationType.IDENTITY;

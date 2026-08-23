@@ -2,7 +2,7 @@ package rs.nopressurewear.dto.product;
 
 import lombok.Getter;
 import lombok.Setter;
-import rs.nopressurewear.model.ProductSize;
+import rs.nopressurewear.constants.ProductSize;
 
 @Getter
 @Setter

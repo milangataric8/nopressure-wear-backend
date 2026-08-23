@@ -17,6 +17,7 @@ import rs.nopressurewear.repository.CategoryRepository;
 
 import java.util.List;
 
+import static java.lang.Boolean.TRUE;
 import static java.util.Objects.nonNull;
 
 @Service
@@ -36,6 +37,7 @@ public class CategoryService {
         Category category = Category.builder()
                 .name(request.getName())
                 .description(request.getDescription())
+                .isActive(TRUE)
                 .build();
 
         if (nonNull(request.getParentId())) {
