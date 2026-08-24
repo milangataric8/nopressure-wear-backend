@@ -1,0 +1,55 @@
+# src/main/resources/application-ci.yml
+# Profile for GitHub Actions CI — all values ​​come from the env variable in the workflow.
+
+app:
+  frontend-url: ${FRONTEND_URL}
+  base-url: ${BASE_URL}
+  upload:
+    dir: /tmp/uploads
+  cloudinary:
+    folder: nopressure/ci
+  removebg:
+    api-key: ${REMOVEBG_API_KEY}
+  stripe:
+    secret-key: ${STRIPE_SECRET_KEY}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop      # CI: binds the sema from the entity, fast and isolated
+    show-sql: false
+
+  flyway:
+    enabled: false               # ddl-auto creates schema in CI
+
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+sentry:
+  dsn: ""
+  environment: ci

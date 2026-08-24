@@ -1,12 +1,17 @@
 package rs.nopressurewear.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.MockMvcBuilderCustomizer;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.ConfigurableMockMvcBuilder;
 import rs.nopressurewear.dto.category.CategoryRequest;
 import rs.nopressurewear.dto.category.CategoryResponse;
 import rs.nopressurewear.repository.StoreSettingsRepository;
@@ -15,6 +20,7 @@ import rs.nopressurewear.security.UserDetailsServiceImpl;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import rs.nopressurewear.service.CategoryService;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
@@ -26,6 +32,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CategoryController.class)
+@ImportAutoConfiguration(ServletWebSecurityAutoConfiguration.class)
 class CategoryControllerTest {
 
     @Autowired
@@ -45,6 +52,14 @@ class CategoryControllerTest {
 
     @MockitoBean
     private StoreSettingsRepository storeSettingsRepository;
+
+    @TestConfiguration
+    static class SecurityMockMvcConfig implements MockMvcBuilderCustomizer {
+        @Override
+        public void customize(ConfigurableMockMvcBuilder<?> builder) {
+            builder.apply(SecurityMockMvcConfigurers.springSecurity());
+        }
+    }
 
     @Test
     @WithMockUser(roles = "ADMIN")
