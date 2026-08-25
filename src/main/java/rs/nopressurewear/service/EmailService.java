@@ -4,19 +4,12 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-import org.springframework.core.io.FileSystemResource;
 import rs.nopressurewear.model.StoreSettings;
 import rs.nopressurewear.repository.StoreSettingsRepository;
+import rs.nopressurewear.service.email.EmailSender;
 
-import java.io.File;
 import java.math.BigDecimal;
-
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,14 +25,14 @@ public class EmailService {
 
     private static final String NOPRESSURE_EMAIL = "nopressure.wear.official@gmail.com";
 
-    private final JavaMailSender mailSender;
+    private final EmailSender emailSender;
     private final StoreSettingsRepository storeSettingsRepository;
-
-    @Value("${spring.mail.username}")
-    private String fromEmail;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
+
+    @Value("${app.base-url}")
+    private String baseUrl;
 
     public void sendVerificationEmail(String to, String token, String lang) {
         Map<String, String> t = getEmailTranslations(lang);
@@ -69,7 +62,7 @@ public class EmailService {
                         <a href="%s" class="button">%s</a>
                         <p style="margin-top: 32px; font-size: 13px; color: #999;">%s</p>
                     </div>
-                    <div class="footer"><p>© 2026 NoPressure. %s</p></div>
+                    <div class="footer">%s</div>
                 </div>
             </body>
             </html>
@@ -78,7 +71,7 @@ public class EmailService {
                 verifyUrl,
                 t.get("verifyButton"),
                 t.get("verifyExpire"),
-                t.get("allRightsReserved")
+                copyrightLine(t.get("allRightsReserved"))
             );
 
         sendHtmlEmail(to, t.get("verifySubject"), html, t.get("allRightsReserved"));
@@ -118,7 +111,7 @@ public class EmailService {
                         <p style="margin-top: 32px; font-size: 13px; color: #999;">%s</p>
                     </div>
                     <div class="footer">
-                        <p>© 2026 NoPressure. %s</p>
+                        %s
                     </div>
                 </div>
             </body>
@@ -129,7 +122,7 @@ public class EmailService {
                 resetUrl,
                 t.get("resetButton"),
                 t.get("resetIgnore"),
-                t.get("allRightsReserved")
+                copyrightLine(t.get("allRightsReserved"))
             );
 
         sendHtmlEmail(to, t.get("resetSubject"), html, t.get("allRightsReserved"));
@@ -146,7 +139,6 @@ public class EmailService {
                                      String shippingCity,
                                      String shippingPostalCode,
                                      String shippingCountry,
-                                     List<String> productImageUrls,
                                      BigDecimal deliveryFee,
                                      String lang) {
 
@@ -242,7 +234,7 @@ public class EmailService {
                         <a href="%s" class="button">%s</a>
                     </div>
                     <div class="footer">
-                        <p>© 2026 NoPressure. %s</p>
+                        %s
                     </div>
                 </div>
             </body>
@@ -260,73 +252,45 @@ public class EmailService {
                 shippingSection,
                 orderUrl,
                 t.get("orderViewButton"),
-                t.get("allRightsReserved")
+                copyrightLine(t.get("allRightsReserved"))
         );
 
-        try {
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-            helper.setTo(to);
-            helper.setSubject(t.get("orderSubject").formatted(orderCode, statusLabel));
-            helper.setFrom(NOPRESSURE_EMAIL);
-
-            setEmailLogoHeader(html, helper, t.get("allRightsReserved"));
-
-            if (nonNull(productImageUrls)) {
-                for (int i = 0; i < productImageUrls.size(); i++) {
-                    String rawUrl = productImageUrls.get(i);
-                    String relativePath = rawUrl.startsWith("/") ? rawUrl.substring(1) : rawUrl;
-                    File imageFile = new File(relativePath);
-                    if (imageFile.exists()) {
-                        helper.addInline("productImg" + i, new FileSystemResource(imageFile));
-                    } else {
-                        log.warn("Product image not found for inline embedding: {}", imageFile.getAbsolutePath());
-                    }
-                }
-            }
-            attachSignature(helper);
-            mailSender.send(mimeMessage);
-        } catch (MessagingException e) {
-            throw new RuntimeException("Failed to send order status email: " + e.getMessage());
-        }
+        String subject = t.get("orderSubject").formatted(orderCode, statusLabel);
+        emailSender.send(to, subject, applyLogoAndSignature(html, t.get("allRightsReserved")));
     }
 
-    private void setEmailLogoHeader(String html, MimeMessageHelper helper, String allRightsReserved) throws MessagingException {
+    /**
+     * Resolves a possibly-relative image path (as stored on products/settings, e.g.
+     * {@code /uploads/products/xyz.png}) into an absolute URL. Already-absolute URLs
+     * (e.g. Cloudinary's {@code secure_url} in production) are returned unchanged.
+     * Every image referenced in an email must be an absolute URL — the Brevo API has
+     * no support for {@code cid:} inline attachments.
+     */
+    public String resolveImageUrl(String urlOrPath) {
+        if (urlOrPath == null || urlOrPath.isBlank()) return null;
+        if (urlOrPath.startsWith("http://") || urlOrPath.startsWith("https://")) return urlOrPath;
+        return baseUrl + (urlOrPath.startsWith("/") ? urlOrPath : "/" + urlOrPath);
+    }
+
+    /** Swaps the plain "NoPressure wear" header for the store logo (if configured) and appends the signature block. */
+    private String applyLogoAndSignature(String html, String allRightsReserved) {
         String logoUrl = fetchLogoUrl();
+        String tagline = fetchTagline();
         String withLogo = html.replace("<h1>NoPressure wear</h1>", buildLogoHtml(logoUrl));
-        String htmlFinal = injectSignature(withLogo, fetchTagline(), allRightsReserved);
-        helper.setText(htmlFinal, true);
-
-        attachLogo(helper, logoUrl);
+        return injectSignature(withLogo, tagline, allRightsReserved);
     }
 
-    private void sendHtmlEmail(String to, String subject, String html, String lang) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+    private void sendHtmlEmail(String to, String subject, String html, String allRightsReserved) {
+        emailSender.send(to, subject, applyLogoAndSignature(html, allRightsReserved));
+    }
 
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setFrom(NOPRESSURE_EMAIL);
-
-            String logoUrl = fetchLogoUrl();
-            String tagline = fetchTagline();
-            String withLogo = html.replace("<h1>NoPressure wear</h1>", buildLogoHtml(logoUrl));
-            String htmlFinal = injectSignature(withLogo, tagline, lang);
-
-            helper.setText(htmlFinal, true);
-            attachLogo(helper, logoUrl);
-            attachSignature(helper);
-            mailSender.send(message);
-        } catch (MessagingException e) {
-            throw new RuntimeException("Failed to send email: " + e.getMessage());
-        }
+    /** The "© 2026 NoPressure. {rights text}" line every template's footer ends with. */
+    private String copyrightLine(String allRightsReserved) {
+        return "<p>© 2026 NoPressure. " + allRightsReserved + "</p>";
     }
 
     private String injectSignature(String html, String tagline, String allRightsReserved) {
-        String copyrightMarker = """
-        <p>© 2026 NoPressure. %s</p>
-        """.formatted(allRightsReserved);
+        String copyrightMarker = copyrightLine(allRightsReserved);
 
         if (html.contains(copyrightMarker)) {
             return html.replace(
@@ -345,7 +309,7 @@ public class EmailService {
         String taglineHtml = (nonNull(tagline) && !tagline.isBlank())
                 ? "<div style=\"font-size: 13px; color: #333; text-align: center; margin-bottom: 16px; line-height: 1.7;\">" + tagline + "</div>"
                 : "";
-        return taglineHtml + "<img src=\"cid:emailSignature\" alt=\"\" style=\"height: 48px; width: auto; display: block; margin: 0 auto 8px;\" />";
+        return taglineHtml + "<img src=\"" + baseUrl + "/images/signature.png\" alt=\"\" style=\"height: 48px; width: auto; display: block; margin: 0 auto 8px;\" />";
     }
 
     private String buildSignatureFooter(String tagline) {
@@ -377,36 +341,11 @@ public class EmailService {
     }
 
     private String buildLogoHtml(String logoUrl) {
-        if (nonNull(logoUrl) && !logoUrl.isBlank()) {
-            return "<img src=\"cid:emailLogo\" alt=\"NoPressure\" style=\"height: 48px; width: auto; display: block; margin: 0 auto;\" />";
+        String resolved = resolveImageUrl(logoUrl);
+        if (nonNull(resolved)) {
+            return "<img src=\"" + resolved + "\" alt=\"NoPressure\" style=\"height: 48px; width: auto; display: block; margin: 0 auto;\" />";
         }
         return "<span style=\"font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px; color: #111;\">NoPressure wear</span>";
-    }
-
-    private void attachLogo(MimeMessageHelper helper, String logoUrl) {
-        if (logoUrl == null || logoUrl.isBlank()) return;
-        try {
-            String relativePath = logoUrl.startsWith("/") ? logoUrl.substring(1) : logoUrl;
-            File logoFile = new File(relativePath);
-            if (logoFile.exists()) {
-                helper.addInline("emailLogo", new FileSystemResource(logoFile));
-            } else {
-                log.warn("Logo file not found: {}", logoFile.getAbsolutePath());
-            }
-        } catch (Exception e) {
-            log.warn("Could not attach logo image: {}", e.getMessage());
-        }
-    }
-
-    private void attachSignature(MimeMessageHelper helper) {
-        try {
-            ClassPathResource signature = new ClassPathResource("static/images/signature.png");
-            if (signature.exists()) {
-                helper.addInline("emailSignature", signature);
-            }
-        } catch (Exception e) {
-            log.warn("Could not attach signature image: {}", e.getMessage());
-        }
     }
 
     public void sendAdminLowStockAlert(String productName, String sku, String size, int stock, int threshold, String lang) {
@@ -446,7 +385,7 @@ public class EmailService {
                             </table>
                             <p style="margin-top:24px;">%s</p>
                         </div>
-                        <div class="footer"><p>© 2026 NoPressure. %s</p></div>
+                        <div class="footer">%s</div>
                     </div>
                 </body>
                 </html>
@@ -457,40 +396,24 @@ public class EmailService {
                 t.get("lowStockSku"), sku,
                 t.get("lowStockThresholdLabel"), threshold,
                 t.get("lowStockRestock"),
-                t.get("allRightsReserved")
+                copyrightLine(t.get("allRightsReserved"))
         );
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
-            helper.setTo(NOPRESSURE_EMAIL);
-            helper.setSubject(subject);
-            helper.setFrom(NOPRESSURE_EMAIL);
-            helper.setText(html, true);
-            mailSender.send(message);
-        } catch (MessagingException e) {
-            throw new RuntimeException("Failed to send low-stock alert: " + e.getMessage());
-        }
+        emailSender.send(NOPRESSURE_EMAIL, subject, applyLogoAndSignature(html, t.get("allRightsReserved")));
     }
 
     public void sendAbandonedCartEmail(String to, String firstName, List<rs.nopressurewear.model.CartItem> items, String lang) {
         Map<String, String> t = getEmailTranslations(lang);
         String cartUrl = frontendUrl + "/cart";
 
-        List<String> imageUrls = new java.util.ArrayList<>();
         StringBuilder itemRows = new StringBuilder();
-        int imgIndex = 0;
         for (rs.nopressurewear.model.CartItem item : items) {
             String name = item.getProduct() != null ? item.getProduct().getName() : "—";
             String sizeLabel = item.getSize() != null ? " &mdash; " + item.getSize() : "";
             String imageUrl = item.getProduct() != null ? item.getProduct().getImageUrl() : null;
-            String imgHtml;
-            if (imageUrl != null && !imageUrl.isBlank()) {
-                imgHtml = "<img src=\"cid:cartProductImg" + imgIndex + "\" alt=\"\" width=\"56\" height=\"56\" style=\"object-fit:cover;border:1px solid #e5e5e5;display:block;\" />";
-                imageUrls.add(imageUrl);
-                imgIndex++;
-            } else {
-                imgHtml = "<div style=\"width:56px;height:56px;background:#f5f5f5;\"></div>";
-            }
+            String resolvedImageUrl = resolveImageUrl(imageUrl);
+            String imgHtml = nonNull(resolvedImageUrl)
+                    ? "<img src=\"" + resolvedImageUrl + "\" alt=\"\" width=\"56\" height=\"56\" style=\"object-fit:cover;border:1px solid #e5e5e5;display:block;\" />"
+                    : "<div style=\"width:56px;height:56px;background:#f5f5f5;\"></div>";
             String price = item.getProduct() != null ? item.getProduct().getPrice().toPlainString() : "—";
             itemRows.append("""
                     <div style="display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid #f0f0f0;">
@@ -529,7 +452,7 @@ public class EmailService {
                             <a href="%s" class="button">%s</a>
                         </div>
                         <div class="footer">
-                            <p>© 2026 NoPressure. %s</p>
+                            %s
                         </div>
                     </div>
                 </body>
@@ -540,66 +463,30 @@ public class EmailService {
                 itemRows,
                 cartUrl,
                 t.get("cartButton"),
-                t.get("allRightsReserved")
+                copyrightLine(t.get("allRightsReserved"))
         );
 
-        try {
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-            helper.setTo(to);
-            helper.setSubject(t.get("cartSubject"));
-            helper.setFrom(NOPRESSURE_EMAIL);
-
-            String logoUrl = fetchLogoUrl();
-            String tagline = fetchTagline();
-            String withLogo = html.replace("<h1>NoPressure wear</h1>", buildLogoHtml(logoUrl));
-            String htmlFinal = injectSignature(withLogo, tagline, t.get("allRightsReserved"));
-            helper.setText(htmlFinal, true);
-
-            attachLogo(helper, logoUrl);
-            attachSignature(helper);
-
-            for (int i = 0; i < imageUrls.size(); i++) {
-                String rawUrl = imageUrls.get(i);
-                String relativePath = rawUrl.startsWith("/") ? rawUrl.substring(1) : rawUrl;
-                File imageFile = new File(relativePath);
-                if (imageFile.exists()) {
-                    helper.addInline("cartProductImg" + i, new FileSystemResource(imageFile));
-                } else {
-                    log.warn("Cart product image not found for inline embedding: {}", imageFile.getAbsolutePath());
-                }
-            }
-
-            mailSender.send(mimeMessage);
-        } catch (MessagingException e) {
-            throw new RuntimeException("Failed to send abandoned cart email: " + e.getMessage());
-        }
+        emailSender.send(to, t.get("cartSubject"), applyLogoAndSignature(html, t.get("allRightsReserved")));
     }
 
     public void sendContactEmail(String fromName, String fromEmail, String subject, String message) {
         try {
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-
-            helper.setTo(NOPRESSURE_EMAIL);
-            helper.setSubject("Contact: " + (hasImage(subject) ? subject : "No subject"));
-            helper.setFrom(this.fromEmail);
-            helper.setReplyTo(fromEmail);
-
+            String allRightsReserved = "All rights reserved.";
             String html = """
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 0;">
-                <div style="border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px;">
-                    <h1 style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; text-transform: uppercase; margin: 0; color: #000;">
-                        New Contact Message
-                    </h1>
+                <div style="text-align: center; padding-bottom: 24px; margin-bottom: 30px; border-bottom: 2px solid #000;">
+                    <h1>NoPressure wear</h1>
                 </div>
-            
+                <h2 style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px; text-transform: uppercase; margin: 0 0 24px; color: #000;">
+                    New Contact Message
+                </h2>
+
                 <div style="background: #f9f9f9; padding: 20px; margin-bottom: 20px;">
                     <p style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 5px;">From</p>
                     <p style="font-size: 14px; color: #333; margin: 0;">%s</p>
                     <p style="font-size: 13px; color: #666; margin: 4px 0 0 0;">%s</p>
                 </div>
-            
+
                 <div style="background: #f9f9f9; padding: 20px; margin-bottom: 20px;">
                     <p style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 5px;">Subject</p>
                     <p style="font-size: 14px; color: #333; margin: 0;">%s</p>
@@ -609,15 +496,18 @@ public class EmailService {
                     <p style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 10px;">Message</p>
                     <p style="font-size: 14px; color: #333; line-height: 1.6; margin: 0; white-space: pre-line;">%s</p>
                 </div>
+
+                <div style="text-align: center; margin-top: 40px; padding-top: 24px; border-top: 1px solid #e5e5e5;">
+                    %s
+                </div>
             </div>
             """.formatted(fromName, fromEmail,
                     hasImage(subject) ? subject : "—",
-                    message);
+                    message,
+                    copyrightLine(allRightsReserved));
 
-            String footer = buildSignatureFooter(fetchTagline());
-            helper.setText(html + footer, true);
-            attachSignature(helper);
-            mailSender.send(mimeMessage);
+            String emailSubject = "Contact: " + (hasImage(subject) ? subject : "No subject");
+            emailSender.send(NOPRESSURE_EMAIL, emailSubject, applyLogoAndSignature(html, allRightsReserved), fromEmail);
         } catch (Exception e) {
             log.error("Failed to send contact email: " + e.getMessage());
         }
@@ -625,13 +515,7 @@ public class EmailService {
 
     public void sendContactConfirmation(String to, String name, String lang) {
         try {
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-
-            helper.setTo(to);
-            helper.setSubject("sr".equals(lang) ? "Primili smo vašu poruku" : "We received your message");
-            helper.setFrom(NOPRESSURE_EMAIL);
-
+            Map<String, String> t = getEmailTranslations(lang);
             String greeting = "sr".equals(lang) ? "Zdravo" : "Hi";
             String body = "sr".equals(lang)
                     ? "Hvala Vam što ste nas kontaktirali. Primili smo vašu poruku i odgovorićemo Vam u najkraćem roku."
@@ -640,23 +524,27 @@ public class EmailService {
 
             String html = """
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 0;">
-                <div style="border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px;">
-                    <h1 style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; text-transform: uppercase; margin: 0; color: #000;">
-                        %s
-                    </h1>
+                <div style="text-align: center; padding-bottom: 24px; margin-bottom: 30px; border-bottom: 2px solid #000;">
+                    <h1>NoPressure wear</h1>
                 </div>
+                <h2 style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px; text-transform: uppercase; margin: 0 0 24px; color: #000;">
+                    %s
+                </h2>
                 <p style="font-size: 14px; color: #333;">%s %s,</p>
                 <p style="font-size: 14px; color: #555; line-height: 1.6;">%s</p>
                 <p style="font-size: 14px; color: #333; margin-top: 30px;">%s</p>
+
+                <div style="text-align: center; margin-top: 40px; padding-top: 24px; border-top: 1px solid #e5e5e5;">
+                    %s
+                </div>
             </div>
             """.formatted(
                     "sr".equals(lang) ? "Hvala Vam!" : "Thank You!",
-                    greeting, name, body, team);
+                    greeting, name, body, team,
+                    copyrightLine(t.get("allRightsReserved")));
 
-            String footer = buildSignatureFooter(fetchTagline());
-            helper.setText(html + footer, true);
-            attachSignature(helper);
-            mailSender.send(mimeMessage);
+            String subject = "sr".equals(lang) ? "Primili smo vašu poruku" : "We received your message";
+            emailSender.send(to, subject, applyLogoAndSignature(html, t.get("allRightsReserved")));
         } catch (Exception e) {
             log.error("Failed to send contact confirmation: " + e.getMessage());
         }
@@ -672,21 +560,15 @@ public class EmailService {
         try {
             Map<String, String> t = getEmailTranslations(lang);
 
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-
-            helper.setTo(to);
-            helper.setSubject(hasImage(subject) ? subject : "Special Offer");
-            helper.setFrom(NOPRESSURE_EMAIL);
-
             String bg = (nonNull(bgColor) && !bgColor.isBlank()) ? bgColor : "#ffffff";
             String text = (nonNull(textColor) && !textColor.isBlank()) ? textColor : "#111111";
 
-            String imageHtml = hasImage(imageUrl) ? """
+            String resolvedImageUrl = resolveImageUrl(imageUrl);
+            String imageHtml = nonNull(resolvedImageUrl) ? """
                     <div style="margin: 0 0 24px;">
-                        <img src="cid:notificationImage" alt="" style="width: 100%; max-width: 100%; height: auto; display: block;" />
+                        <img src="%s" alt="" style="width: 100%%; max-width: 100%%; height: auto; display: block;" />
                     </div>
-                    """ : "";
+                    """.formatted(resolvedImageUrl) : "";
 
             String subjectHtml = hasImage(subject) ? """
                     <h2 style="font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.5px; margin: 0 0 20px; color: %s;">%s</h2>
@@ -725,27 +607,14 @@ public class EmailService {
                                 </div>
                             </div>
                             <div class="footer">
-                                <p>© 2026 NoPressure. %s</p>
+                                %s
                             </div>
                         </div>
                     </body>
                     </html>
-                    """.formatted(bg, imageHtml, subjectHtml, text, message, t.get("allRightsReserved"));
+                    """.formatted(bg, imageHtml, subjectHtml, text, message, copyrightLine(t.get("allRightsReserved")));
 
-            setEmailLogoHeader(html, helper, t.get("allRightsReserved"));
-
-            if (hasImage(imageUrl)) {
-                String relativePath = imageUrl.startsWith("/") ? imageUrl.substring(1) : imageUrl;
-                File imageFile = new File(relativePath);
-                if (imageFile.exists()) {
-                    helper.addInline("notificationImage", new FileSystemResource(imageFile));
-                } else {
-                    log.warn("Notification image file not found: {}", imageFile.getAbsolutePath());
-                }
-            }
-
-            attachSignature(helper);
-            mailSender.send(mimeMessage);
+            emailSender.send(to, hasImage(subject) ? subject : "Special Offer", applyLogoAndSignature(html, t.get("allRightsReserved")));
         } catch (Exception e) {
             log.error("Failed to send notification email to {}: {}", to, e.getMessage());
         }

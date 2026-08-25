@@ -20,7 +20,6 @@ import rs.nopressurewear.model.*;
 import rs.nopressurewear.repository.*;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 
 import static java.math.BigDecimal.ZERO;
@@ -245,9 +244,8 @@ public class OrderService {
     private void sendOrderConfirmation(Order order, String lang) {
         try {
             StringBuilder productRows = new StringBuilder();
-            List<String> productImageUrls = new ArrayList<>();
             for (OrderItem item : order.getOrderItems()) {
-                buildProductRowHtml(item, productImageUrls, productRows, BigDecimal.valueOf(item.getQuantity()));
+                buildProductRowHtml(item, productRows, BigDecimal.valueOf(item.getQuantity()));
             }
 
             String street = nonNull(order.getShippingAddress()) ? order.getShippingAddress().getStreet() : "";
@@ -267,7 +265,6 @@ public class OrderService {
                     city,
                     postalCode,
                     country,
-                    productImageUrls,
                     order.getDeliveryFee(),
                     lang
             );
@@ -276,19 +273,15 @@ public class OrderService {
         }
     }
 
-    private static void buildProductRowHtml(OrderItem item, List<String> productImageUrls, StringBuilder productRows, BigDecimal quantity) {
+    private void buildProductRowHtml(OrderItem item, StringBuilder productRows, BigDecimal quantity) {
         String imageUrl = nonNull(item.getProductImageUrl())
                 ? item.getProductImageUrl()
                 : (nonNull(item.getProduct()) ? item.getProduct().getImageUrl() : null);
 
-        String imageHtml;
-        if (nonNull(imageUrl) && !imageUrl.isBlank()) {
-            String cid = "productImg" + productImageUrls.size();
-            productImageUrls.add(imageUrl);
-            imageHtml = "<img src=\"cid:" + cid + "\" alt=\"\" class=\"item-img\" />";
-        } else {
-            imageHtml = "<div class=\"item-img\"></div>";
-        }
+        String resolvedImageUrl = emailService.resolveImageUrl(imageUrl);
+        String imageHtml = nonNull(resolvedImageUrl)
+                ? "<img src=\"" + resolvedImageUrl + "\" alt=\"\" class=\"item-img\" />"
+                : "<div class=\"item-img\"></div>";
 
         String productName = nonNull(item.getProductName())
                 ? item.getProductName()
@@ -380,9 +373,8 @@ public class OrderService {
 
         try {
             StringBuilder productRows = new StringBuilder();
-            List<String> productImageUrls = new ArrayList<>();
             for (OrderItem item : order.getOrderItems()) {
-                buildProductRowHtml(item, productImageUrls, productRows, BigDecimal.valueOf(item.getQuantity()));
+                buildProductRowHtml(item, productRows, BigDecimal.valueOf(item.getQuantity()));
             }
 
             String shippingStreet = getShippingAddressPart(order, order.getShippingAddress().getStreet());
@@ -402,7 +394,6 @@ public class OrderService {
                     shippingCity,
                     shippingPostalCode,
                     shippingCountry,
-                    productImageUrls,
                     order.getDeliveryFee(),
                     lang
             );
