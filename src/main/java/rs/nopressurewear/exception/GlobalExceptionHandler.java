@@ -129,10 +129,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccountLockedException.class)
     public ResponseEntity<ErrorResponse> handleAccountLocked(AccountLockedException ex) {
         ErrorResponse error = ErrorResponse.builder()
-                .status(423)
+                .status(LOCKED.value())
                 .message(ex.getMessage())
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.status(423).body(error);
+        return ResponseEntity.status(LOCKED).body(error);
     }
 }
