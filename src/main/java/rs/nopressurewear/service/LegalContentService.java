@@ -8,6 +8,7 @@ import rs.nopressurewear.dto.legal.LegalContentResponse;
 import rs.nopressurewear.exception.ResourceNotFoundException;
 import rs.nopressurewear.model.LegalContent;
 import rs.nopressurewear.repository.LegalContentRepository;
+import rs.nopressurewear.util.HtmlSanitizer;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +27,7 @@ public class LegalContentService {
     public LegalContentResponse update(String type, String lang, String content) {
         LegalContent lc = repository.findByTypeIgnoreCaseAndLanguageIgnoreCase(type, lang)
                 .orElseThrow(() -> new ResourceNotFoundException("Legal content not found: " + type + "/" + lang));
-        lc.setContent(content);
+        lc.setContent(HtmlSanitizer.sanitize(content));
         return toResponse(repository.save(lc));
     }
 

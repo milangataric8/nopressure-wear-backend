@@ -47,6 +47,8 @@ public class BannerService {
                 .subtitle(request.getSubtitle())
                 .mediaUrl(request.getMediaUrl())
                 .mediaType(request.getMediaType())
+                .mobileMediaUrl(request.getMobileMediaUrl())
+                .mobileMediaType(request.getMobileMediaType())
                 .buttonText(request.getButtonText())
                 .buttonLink(request.getButtonLink())
                 .displayOrder(nonNull(request.getDisplayOrder()) ? request.getDisplayOrder() : 0)
@@ -66,6 +68,8 @@ public class BannerService {
         banner.setSubtitle(request.getSubtitle());
         banner.setMediaUrl(request.getMediaUrl());
         banner.setMediaType(request.getMediaType());
+        banner.setMobileMediaUrl(request.getMobileMediaUrl());
+        banner.setMobileMediaType(request.getMobileMediaType());
         banner.setButtonText(request.getButtonText());
         banner.setButtonLink(request.getButtonLink());
         if (nonNull(request.getDisplayOrder())) {
@@ -98,6 +102,8 @@ public class BannerService {
                 .subtitle(banner.getSubtitle())
                 .mediaUrl(banner.getMediaUrl())
                 .mediaType(banner.getMediaType())
+                .mobileMediaUrl(banner.getMobileMediaUrl())
+                .mobileMediaType(banner.getMobileMediaType())
                 .buttonText(banner.getButtonText())
                 .buttonLink(banner.getButtonLink())
                 .displayOrder(banner.getDisplayOrder())

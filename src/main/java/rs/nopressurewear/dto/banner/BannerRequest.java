@@ -19,6 +19,9 @@ public class BannerRequest {
     @NotNull(message = "Media type is required")
     private MediaType mediaType;
 
+    private String mobileMediaUrl;
+    private MediaType mobileMediaType;
+
     private String buttonText;
     private String buttonLink;
     private Integer displayOrder;

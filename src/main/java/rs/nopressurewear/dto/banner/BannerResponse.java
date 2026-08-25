@@ -15,6 +15,8 @@ public class BannerResponse {
     private String subtitle;
     private String mediaUrl;
     private MediaType mediaType;
+    private String mobileMediaUrl;
+    private MediaType mobileMediaType;
     private String buttonText;
     private String buttonLink;
     private Integer displayOrder;

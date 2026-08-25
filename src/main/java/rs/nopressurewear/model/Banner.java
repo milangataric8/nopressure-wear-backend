@@ -33,6 +33,13 @@ public class Banner {
     @Column(nullable = false)
     private MediaType mediaType;
 
+    @Column(name = "mobile_media_url")
+    private String mobileMediaUrl;
+
+    @Enumerated(STRING)
+    @Column(name = "mobile_media_type", length = 20)
+    private MediaType mobileMediaType;
+
     @Column
     private String buttonText;
 
