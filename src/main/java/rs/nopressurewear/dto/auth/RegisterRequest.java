@@ -8,21 +8,21 @@ import lombok.Setter;
 @Setter
 public class RegisterRequest {
 
-    @NotBlank(message = "First name is required")
+    @NotBlank(message = "validation.firstNameRequired")
     private String firstName;
 
-    @NotBlank(message = "Last name is required")
+    @NotBlank(message = "validation.lastNameRequired")
     private String lastName;
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email is not valid")
+    @NotBlank(message = "validation.emailRequired")
+    @Email(message = "validation.emailInvalid")
     private String email;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 8, message = "Password must be at least 8 characters")
+    @NotBlank(message = "validation.passwordRequired")
+    @Size(min = 8, message = "validation.passwordTooShort")
     @Pattern(
             regexp = "^(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]).*$",
-            message = "Password must contain at least one number and one special character"
+            message = "validation.passwordWeak"
     )
     private String password;
 }

@@ -7,6 +7,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import rs.nopressurewear.dto.coupon.*;
 import rs.nopressurewear.exception.DuplicateResourceException;
+import rs.nopressurewear.exception.FieldValidationException;
 import rs.nopressurewear.exception.ResourceNotFoundException;
 import rs.nopressurewear.model.Cart;
 import rs.nopressurewear.model.Coupon;
@@ -76,7 +77,7 @@ public class CouponService {
 
     public ApplyCouponResponse validate(String code, Long userId) {
         Coupon coupon = couponRepository.findByCode(code.toUpperCase())
-                .orElseThrow(() -> new ResourceNotFoundException("Coupon not found"));
+                .orElseThrow(() -> new FieldValidationException("validation.couponInvalid", "couponCode"));
 
         validateCoupon(coupon);
 
@@ -94,15 +95,15 @@ public class CouponService {
 
     private static void validateCoupon(Coupon coupon) {
         if (!coupon.isActive()) {
-            throw new RuntimeException("Coupon is not active");
+            throw new FieldValidationException("validation.couponInvalid", "couponCode");
         }
 
         if (nonNull(coupon.getExpiresAt()) && coupon.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Coupon has expired");
+            throw new FieldValidationException("validation.couponInvalid", "couponCode");
         }
 
         if (coupon.getUsageCount() >= coupon.getUsageLimit()) {
-            throw new RuntimeException("Coupon usage limit reached");
+            throw new FieldValidationException("validation.couponInvalid", "couponCode");
         }
     }
 

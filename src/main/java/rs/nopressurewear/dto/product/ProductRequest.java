@@ -12,20 +12,20 @@ import java.util.List;
 @Setter
 public class ProductRequest {
 
-    @NotBlank(message = "Name is required")
-    @Size(max = 255, message = "Name must be less than 255 characters")
+    @NotBlank(message = "validation.nameRequired")
+    @Size(max = 255, message = "validation.nameTooLong")
     private String name;
 
     private String description;
 
-    @NotNull(message = "Price is required")
-    @DecimalMin(value = "0.01", message = "Price must be greater than 0")
+    @NotNull(message = "validation.priceRequired")
+    @DecimalMin(value = "0.01", message = "validation.priceInvalid")
     private BigDecimal price;
 
-    @Min(value = 0, message = "Stock quantity cannot be negative")
+    @Min(value = 0, message = "validation.stockInvalid")
     private Integer stockQuantity;
 
-    @NotBlank(message = "SKU is required")
+    @NotBlank(message = "validation.skuRequired")
     private String sku;
 
     private String imageUrl;

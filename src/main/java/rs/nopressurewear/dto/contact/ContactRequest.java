@@ -8,15 +8,15 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ContactRequest {
-    @NotBlank(message = "Name is required")
+    @NotBlank(message = "validation.nameRequired")
     private String name;
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Invalid email")
+    @NotBlank(message = "validation.emailRequired")
+    @Email(message = "validation.emailInvalid")
     private String email;
 
     private String subject;
 
-    @NotBlank(message = "Message is required")
+    @NotBlank(message = "validation.messageRequired")
     private String message;
 }

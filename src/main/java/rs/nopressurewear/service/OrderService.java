@@ -15,6 +15,7 @@ import rs.nopressurewear.dto.order.GuestOrderRequest;
 import rs.nopressurewear.dto.order.OrderItemResponse;
 import rs.nopressurewear.dto.order.OrderResponse;
 import rs.nopressurewear.exception.EmailNotVerifiedException;
+import rs.nopressurewear.exception.FieldValidationException;
 import rs.nopressurewear.exception.ResourceNotFoundException;
 import rs.nopressurewear.model.*;
 import rs.nopressurewear.repository.*;
@@ -137,7 +138,7 @@ public class OrderService {
                         .orElseThrow(() -> new ResourceNotFoundException(
                                 "Size " + pair.size() + " not available for: " + product.getName()));
                 if (variant.getStockQuantity() < pair.quantity()) {
-                    throw new RuntimeException("Insufficient stock for " + product.getName() + " (size " + pair.size() + ")");
+                    throw new FieldValidationException("validation.outOfStock", "size");
                 }
                 variant.setStockQuantity(variant.getStockQuantity() - pair.quantity());
                 productVariantRepository.save(variant);
@@ -148,7 +149,7 @@ public class OrderService {
             } else {
                 Integer stock = product.getStockQuantity();
                 if (nonNull(stock) && stock < pair.quantity()) {
-                    throw new RuntimeException("Insufficient stock for product: " + product.getName());
+                    throw new FieldValidationException("validation.outOfStock", "size");
                 }
                 if (nonNull(stock)) {
                     product.setStockQuantity(stock - pair.quantity());

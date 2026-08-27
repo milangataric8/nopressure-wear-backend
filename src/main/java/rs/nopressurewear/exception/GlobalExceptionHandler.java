@@ -1,6 +1,8 @@
 package rs.nopressurewear.exception;
 
 import io.sentry.Sentry;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
@@ -9,7 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.springframework.http.HttpStatus.*;
@@ -39,12 +41,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
-        Map<String, String> validationErrors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach(error -> {
-            String fieldName = ((FieldError) error).getField();
-            String message = error.getDefaultMessage();
-            validationErrors.put(fieldName, message);
-        });
+        Map<String, String> validationErrors = new LinkedHashMap<>();
+        for (FieldError fe : ex.getBindingResult().getFieldErrors()) {
+            // keep the first message per field (a field can carry multiple constraints)
+            validationErrors.putIfAbsent(fe.getField(), fe.getDefaultMessage());
+        }
 
         ErrorResponse error = ErrorResponse.builder()
                 .status(BAD_REQUEST.value())
@@ -53,6 +54,38 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .build();
         return ResponseEntity.badRequest().body(error);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
+        Map<String, String> validationErrors = new LinkedHashMap<>();
+        for (ConstraintViolation<?> v : ex.getConstraintViolations()) {
+            String path = v.getPropertyPath().toString();
+            String field = path.contains(".") ? path.substring(path.lastIndexOf('.') + 1) : path;
+            validationErrors.putIfAbsent(field, v.getMessage());
+        }
+
+        ErrorResponse error = ErrorResponse.builder()
+                .status(BAD_REQUEST.value())
+                .message("Validation failed")
+                .errors(validationErrors)
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.badRequest().body(error);
+    }
+
+    @ExceptionHandler(FieldValidationException.class)
+    public ResponseEntity<ErrorResponse> handleFieldValidation(FieldValidationException ex) {
+        ErrorResponse.ErrorResponseBuilder body = ErrorResponse.builder()
+                .status(BAD_REQUEST.value())
+                .message(ex.getMessage())
+                .timestamp(LocalDateTime.now());
+
+        if (ex.getField() != null) {
+            body.errors(Map.of(ex.getField(), ex.getMessage()));
+        }
+
+        return ResponseEntity.badRequest().body(body.build());
     }
 
     @ExceptionHandler(Exception.class)
@@ -68,12 +101,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ErrorResponse> handleDuplicateResource(DuplicateResourceException ex) {
-        ErrorResponse error = ErrorResponse.builder()
+        ErrorResponse.ErrorResponseBuilder body = ErrorResponse.builder()
                 .status(CONFLICT.value())
                 .message(ex.getMessage())
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.status(CONFLICT).body(error);
+                .timestamp(LocalDateTime.now());
+
+        if (ex.getField() != null) {
+            body.errors(Map.of(ex.getField(), ex.getMessage()));
+        }
+
+        return ResponseEntity.status(CONFLICT).body(body.build());
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)

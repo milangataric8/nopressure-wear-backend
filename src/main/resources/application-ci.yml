@@ -1,24 +1,27 @@
 # src/main/resources/application-ci.yml
-# Profile for GitHub Actions CI — all values ​​come from the env variable in the workflow.
+# Profile for GitHub Actions CI — all values come from the env variable in the workflow.
+# Defaults below are dummy values matching .github/workflows/ci.yml, so `mvnw test` also
+# works locally without exporting anything (a local Postgres on the default url is still
+# required — see DATABASE_URL/USERNAME/PASSWORD).
 
 app:
-  frontend-url: ${FRONTEND_URL}
-  base-url: ${BASE_URL}
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  base-url: ${BASE_URL:http://localhost:8080}
   upload:
     dir: /tmp/uploads
   cloudinary:
     folder: nopressure/ci
   removebg:
-    api-key: ${REMOVEBG_API_KEY}
+    api-key: ${REMOVEBG_API_KEY:test-key}
   stripe:
-    secret-key: ${STRIPE_SECRET_KEY}
-    webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+    secret-key: ${STRIPE_SECRET_KEY:sk_test_dummy}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_dummy}
 
 spring:
   datasource:
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/nopressure_wear}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:No.Pressure8!}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -30,24 +33,24 @@ spring:
     enabled: false               # ddl-auto creates schema in CI
 
   mail:
-    host: ${MAIL_HOST}
-    port: ${MAIL_PORT}
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:2525}
+    username: ${MAIL_USERNAME:test}
+    password: ${MAIL_PASSWORD:test}
 
   security:
     oauth2:
       client:
         registration:
           google:
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
+            client-id: ${GOOGLE_CLIENT_ID:test-client-id}
+            client-secret: ${GOOGLE_CLIENT_SECRET:test-client-secret}
             scope:
               - email
               - profile
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:dGVzdEp3dFNlY3JldEtleUZvckNJQnVpbGRzMzJCeXRlc0xvbmc=}
   expiration: ${JWT_EXPIRATION:86400000}
 
 sentry:

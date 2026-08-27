@@ -1,6 +1,8 @@
 package rs.nopressurewear.dto.auth;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -8,9 +10,14 @@ import lombok.Setter;
 @Setter
 public class ResetPasswordRequest {
 
-    @NotBlank(message = "Token is required")
+    @NotBlank(message = "validation.required")
     private String token;
 
-    @NotBlank(message = "Password is required")
+    @NotBlank(message = "validation.passwordRequired")
+    @Size(min = 8, message = "validation.passwordTooShort")
+    @Pattern(
+            regexp = "^(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).*$",
+            message = "validation.passwordWeak"
+    )
     private String newPassword;
 }

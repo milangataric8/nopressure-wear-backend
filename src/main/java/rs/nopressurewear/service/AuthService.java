@@ -64,7 +64,7 @@ public class AuthService {
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("User with this email already exists");
+            throw new DuplicateResourceException("validation.emailTaken", "email");
         }
 
         User user = User.builder()
@@ -249,7 +249,7 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-            throw new RuntimeException("Current password is incorrect");
+            throw new FieldValidationException("validation.currentPasswordWrong", "currentPassword");
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));

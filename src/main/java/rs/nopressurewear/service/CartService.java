@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import rs.nopressurewear.dto.cart.CartItemRequest;
 import rs.nopressurewear.dto.cart.CartItemResponse;
 import rs.nopressurewear.dto.cart.CartResponse;
+import rs.nopressurewear.exception.FieldValidationException;
 import rs.nopressurewear.exception.ResourceNotFoundException;
 import rs.nopressurewear.model.*;
 import rs.nopressurewear.repository.*;
@@ -57,7 +58,7 @@ public class CartService {
                 .orElseThrow(() -> new ResourceNotFoundException("Size " + request.getSize() + " is not available for this product"));
 
         if (variant.getStockQuantity() < request.getQuantity()) {
-            throw new RuntimeException("Insufficient stock for size " + request.getSize());
+            throw new FieldValidationException("validation.outOfStock", "size");
         }
 
         Optional<CartItem> existingItem = cartItemRepository

@@ -13,6 +13,7 @@ import rs.nopressurewear.repository.BannerRepository;
 
 import java.util.List;
 
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
 @Service
@@ -53,7 +54,7 @@ public class BannerService {
                 .buttonLink(request.getButtonLink())
                 .displayOrder(nonNull(request.getDisplayOrder()) ? request.getDisplayOrder() : 0)
                 .isActive(true)
-                .displayTitle(nonNull(request.getDisplayTitle()) ? request.getDisplayTitle() : true)
+                .displayTitle(isNull(request.getDisplayTitle()) || request.getDisplayTitle())
                 .displayDuration(nonNull(request.getDisplayDuration()) ? request.getDisplayDuration() : 5)
                 .build();
         return toResponse(bannerRepository.save(banner));
@@ -75,7 +76,7 @@ public class BannerService {
         if (nonNull(request.getDisplayOrder())) {
             banner.setDisplayOrder(request.getDisplayOrder());
         }
-        banner.setDisplayTitle(nonNull(request.getDisplayTitle()) ? request.getDisplayTitle() : true);
+        banner.setDisplayTitle(isNull(request.getDisplayTitle()) || request.getDisplayTitle());
         banner.setDisplayDuration(nonNull(request.getDisplayDuration()) ? request.getDisplayDuration() : 5);
         return toResponse(bannerRepository.save(banner));
     }
@@ -108,7 +109,7 @@ public class BannerService {
                 .buttonLink(banner.getButtonLink())
                 .displayOrder(banner.getDisplayOrder())
                 .active(banner.isActive())
-                .displayTitle(nonNull(banner.getDisplayTitle()) ? banner.getDisplayTitle() : true)
+                .displayTitle(isNull(banner.getDisplayTitle()) || banner.getDisplayTitle())
                 .displayDuration(nonNull(banner.getDisplayDuration()) ? banner.getDisplayDuration() : 5)
                 .build();
     }

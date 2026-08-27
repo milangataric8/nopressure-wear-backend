@@ -10,19 +10,19 @@ import lombok.Setter;
 @Setter
 public class ChangePasswordRequest {
 
-    @NotBlank(message = "Current password is required")
-    @Size(min = 8, message = "Password must be at least 8 characters")
+    @NotBlank(message = "validation.currentPasswordRequired")
+    @Size(min = 8, message = "validation.passwordTooShort")
     @Pattern(
             regexp = "^(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).*$",
-            message = "Password must contain at least one number and one special character"
+            message = "validation.passwordWeak"
     )
     private String currentPassword;
 
-    @NotBlank(message = "New password is required")
-    @Size(min = 8, message = "Password must be at least 8 characters")
+    @NotBlank(message = "validation.passwordRequired")
+    @Size(min = 8, message = "validation.passwordTooShort")
     @Pattern(
             regexp = "^(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).*$",
-            message = "Password must contain at least one number and one special character"
+            message = "validation.passwordWeak"
     )
     private String newPassword;
 }

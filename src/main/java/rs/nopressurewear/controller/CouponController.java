@@ -50,7 +50,7 @@ public class CouponController {
 
     @PostMapping("/validate")
     public ResponseEntity<ApplyCouponResponse> validate(
-            @RequestBody ApplyCouponRequest request,
+            @Valid @RequestBody ApplyCouponRequest request,
             @RequestParam Long userId) {
         return ResponseEntity.ok(couponService.validate(request.getCode(), userId));
     }

@@ -111,7 +111,7 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.register(registerRequest, "en"))
                 .isInstanceOf(DuplicateResourceException.class)
-                .hasMessageContaining("email already exists");
+                .hasMessageContaining("validation.emailTaken");
 
         verify(userRepository, never()).save(any());
     }

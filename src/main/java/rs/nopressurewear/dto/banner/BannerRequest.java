@@ -16,7 +16,7 @@ public class BannerRequest {
     private String subtitle;
     private String mediaUrl;
 
-    @NotNull(message = "Media type is required")
+    @NotNull(message = "validation.required")
     private MediaType mediaType;
 
     private String mobileMediaUrl;
@@ -27,7 +27,7 @@ public class BannerRequest {
     private Integer displayOrder;
     private Boolean displayTitle;
 
-    @Min(value = 0, message = "Duration cannot be negative")
-    @Max(value = 60, message = "Duration cannot exceed 60 seconds")
+    @Min(value = 0, message = "validation.durationInvalid")
+    @Max(value = 60, message = "validation.durationInvalid")
     private Integer displayDuration;
 }

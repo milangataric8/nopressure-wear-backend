@@ -12,28 +12,28 @@ import rs.nopressurewear.constants.ProductSize;
 @Setter
 public class GuestOrderRequest {
 
-    @NotBlank(message = "Full name is required")
+    @NotBlank(message = "validation.fullNameRequired")
     private String customerFullName;
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Invalid email")
+    @NotBlank(message = "validation.emailRequired")
+    @Email(message = "validation.emailInvalid")
     private String customerEmail;
 
-    @NotBlank(message = "Phone is required")
+    @NotBlank(message = "validation.phoneRequired")
     private String customerPhone;
 
-    @NotBlank(message = "Street is required")
+    @NotBlank(message = "validation.streetRequired")
     private String street;
 
-    @NotBlank(message = "City is required")
+    @NotBlank(message = "validation.cityRequired")
     private String city;
 
     private String postalCode;
 
-    @NotBlank(message = "Country is required")
+    @NotBlank(message = "validation.countryRequired")
     private String country;
 
-    @NotEmpty(message = "Order must have items")
+    @NotEmpty(message = "validation.required")
     @Valid
     private List<GuestOrderItem> items;
 
@@ -43,10 +43,10 @@ public class GuestOrderRequest {
     @Getter
     @Setter
     public static class GuestOrderItem {
-        @NotNull
+        @NotNull(message = "validation.required")
         private Long productId;
-        @NotNull
-        @Min(1)
+        @NotNull(message = "validation.required")
+        @Min(value = 1, message = "validation.quantityInvalid")
         private Integer quantity;
         private ProductSize size;
     }

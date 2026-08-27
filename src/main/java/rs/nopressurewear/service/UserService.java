@@ -39,7 +39,7 @@ public class UserService {
 
     public UserResponse create(UserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("User with this email already exists");
+            throw new DuplicateResourceException("validation.emailTaken", "email");
         }
 
         User user = User.builder()
@@ -92,7 +92,7 @@ public class UserService {
     public void setUserData(UserUpdateRequest request, User user) {
         if (!user.getEmail().equals(request.getEmail()) &&
                 userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("Email already in use");
+            throw new DuplicateResourceException("validation.emailTaken", "email");
         }
 
         user.setFirstName(request.getFirstName());

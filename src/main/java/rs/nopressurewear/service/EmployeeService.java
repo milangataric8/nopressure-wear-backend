@@ -27,7 +27,7 @@ public class EmployeeService {
     @PreAuthorize("hasRole('ADMIN')")
     public UserResponse create(UserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("User with this email already exists");
+            throw new DuplicateResourceException("validation.emailTaken", "email");
         }
 
         User user = User.builder()

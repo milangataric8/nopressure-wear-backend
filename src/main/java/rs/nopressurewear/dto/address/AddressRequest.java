@@ -9,18 +9,18 @@ import lombok.Setter;
 @Setter
 public class AddressRequest {
 
-    @NotNull(message = "User ID is required")
+    @NotNull(message = "validation.required")
     private Long userId;
 
-    @NotBlank(message = "Street is required")
+    @NotBlank(message = "validation.streetRequired")
     private String street;
 
-    @NotBlank(message = "City is required")
+    @NotBlank(message = "validation.cityRequired")
     private String city;
 
-    @NotBlank(message = "Postal code is required")
+    @NotBlank(message = "validation.postalCodeRequired")
     private String postalCode;
 
-    @NotBlank(message = "Country is required")
+    @NotBlank(message = "validation.countryRequired")
     private String country;
 }
