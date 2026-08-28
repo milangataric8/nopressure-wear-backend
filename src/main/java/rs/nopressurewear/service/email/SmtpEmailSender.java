@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 @Service
 @Profile("!prod")
 @RequiredArgsConstructor
-public class SmtpEmailSender implements EmailSender {
+public class SmtpEmailSender implements EmailTransport {
 
     private final JavaMailSender mailSender;
 

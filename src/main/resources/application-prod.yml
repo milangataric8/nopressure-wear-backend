@@ -47,3 +47,9 @@ sentry:
   dsn: ${SENTRY_DSN:}
   environment: prod
   release: ${SENTRY_RELEASE:1.0.0}
+
+email:
+  retry:
+    enabled: ${EMAIL_RETRY_ENABLED:true}
+    max-attempts: ${EMAIL_RETRY_MAX_ATTEMPTS:5}
+    interval-ms: ${EMAIL_RETRY_INTERVAL_MS:120000}

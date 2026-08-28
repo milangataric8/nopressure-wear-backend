@@ -113,6 +113,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/dashboard/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers("/api/reports/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers("/api/notifications/**").hasRole("ADMIN")
+                        .requestMatchers("/api/failed-emails/**").hasAnyRole("ADMIN", "EMPLOYEE")
                         .requestMatchers(GET, "/api/legal/**").permitAll()
                         .requestMatchers(PUT, "/api/legal/**").hasRole("ADMIN")
                         .anyRequest().authenticated()

@@ -1,23 +1,21 @@
 package rs.nopressurewear.service.email;
 
 /**
- * Transport abstraction for outgoing email. One implementation per environment,
- * selected by Spring profile:
- * <ul>
- *     <li>{@link SmtpEmailSender} ({@code !prod}) — SMTP via Mailtrap, for local/dev.</li>
- *     <li>{@link BrevoEmailSender} ({@code prod}) — Brevo HTTP API, since Railway blocks
- *     outbound SMTP ports.</li>
- * </ul>
- * All HTML template, translation, and content logic lives in {@code EmailService};
- * this interface only cares about actually delivering an already-built HTML email.
+ * The entry point every caller ({@code EmailService} and below) injects for sending
+ * mail. The one bean implementing it is {@link RetryingEmailSender}, a {@code @Primary}
+ * decorator that delegates to the active {@link EmailTransport} and, on failure,
+ * persists the message to the {@code failed_email} queue instead of letting the
+ * exception propagate — so a delivery problem never breaks registration or checkout.
+ *
+ * <p>The concrete provider clients ({@link BrevoEmailSender}, {@link SmtpEmailSender})
+ * implement {@link EmailTransport}, not this interface.
  */
 public interface EmailSender {
 
     /**
      * @param to          recipient address
      * @param subject     email subject
-     * @param htmlContent fully-built HTML body (image references must be absolute URLs —
-     *                    {@code cid:} inline attachments are not supported by the Brevo API)
+     * @param htmlContent fully-built HTML body (image references must be absolute URLs)
      * @param replyTo     optional Reply-To address, or {@code null}/blank to omit it
      */
     void send(String to, String subject, String htmlContent, String replyTo);

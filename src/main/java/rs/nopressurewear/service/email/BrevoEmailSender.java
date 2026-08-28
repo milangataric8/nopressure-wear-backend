@@ -24,7 +24,7 @@ import java.util.Map;
 @Slf4j
 @Service
 @Profile("prod")
-public class BrevoEmailSender implements EmailSender {
+public class BrevoEmailSender implements EmailTransport {
 
     private final WebClient webClient;
     private final String senderEmail;

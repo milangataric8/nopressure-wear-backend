@@ -58,6 +58,12 @@ cart:
     after-hours: ${ABANDONED_CART_AFTER_HOURS:4}
     max-age-hours: ${ABANDONED_CART_MAX_AGE_HOURS:72}
 
+email:
+  retry:
+    enabled: ${EMAIL_RETRY_ENABLED:true}
+    max-attempts: ${EMAIL_RETRY_MAX_ATTEMPTS:5}
+    interval-ms: ${EMAIL_RETRY_INTERVAL_MS:120000}
+
 sentry:
   dsn: ${SENTRY_DSN:}
   environment: ${SENTRY_ENV:local}
