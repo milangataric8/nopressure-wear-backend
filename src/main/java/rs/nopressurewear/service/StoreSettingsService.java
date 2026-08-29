@@ -11,9 +11,11 @@ import rs.nopressurewear.exception.ResourceNotFoundException;
 import rs.nopressurewear.model.StoreSettings;
 import rs.nopressurewear.repository.StoreSettingsRepository;
 import rs.nopressurewear.util.HtmlSanitizer;
+import rs.nopressurewear.util.HtmlTextSanitizer;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.nonNull;
@@ -23,6 +25,13 @@ import static java.util.Objects.nonNull;
 public class StoreSettingsService {
 
     private final StoreSettingsRepository storeSettingsRepository;
+
+    /**
+     * Keys whose value is rich text entered through the admin WYSIWYG editor. They get
+     * XSS-sanitized and whitespace-normalized on save. Add a key here when a new
+     * rich-text setting is introduced.
+     */
+    private static final Set<String> RICH_TEXT_KEYS = Set.of("store_tagline");
 
     public List<StoreSettingsResponse> getAll() {
         return storeSettingsRepository.findAll()
@@ -46,8 +55,8 @@ public class StoreSettingsService {
     public StoreSettingsResponse update(Long id, StoreSettingsRequest request) {
         StoreSettings setting = storeSettingsRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Setting not found"));
-        String value = "store_tagline".equals(setting.getKey())
-                ? HtmlSanitizer.sanitize(request.getValue())
+        String value = RICH_TEXT_KEYS.contains(setting.getKey())
+                ? HtmlTextSanitizer.normalizeWhitespace(HtmlSanitizer.sanitize(request.getValue()))
                 : request.getValue();
         setting.setValue(value);
         return toResponse(storeSettingsRepository.save(setting));

@@ -3,6 +3,7 @@ package rs.nopressurewear.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -99,6 +100,23 @@ class ProductServiceTest {
         assertThat(response.getName()).isEqualTo("iPhone 15 Pro");
         assertThat(response.getPrice()).isEqualTo(new BigDecimal("999.99"));
         verify(productRepository, atLeastOnce()).save(any(Product.class));
+    }
+
+    @Test
+    void create_ShouldNormalizeWhitespaceInDescription() {
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepository.save(any(Product.class))).thenReturn(product);
+        request.setDescription("izaberes&nbsp;svedenu&nbsp;belu&nbsp;polo&nbsp;majicu, ostalo 10 kg");
+
+        productService.create(request);
+
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepository, atLeastOnce()).save(captor.capture());
+        // first save() receives the freshly built entity with the sanitized description
+        String saved = captor.getAllValues().get(0).getDescription();
+        assertThat(saved).doesNotContain("&nbsp;svedenu");
+        assertThat(saved).contains("izaberes svedenu belu polo majicu");
+        assertThat(saved).contains("10&nbsp;kg");
     }
 
     @Test

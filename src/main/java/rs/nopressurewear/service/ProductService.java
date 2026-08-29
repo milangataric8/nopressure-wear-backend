@@ -15,6 +15,7 @@ import rs.nopressurewear.model.Product;
 import rs.nopressurewear.model.ProductImage;
 import rs.nopressurewear.repository.*;
 import rs.nopressurewear.util.HtmlSanitizer;
+import rs.nopressurewear.util.HtmlTextSanitizer;
 
 import rs.nopressurewear.model.ProductVariant;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,7 +54,7 @@ public class ProductService {
 
         Product product = Product.builder()
                 .name(request.getName())
-                .description(HtmlSanitizer.sanitize(request.getDescription()))
+                .description(sanitizeDescription(request.getDescription()))
                 .price(request.getPrice())
                 .sku(request.getSku())
                 .imageUrl(request.getImageUrl())
@@ -242,7 +243,7 @@ public class ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
         product.setName(request.getName());
-        product.setDescription(HtmlSanitizer.sanitize(request.getDescription()));
+        product.setDescription(sanitizeDescription(request.getDescription()));
         product.setPrice(request.getPrice());
         product.setImageUrl(request.getImageUrl());
         product.setSku(request.getSku());
@@ -350,6 +351,13 @@ public class ProductService {
         ProductImage image = productImageRepository.findById(imageId)
                 .orElseThrow(() -> new ResourceNotFoundException("Image not found"));
         productImageRepository.delete(image);
+    }
+
+    /** Product descriptions come through the same WYSIWYG editor as store settings:
+     * XSS-clean, then normalize whitespace.
+     */
+    private static String sanitizeDescription(String description) {
+        return HtmlTextSanitizer.normalizeWhitespace(HtmlSanitizer.sanitize(description));
     }
 
     private void calculateDiscountPrice(Product product) {
