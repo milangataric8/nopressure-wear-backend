@@ -12,9 +12,9 @@ import rs.nopressurewear.util.HtmlSanitizer;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static java.util.Objects.nonNull;
+import static java.util.stream.Collectors.toMap;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +29,7 @@ public class NotificationService {
         List<User> customers = userRepository.findByRoleAndIsActiveTrue("CUSTOMER");
 
         Map<String, NotificationChannel> channelMap = channels.stream()
-                .collect(Collectors.toMap(NotificationChannel::getName, c -> c));
+                .collect(toMap(NotificationChannel::getName, c -> c));
 
         int emailCount = 0, whatsappCount = 0, viberCount = 0;
 
@@ -89,7 +89,7 @@ public class NotificationService {
     @PreAuthorize("hasRole('ADMIN')")
     public Map<String, Boolean> getChannelStatus() {
         return channels.stream()
-                .collect(Collectors.toMap(NotificationChannel::getName, NotificationChannel::isEnabled));
+                .collect(toMap(NotificationChannel::getName, NotificationChannel::isEnabled));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

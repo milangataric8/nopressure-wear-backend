@@ -10,15 +10,15 @@ import rs.nopressurewear.dto.settings.StoreSettingsResponse;
 import rs.nopressurewear.exception.ResourceNotFoundException;
 import rs.nopressurewear.model.StoreSettings;
 import rs.nopressurewear.repository.StoreSettingsRepository;
-import rs.nopressurewear.util.HtmlSanitizer;
-import rs.nopressurewear.util.HtmlTextSanitizer;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static java.util.Objects.nonNull;
+import static java.util.stream.Collectors.toMap;
+import static rs.nopressurewear.util.HtmlSanitizer.sanitize;
+import static rs.nopressurewear.util.HtmlTextSanitizer.normalizeWhitespace;
 
 @Service
 @RequiredArgsConstructor
@@ -44,7 +44,7 @@ public class StoreSettingsService {
     public Map<String, String> getAllAsMap() {
         return storeSettingsRepository.findAll()
                 .stream()
-                .collect(Collectors.toMap(
+                .collect(toMap(
                         StoreSettings::getKey,
                         s -> nonNull(s.getValue()) ? s.getValue() : ""
                 ));
@@ -53,12 +53,15 @@ public class StoreSettingsService {
     @CacheEvict(value = "settings", allEntries = true)
     @PreAuthorize("hasRole('ADMIN')")
     public StoreSettingsResponse update(Long id, StoreSettingsRequest request) {
+
         StoreSettings setting = storeSettingsRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Setting not found"));
+
         String value = RICH_TEXT_KEYS.contains(setting.getKey())
-                ? HtmlTextSanitizer.normalizeWhitespace(HtmlSanitizer.sanitize(request.getValue()))
+                ? normalizeWhitespace(sanitize(request.getValue()))
                 : request.getValue();
         setting.setValue(value);
+
         return toResponse(storeSettingsRepository.save(setting));
     }
 

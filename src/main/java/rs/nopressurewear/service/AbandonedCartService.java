@@ -30,9 +30,6 @@ public class AbandonedCartService {
     @Value("${cart.abandoned.after-hours:4}")
     private int afterHours;
 
-    @Value("${cart.abandoned.after-minutes:15}")
-    private int afterMinutes;
-
     @Value("${cart.abandoned.max-age-hours:72}")
     private int maxAgeHours;
 
@@ -42,8 +39,7 @@ public class AbandonedCartService {
         if (!enabled) return;
 
         LocalDateTime now = LocalDateTime.now();
-//        LocalDateTime idleBefore = now.minusHours(afterHours);
-        LocalDateTime idleBefore = now.minusMinutes(afterMinutes);
+        LocalDateTime idleBefore = now.minusHours(afterHours);
         LocalDateTime notOlderThan = now.minusHours(maxAgeHours);
 
         List<Cart> carts = cartRepository.findAbandonedCarts(idleBefore, notOlderThan);
