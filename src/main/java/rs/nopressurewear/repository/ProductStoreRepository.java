@@ -8,9 +8,12 @@ import java.util.List;
 
 @Repository
 public interface ProductStoreRepository extends JpaRepository<ProductStore, Long> {
+
     List<ProductStore> findByProductId(Long productId);
+
     List<ProductStore> findByProductIdAndInStockTrue(Long productId);
-    List<ProductStore> findByStoreLocationId(Long storeLocationId);
+
     boolean existsByProductIdAndStoreLocationId(Long productId, Long storeLocationId);
+
     void deleteByProductIdAndStoreLocationId(Long productId, Long storeLocationId);
 }

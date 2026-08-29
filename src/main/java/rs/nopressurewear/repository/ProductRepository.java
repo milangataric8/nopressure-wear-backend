@@ -1,6 +1,5 @@
 package rs.nopressurewear.repository;
 
-import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,10 +13,12 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+import static jakarta.persistence.LockModeType.PESSIMISTIC_WRITE;
+
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Lock(PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Product p WHERE p.id = :id")
     java.util.Optional<Product> findByIdForUpdate(@Param("id") Long id);
 
@@ -143,19 +144,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findSimilarProducts(
         @Param("categoryId") Long categoryId,
         @Param("productId") Long productId,
-        @Param("limit") int limit);
-
-    @Query(
-    value = """
-        SELECT * FROM product p
-        WHERE p.is_active = true
-        AND (:excludeIds IS NULL OR p.id NOT IN (:excludeIds))
-        ORDER BY p.id DESC
-        LIMIT :limit
-        """,
-    nativeQuery = true)
-    List<Product> findActiveFillerProducts(
-        @Param("excludeIds") List<Long> excludeIds,
         @Param("limit") int limit);
 
     @Query(

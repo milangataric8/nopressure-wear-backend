@@ -8,5 +8,6 @@ import java.util.List;
 
 @Repository
 public interface StoreLocationRepository extends JpaRepository<StoreLocation, Long> {
+
     List<StoreLocation> findByActiveTrueOrderByNameAsc();
 }

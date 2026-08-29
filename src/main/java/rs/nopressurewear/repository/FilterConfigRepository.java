@@ -8,6 +8,8 @@ import java.util.List;
 
 @Repository
 public interface FilterConfigRepository extends JpaRepository<FilterConfig, Long> {
+
     List<FilterConfig> findByVisibleTrueOrderByDisplayOrderAsc();
+
     List<FilterConfig> findAllByOrderByDisplayOrderAsc();
 }

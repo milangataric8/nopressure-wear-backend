@@ -137,12 +137,15 @@ public class OrderService {
                         .findWithLockByProductIdAndSize(product.getId(), pair.size())
                         .orElseThrow(() -> new ResourceNotFoundException(
                                 "Size " + pair.size() + " not available for: " + product.getName()));
+
                 if (variant.getStockQuantity() < pair.quantity()) {
                     throw new FieldValidationException("validation.outOfStock", "size");
                 }
+
                 variant.setStockQuantity(variant.getStockQuantity() - pair.quantity());
                 productVariantRepository.save(variant);
                 lowStockService.checkAndAlertVariant(product, variant);
+
                 if (nonNull(product.getStockQuantity())) {
                     product.setStockQuantity(Math.max(0, product.getStockQuantity() - pair.quantity()));
                 }

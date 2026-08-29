@@ -6,12 +6,12 @@ import org.springframework.stereotype.Repository;
 import rs.nopressurewear.model.ProductReview;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface ProductReviewRepository extends JpaRepository<ProductReview, Long> {
+
     List<ProductReview> findByProductIdOrderByCreatedAtDesc(Long productId);
-    Optional<ProductReview> findByProductIdAndUserId(Long productId, Long userId);
+
     boolean existsByProductIdAndUserId(Long productId, Long userId);
 
     @Query("SELECT AVG(r.rating) FROM ProductReview r WHERE r.product.id = :productId")

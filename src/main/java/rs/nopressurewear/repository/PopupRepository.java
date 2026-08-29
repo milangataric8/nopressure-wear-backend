@@ -8,5 +8,6 @@ import java.util.Optional;
 
 @Repository
 public interface PopupRepository extends JpaRepository<Popup, Long> {
+
     Optional<Popup> findFirstByActiveTrueOrderByCreatedAtDesc();
 }

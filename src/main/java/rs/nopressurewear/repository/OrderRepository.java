@@ -12,11 +12,16 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
     Page<Order> findByUserId(Long userId, Pageable pageable);
+
+    List<Order> findAllByOrderByCreatedAtDesc();
+
+    Optional<Order> findByStripePaymentId(String stripePaymentId);
 
     @Query(
     value = """
@@ -135,10 +140,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         """,
     nativeQuery = true)
     List<Map<String, Object>> findRecentOrders(@Param("limit") int limit);
-
-    List<Order> findAllByOrderByCreatedAtDesc();
-
-    java.util.Optional<Order> findByStripePaymentId(String stripePaymentId);
 
     @Query(
     value = """
