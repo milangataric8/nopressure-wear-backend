@@ -24,8 +24,7 @@ public class ProductRequest {
     @DecimalMin(value = "0.01", message = "validation.priceInvalid")
     private BigDecimal price;
 
-    @Min(value = 0, message = "validation.stockInvalid")
-    private Integer stockQuantity;
+    // Stock is per-variant only (see ProductVariantRequest); product-level stock no longer exists.
 
     @NotBlank(message = "validation.skuRequired")
     private String sku;

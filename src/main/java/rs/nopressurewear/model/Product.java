@@ -36,9 +36,6 @@ public class Product {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
-    @Column
-    private Integer stockQuantity;
-
     @Column(nullable = false)
     private String sku;
 

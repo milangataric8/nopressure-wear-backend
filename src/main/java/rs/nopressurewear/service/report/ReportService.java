@@ -68,6 +68,7 @@ public class ReportService {
             t.put("discountPrice", "Cena sa popustom");
             t.put("discountPercentage", "Popust %");
             t.put("stock", "Zaliha");
+            t.put("size", "Veličina");
             t.put("brand", "Brend");
             t.put("color", "Boja");
             t.put("material", "Materijal");
@@ -119,6 +120,7 @@ public class ReportService {
             t.put("discountPrice", "Discount Price");
             t.put("discountPercentage", "Discount %");
             t.put("stock", "Stock");
+            t.put("size", "Size");
             t.put("brand", "Brand");
             t.put("color", "Color");
             t.put("material", "Material");

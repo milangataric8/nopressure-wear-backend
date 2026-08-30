@@ -145,18 +145,6 @@ public class OrderService {
                 variant.setStockQuantity(variant.getStockQuantity() - pair.quantity());
                 productVariantRepository.save(variant);
                 lowStockService.checkAndAlertVariant(product, variant);
-
-                if (nonNull(product.getStockQuantity())) {
-                    product.setStockQuantity(Math.max(0, product.getStockQuantity() - pair.quantity()));
-                }
-            } else {
-                Integer stock = product.getStockQuantity();
-                if (nonNull(stock) && stock < pair.quantity()) {
-                    throw new FieldValidationException("validation.outOfStock", "size");
-                }
-                if (nonNull(stock)) {
-                    product.setStockQuantity(stock - pair.quantity());
-                }
             }
 
             product.setSalesCount((nonNull(product.getSalesCount()) ? product.getSalesCount() : 0) + pair.quantity());
@@ -420,7 +408,6 @@ public class OrderService {
                             });
                 }
                 if (nonNull(product)) {
-                    product.setStockQuantity((nonNull(product.getStockQuantity()) ? product.getStockQuantity() : 0) + item.getQuantity());
                     int restoredSales = (nonNull(product.getSalesCount()) ? product.getSalesCount() : 0) - item.getQuantity();
                     product.setSalesCount(Math.max(restoredSales, 0));
                     productRepository.save(product);
@@ -444,10 +431,6 @@ public class OrderService {
                     productVariantRepository.save(variant);
                 }
                 if (nonNull(product)) {
-                    if (nonNull(product.getStockQuantity()) && product.getStockQuantity() < item.getQuantity()) {
-                        throw new RuntimeException("Insufficient stock to reactivate order for product: " + product.getName());
-                    }
-                    product.setStockQuantity((nonNull(product.getStockQuantity()) ? product.getStockQuantity() : 0) - item.getQuantity());
                     product.setSalesCount((nonNull(product.getSalesCount()) ? product.getSalesCount() : 0) + item.getQuantity());
                     productRepository.save(product);
                 }

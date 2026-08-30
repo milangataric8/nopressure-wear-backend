@@ -75,8 +75,8 @@ public class DashboardService {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public List<Map<String, Object>> getLowStockProducts(int threshold) {
-        return productRepository.findLowStockProducts(threshold);
+    public List<Map<String, Object>> getLowStockVariants(int threshold) {
+        return productRepository.findLowStockVariants(threshold);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")

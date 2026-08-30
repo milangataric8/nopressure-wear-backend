@@ -45,7 +45,7 @@ public class DashboardController {
     @GetMapping("/low-stock")
     public ResponseEntity<List<Map<String, Object>>> getLowStock(
             @RequestParam(defaultValue = "10") int threshold) {
-        return ResponseEntity.ok(dashboardService.getLowStockProducts(threshold));
+        return ResponseEntity.ok(dashboardService.getLowStockVariants(threshold));
     }
 
     @GetMapping("/revenue-by-category")

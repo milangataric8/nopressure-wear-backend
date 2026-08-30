@@ -23,7 +23,6 @@ import rs.nopressurewear.repository.ProductColorVariantRepository;
 import rs.nopressurewear.repository.ProductImageRepository;
 import rs.nopressurewear.repository.ProductRepository;
 import rs.nopressurewear.repository.ProductVariantRepository;
-import rs.nopressurewear.repository.StoreLocationRepository;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -53,13 +52,13 @@ class ProductServiceTest {
     private ProductVariantRepository productVariantRepository;
 
     @Mock
-    private StoreLocationRepository storeLocationRepository;
-
-    @Mock
     private ColorVariantService colorVariantService;
 
     @Mock
     private StoreLocationService storeLocationService;
+
+    @Mock
+    private ProductNestedRelationsService productNestedRelationsService;
 
     @InjectMocks
     private ProductService productService;
@@ -80,7 +79,6 @@ class ProductServiceTest {
                 .name("iPhone 15 Pro")
                 .description("Latest Apple smartphone")
                 .price(new BigDecimal("999.99"))
-                .stockQuantity(50)
                 .sku("APPL-IPH15PRO")
                 .isActive(true)
                 .category(category)
@@ -90,7 +88,6 @@ class ProductServiceTest {
         request.setName("iPhone 15 Pro");
         request.setDescription("Latest Apple smartphone");
         request.setPrice(new BigDecimal("999.99"));
-        request.setStockQuantity(50);
         request.setSku("APPL-IPH15PRO");
         request.setCategoryId(1L);
 
@@ -142,7 +139,7 @@ class ProductServiceTest {
         verify(productRepository, never()).save(any());
     }
 
-    // ---- nested relations on create ----
+    // ---- nested relations on create: ProductService delegates to ProductNestedRelationsService ----
 
     private ProductStoreRequest storeReq(Long storeLocationId, boolean inStock) {
         ProductStoreRequest r = new ProductStoreRequest();
@@ -152,26 +149,24 @@ class ProductServiceTest {
     }
 
     @Test
-    void create_WithVariantsAndStores_PersistsAllRelationsInOneTransaction() {
+    void create_WithVariantsAndStores_ValidatesAndLinksThroughNestedRelationsService() {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(productRepository.save(any(Product.class))).thenReturn(product);
-        when(productRepository.existsById(2L)).thenReturn(true);
-        when(storeLocationRepository.existsById(3L)).thenReturn(true);
 
         request.setColorVariantIds(List.of(2L));
-        request.setStores(List.of(storeReq(3L, true)));
+        List<ProductStoreRequest> stores = List.of(storeReq(3L, true));
+        request.setStores(stores);
 
         productService.create(request);
 
-        verify(colorVariantService).linkColorVariant(1L, 2L);
-        ArgumentCaptor<ProductStoreRequest> storeCaptor = ArgumentCaptor.forClass(ProductStoreRequest.class);
-        verify(storeLocationService).addProductToStore(eq(1L), storeCaptor.capture());
-        assertThat(storeCaptor.getValue().getStoreLocationId()).isEqualTo(3L);
+        verify(productNestedRelationsService).validateNestedRelations(List.of(2L), stores);
+        verify(productNestedRelationsService).linkNestedRelations(1L, List.of(2L), stores);
         verify(storeLocationService).getAllStoresForProduct(1L);
+        verify(colorVariantService).getColorVariants(1L);
     }
 
     @Test
-    void create_WithNullRelations_PersistsProductWithNoRelations() {
+    void create_WithNullRelations_StillDelegatesButLinksNothing() {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(productRepository.save(any(Product.class))).thenReturn(product);
 
@@ -181,26 +176,25 @@ class ProductServiceTest {
         ProductResponse response = productService.create(request);
 
         assertThat(response).isNotNull();
-        verify(colorVariantService, never()).linkColorVariant(any(), any());
-        verify(storeLocationService, never()).addProductToStore(any(), any());
+        verify(productNestedRelationsService).linkNestedRelations(1L, null, null);
     }
 
     @Test
-    void create_WithEmptyLists_BehavesSameAsNull() {
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(productRepository.save(any(Product.class))).thenReturn(product);
+    void create_PropagatesValidationFailureAndDoesNotPersist() {
+        doThrow(new FieldValidationException("Color variant products not found: [999]", "colorVariantIds"))
+                .when(productNestedRelationsService).validateNestedRelations(any(), any());
+        request.setColorVariantIds(List.of(999L));
 
-        request.setColorVariantIds(List.of());
-        request.setStores(List.of());
+        assertThatThrownBy(() -> productService.create(request))
+                .isInstanceOf(FieldValidationException.class)
+                .hasMessageContaining("999");
 
-        productService.create(request);
-
-        verify(colorVariantService, never()).linkColorVariant(any(), any());
-        verify(storeLocationService, never()).addProductToStore(any(), any());
+        verify(productRepository, never()).save(any());
+        verify(productNestedRelationsService, never()).linkNestedRelations(any(), any(), any());
     }
 
     @Test
-    void update_WithNullRelations_LeavesExistingRelationsUntouched() {
+    void update_DoesNotTouchNestedRelations() {
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(productRepository.save(any(Product.class))).thenReturn(product);
@@ -210,55 +204,7 @@ class ProductServiceTest {
 
         productService.update(1L, request);
 
-        verifyNoInteractions(colorVariantService, storeLocationService);
-    }
-
-    @Test
-    void create_WithInvalidVariantId_RollsBackWithNoProductSaved() {
-        when(productRepository.existsById(999L)).thenReturn(false);
-        request.setColorVariantIds(List.of(999L));
-
-        assertThatThrownBy(() -> productService.create(request))
-                .isInstanceOf(FieldValidationException.class)
-                .hasMessageContaining("999");
-
-        verify(productRepository, never()).save(any());
-        verifyNoInteractions(colorVariantService);
-    }
-
-    @Test
-    void create_WithInvalidStoreId_RollsBackWithNoProductSaved() {
-        when(storeLocationRepository.existsById(999L)).thenReturn(false);
-        request.setStores(List.of(storeReq(999L, true)));
-
-        assertThatThrownBy(() -> productService.create(request))
-                .isInstanceOf(FieldValidationException.class)
-                .hasMessageContaining("999");
-
-        verify(productRepository, never()).save(any());
-        verifyNoInteractions(storeLocationService);
-    }
-
-    @Test
-    void create_WithDuplicateVariantIds_ThrowsFieldValidation() {
-        request.setColorVariantIds(List.of(2L, 2L));
-
-        assertThatThrownBy(() -> productService.create(request))
-                .isInstanceOf(FieldValidationException.class)
-                .hasMessageContaining("Duplicate");
-
-        verify(productRepository, never()).save(any());
-    }
-
-    @Test
-    void create_WithDuplicateStoreIds_ThrowsFieldValidation() {
-        request.setStores(List.of(storeReq(3L, true), storeReq(3L, false)));
-
-        assertThatThrownBy(() -> productService.create(request))
-                .isInstanceOf(FieldValidationException.class)
-                .hasMessageContaining("Duplicate");
-
-        verify(productRepository, never()).save(any());
+        verifyNoInteractions(productNestedRelationsService);
     }
 
     @Test

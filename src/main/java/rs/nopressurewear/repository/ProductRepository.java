@@ -36,8 +36,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findBySkuContainingAndIdNot(String sku, Long id);
 
-    List<Product> findByIsActiveTrueAndStockQuantityLessThanEqualOrderByStockQuantityAsc(int stockQuantity);
-
     @Query(
     value = """
         SELECT * FROM product p
@@ -208,22 +206,26 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query(value = """
     SELECT p.id, p.name, p.sales_count AS salesCount,
-           p.price, p.stock_quantity AS stockQuantity,
-           p.image_url AS imageUrl
+           p.price, p.image_url AS imageUrl
      FROM product p
     WHERE p.is_active = true
-    ORDER BY p.sales_count DESC
+    ORDER BY COALESCE(p.sales_count, 0) DESC
     LIMIT :limit
     """, nativeQuery = true)
     List<Map<String, Object>> findTopSellingProducts(@Param("limit") int limit);
 
+    /**
+     * One row per variant at or below the threshold. Stock lives on product_variant,
+     * so a sold-out size shows up even when the product's other sizes are well stocked.
+     */
     @Query(value = """
-    SELECT p.id, p.name, p.image_url AS imageUrl,
-           v.size AS size, v.stock_quantity AS stockQuantity
+    SELECT p.id AS "productId", p.name AS "name", p.image_url AS "imageUrl",
+           v.id AS "variantId", v.size AS "size", v.stock_quantity AS "stockQuantity"
       FROM product_variant v
       JOIN product p ON p.id = v.product_id
-     WHERE p.is_active = true AND v.stock_quantity <= :threshold
-     ORDER BY v.stock_quantity ASC, p.name ASC
+     WHERE p.is_active = true
+       AND v.stock_quantity <= :threshold
+     ORDER BY v.stock_quantity ASC, p.name ASC, v.size ASC
     """, nativeQuery = true)
-    List<Map<String, Object>> findLowStockProducts(@Param("threshold") int threshold);
+    List<Map<String, Object>> findLowStockVariants(@Param("threshold") int threshold);
 }

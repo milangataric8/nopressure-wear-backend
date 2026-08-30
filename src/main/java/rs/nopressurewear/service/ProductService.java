@@ -88,9 +88,6 @@ public class ProductService {
 
         List<ProductVariant> variants = buildVariants(saved, request.getVariants());
         productVariantRepository.saveAll(variants);
-        int total = variants.stream().mapToInt(v -> nonNull(v.getStockQuantity()) ? v.getStockQuantity() : 0).sum();
-        saved.setStockQuantity(total);
-        productRepository.save(saved);
 
         productNestedRelationsService.linkNestedRelations(saved.getId(), request.getColorVariantIds(), request.getStores());
 
@@ -306,12 +303,6 @@ public class ProductService {
         productVariantRepository.deleteByProductId(id);
         List<ProductVariant> variants = buildVariants(product, request.getVariants());
         productVariantRepository.saveAll(variants);
-        int total = variants.stream().mapToInt(v ->
-                nonNull(v.getStockQuantity())
-                ? v.getStockQuantity()
-                : 0)
-                .sum();
-        product.setStockQuantity(total);
 
         Product saved = productRepository.save(product);
         return toResponse(saved);
@@ -456,7 +447,8 @@ public class ProductService {
                 .name(product.getName())
                 .description(product.getDescription())
                 .price(product.getPrice())
-                .stockQuantity(product.getStockQuantity())
+                // computed from variants (no product-level stock column); 0 when there are none
+                .stockQuantity(totalStock)
                 .sku(product.getSku())
                 .imageUrl(product.getImageUrl())
                 .videoUrl(product.getVideoUrl())
