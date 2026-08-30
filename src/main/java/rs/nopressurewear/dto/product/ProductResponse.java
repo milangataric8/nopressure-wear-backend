@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import rs.nopressurewear.constants.Gender;
+import rs.nopressurewear.dto.store.ProductStoreResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -41,4 +42,6 @@ public class ProductResponse {
     private List<ProductVariantResponse> variants;
     private Integer totalStock;
     private Gender gender;
+    /** Populated on create (nested relations); null on the list/detail responses that don't fetch it. */
+    private List<ProductStoreResponse> stores;
 }

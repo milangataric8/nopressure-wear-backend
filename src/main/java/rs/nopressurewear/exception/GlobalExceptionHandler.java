@@ -9,10 +9,13 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.springframework.http.HttpStatus.*;
 
@@ -51,6 +54,26 @@ public class GlobalExceptionHandler {
                 .status(BAD_REQUEST.value())
                 .message("Validation failed")
                 .errors(validationErrors)
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.badRequest().body(error);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String param = ex.getName();
+        Class<?> required = ex.getRequiredType();
+        String allowed = "";
+        if (required != null && required.isEnum()) {
+            allowed = " Allowed values: "
+                    + Arrays.stream(required.getEnumConstants()).map(Object::toString).collect(Collectors.joining(", "))
+                    + ".";
+        }
+
+        ErrorResponse error = ErrorResponse.builder()
+                .status(BAD_REQUEST.value())
+                .message("Invalid value '" + ex.getValue() + "' for parameter '" + param + "'." + allowed)
+                .errors(Map.of(param, "Invalid value"))
                 .timestamp(LocalDateTime.now())
                 .build();
         return ResponseEntity.badRequest().body(error);

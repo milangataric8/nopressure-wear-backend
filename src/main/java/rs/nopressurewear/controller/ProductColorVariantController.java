@@ -17,20 +17,20 @@ public class ProductColorVariantController {
 
     @GetMapping("/{productId}/variants")
     public ResponseEntity<List<ProductColorVariantResponse>> getVariants(@PathVariable Long productId) {
-        return ResponseEntity.ok(colorVariantService.getVariants(productId));
+        return ResponseEntity.ok(colorVariantService.getColorVariants(productId));
     }
 
     @PostMapping("/{productId}/variants/{variantProductId}")
     public ResponseEntity<List<ProductColorVariantResponse>> linkVariant(
             @PathVariable Long productId,
             @PathVariable Long variantProductId) {
-        return ResponseEntity.ok(colorVariantService.linkVariant(productId, variantProductId));
+        return ResponseEntity.ok(colorVariantService.linkColorVariant(productId, variantProductId));
     }
 
     @DeleteMapping("/{productId}/variants/{variantProductId}")
     public ResponseEntity<List<ProductColorVariantResponse>> unlinkVariant(
             @PathVariable Long productId,
             @PathVariable Long variantProductId) {
-        return ResponseEntity.ok(colorVariantService.unlinkVariant(productId, variantProductId));
+        return ResponseEntity.ok(colorVariantService.unlinkColorVariant(productId, variantProductId));
     }
 }

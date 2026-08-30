@@ -3,9 +3,10 @@ package rs.nopressurewear.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import rs.nopressurewear.service.CustomerReportService;
-import rs.nopressurewear.service.OrderReportService;
-import rs.nopressurewear.service.ProductReportService;
+import rs.nopressurewear.service.report.CustomerReportService;
+import rs.nopressurewear.service.report.OrderReportService;
+import rs.nopressurewear.service.report.ProductReportService;
+import rs.nopressurewear.service.report.RevenueReportService;
 
 import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
 import static org.springframework.http.MediaType.APPLICATION_PDF;
@@ -19,6 +20,7 @@ public class ReportController {
     private final OrderReportService orderReportService;
     private final ProductReportService productReportService;
     private final CustomerReportService customerReportService;
+    private final RevenueReportService revenueReportService;
 
     @GetMapping("/orders/pdf")
     public ResponseEntity<byte[]> ordersPdf(@RequestParam(defaultValue = "en") String lang) throws Exception {
@@ -62,6 +64,16 @@ public class ReportController {
             @RequestParam(defaultValue = "10") int threshold,
             @RequestParam(defaultValue = "en") String lang) throws Exception {
         return buildExcelResponse(productReportService.generateLowStockExcel(threshold, lang), "low-stock-report.xlsx");
+    }
+
+    @GetMapping("/revenue-by-category/pdf")
+    public ResponseEntity<byte[]> revenueByCategoryPdf(@RequestParam(defaultValue = "en") String lang) throws Exception {
+        return buildPdfResponse(revenueReportService.generateRevenueByCategoryPdf(lang), "revenue-by-category-report.pdf");
+    }
+
+    @GetMapping("/revenue-by-category/excel")
+    public ResponseEntity<byte[]> revenueByCategoryExcel(@RequestParam(defaultValue = "en") String lang) throws Exception {
+        return buildExcelResponse(revenueReportService.generateRevenueByCategoryExcel(lang), "revenue-by-category-report.xlsx");
     }
 
     private ResponseEntity<byte[]> buildPdfResponse(byte[] data, String filename) {

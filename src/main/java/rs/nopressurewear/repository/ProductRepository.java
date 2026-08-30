@@ -55,6 +55,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
           AND (:colorName IS NULL OR LOWER(p.color_name) = LOWER(:colorName))
           AND (:material IS NULL OR LOWER(p.material) = LOWER(:material))
           AND (:gender IS NULL OR p.gender = :gender)
+          AND (:sizeCount = 0 OR EXISTS (
+                   SELECT 1 FROM product_variant v
+                   WHERE v.product_id = p.id
+                     AND v.size IN (:sizes)
+                     AND v.stock_quantity > 0
+               ))
         ORDER BY p.name ASC
         """,
     countQuery = """
@@ -73,6 +79,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
           AND (:colorName IS NULL OR LOWER(p.color_name) = LOWER(:colorName))
           AND (:material IS NULL OR LOWER(p.material) = LOWER(:material))
           AND (:gender IS NULL OR p.gender = :gender)
+          AND (:sizeCount = 0 OR EXISTS (
+                   SELECT 1 FROM product_variant v
+                   WHERE v.product_id = p.id
+                     AND v.size IN (:sizes)
+                     AND v.stock_quantity > 0
+               ))
         """,
     nativeQuery = true)
     Page<Product> findByFilters(
@@ -85,6 +97,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         @Param("material") String material,
         @Param("active") Boolean active,
         @Param("gender") String gender,
+        @Param("sizes") List<String> sizes,
+        @Param("sizeCount") int sizeCount,
         Pageable pageable);
 
     @Query(
@@ -120,6 +134,21 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         """,
     nativeQuery = true)
     List<String> findDistinctMaterials();
+
+    /**
+     * Sizes present on at least one active product with stock. Returned in whatever
+     * order Postgres picks — the caller sorts by {@code ProductSize} declaration order.
+     */
+    @Query(
+    value = """
+        SELECT DISTINCT v.size
+         FROM product_variant v
+         JOIN product p ON p.id = v.product_id
+        WHERE p.is_active = true
+          AND v.stock_quantity > 0
+        """,
+    nativeQuery = true)
+    List<String> findDistinctInStockSizes();
 
     @Query(
     value = """
@@ -189,11 +218,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Map<String, Object>> findTopSellingProducts(@Param("limit") int limit);
 
     @Query(value = """
-    SELECT p.id, p.name, p.stock_quantity AS stockQuantity,
-           p.image_url AS imageUrl
-     FROM product p
-    WHERE p.is_active = true AND p.stock_quantity <= :threshold
-    ORDER BY p.stock_quantity ASC
+    SELECT p.id, p.name, p.image_url AS imageUrl,
+           v.size AS size, v.stock_quantity AS stockQuantity
+      FROM product_variant v
+      JOIN product p ON p.id = v.product_id
+     WHERE p.is_active = true AND v.stock_quantity <= :threshold
+     ORDER BY v.stock_quantity ASC, p.name ASC
     """, nativeQuery = true)
     List<Map<String, Object>> findLowStockProducts(@Param("threshold") int threshold);
 }

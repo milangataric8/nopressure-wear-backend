@@ -1,9 +1,11 @@
 package rs.nopressurewear.dto.product;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 import rs.nopressurewear.constants.Gender;
+import rs.nopressurewear.dto.store.ProductStoreRequest;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -47,4 +49,17 @@ public class ProductRequest {
     private List<ProductVariantRequest> variants;
 
     private Gender gender;
+
+    /**
+     * Products to link as color variants of this one, on create only.
+     * {@code null} = not provided, leave relations untouched; empty list = no relations.
+     */
+    private List<Long> colorVariantIds;
+
+    /**
+     * Store availability rows to create for this product, on create only.
+     * {@code null} = not provided, leave relations untouched; empty list = no relations.
+     */
+    @Valid
+    private List<ProductStoreRequest> stores;
 }

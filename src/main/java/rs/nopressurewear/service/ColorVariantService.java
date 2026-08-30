@@ -23,7 +23,7 @@ public class ColorVariantService {
     private final ProductColorVariantRepository variantRepository;
 
     @Transactional(readOnly = true)
-    public List<ProductColorVariantResponse> getVariants(Long productId) {
+    public List<ProductColorVariantResponse> getColorVariants(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
@@ -38,7 +38,7 @@ public class ColorVariantService {
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     @Transactional
-    public List<ProductColorVariantResponse> linkVariant(Long productId, Long variantProductId) {
+    public List<ProductColorVariantResponse> linkColorVariant(Long productId, Long variantProductId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
         Product variant = productRepository.findById(variantProductId)
@@ -51,7 +51,7 @@ public class ColorVariantService {
         linkColorVariants(product, variant);
         reverseLinkColorVariants(productId, variantProductId, variant, product);
 
-        return getVariants(productId);
+        return getColorVariants(productId);
     }
 
     private void reverseLinkColorVariants(Long productId, Long variantProductId, Product variant, Product product) {
@@ -67,10 +67,10 @@ public class ColorVariantService {
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     @Transactional
-    public List<ProductColorVariantResponse> unlinkVariant(Long productId, Long variantProductId) {
+    public List<ProductColorVariantResponse> unlinkColorVariant(Long productId, Long variantProductId) {
         variantRepository.deleteByProductIdAndVariantId(productId, variantProductId);
         variantRepository.deleteByProductIdAndVariantId(variantProductId, productId);
-        return getVariants(productId);
+        return getColorVariants(productId);
     }
 
     private ProductColorVariantResponse toResponse(Product p, Long currentId) {

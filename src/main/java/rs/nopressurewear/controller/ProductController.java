@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import rs.nopressurewear.constants.ProductSize;
 import rs.nopressurewear.dto.product.*;
 import rs.nopressurewear.service.ProductService;
 
@@ -57,10 +58,13 @@ public class ProductController {
             @RequestParam(required = false) String colorName,
             @RequestParam(required = false) String material,
             @RequestParam(required = false) String gender,
+            @RequestParam(required = false) List<ProductSize> sizes,
             @PageableDefault(sort = "name") Pageable pageable) {
 
-        if (haveFilters(categoryId, search, active, brand, colorName, material, gender)) {
-            return ResponseEntity.ok(productService.filter(categoryId, search, active, brand, colorName, material, gender, pageable));
+        if (haveFilters(categoryId, search, active, brand, colorName, material, gender, sizes)) {
+            return ResponseEntity.ok(
+                    productService.
+                            filter(categoryId, search, active, brand, colorName, material, gender, sizes, pageable));
         }
 
         return ResponseEntity.ok(productService.getAll(pageable));
@@ -85,13 +89,15 @@ public class ProductController {
                                        String brand,
                                        String colorName,
                                        String material,
-                                       String gender) {
+                                       String gender,
+                                       List<ProductSize> sizes) {
         return (nonNull(search) && !search.isBlank())
                 || nonNull(categoryId)
                 || nonNull(active)
                 || nonNull(brand)
                 || nonNull(colorName)
                 || nonNull(material)
+                || (nonNull(sizes) && !sizes.isEmpty())
                 || (nonNull(gender)
                 && !gender.isBlank());
     }
@@ -138,10 +144,11 @@ public class ProductController {
             @RequestParam(required = false) String colorName,
             @RequestParam(required = false) String material,
             @RequestParam(required = false) String gender,
+            @RequestParam(required = false) List<ProductSize> sizes,
             @PageableDefault(sort = "name") Pageable pageable) {
 
         return ResponseEntity.ok(productService.getActiveFiltered(
-                categoryId, search, minPrice, maxPrice, brand, colorName, material, gender, pageable));
+                categoryId, search, minPrice, maxPrice, brand, colorName, material, gender, sizes, pageable));
     }
 
     @PutMapping("/{id}")

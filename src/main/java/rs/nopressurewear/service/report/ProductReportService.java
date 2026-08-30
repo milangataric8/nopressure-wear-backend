@@ -1,4 +1,4 @@
-package rs.nopressurewear.service;
+package rs.nopressurewear.service.report;
 
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;

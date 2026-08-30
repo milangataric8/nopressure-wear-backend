@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import rs.nopressurewear.constants.ProductSize;
 import rs.nopressurewear.dto.product.*;
 import rs.nopressurewear.exception.ResourceNotFoundException;
 import rs.nopressurewear.model.Category;
@@ -43,6 +44,9 @@ public class ProductService {
     private final ProductImageRepository productImageRepository;
     private final ProductColorVariantRepository colorVariantRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final StoreLocationService storeLocationService;
+    private final ColorVariantService colorVariantService;
+    private final ProductNestedRelationsService productNestedRelationsService;
 
     @Caching(evict = {
         @CacheEvict(value = "productFilters", allEntries = true),
@@ -52,6 +56,8 @@ public class ProductService {
     @Transactional
     public ProductResponse create(ProductRequest request) {
 
+        productNestedRelationsService.validateNestedRelations(request.getColorVariantIds(), request.getStores());
+
         Product product = Product.builder()
                 .name(request.getName())
                 .description(sanitizeDescription(request.getDescription()))
@@ -59,11 +65,6 @@ public class ProductService {
                 .sku(request.getSku())
                 .imageUrl(request.getImageUrl())
                 .isActive(true)
-                .stockQuantity(nonNull(request.getVariants())
-                        ? request.getVariants().stream()
-                                .mapToInt(ProductVariantRequest::getStockQuantity)
-                                .sum()
-                        : 0)
                 .videoUrl(request.getVideoUrl())
                 .brand(request.getBrand())
                 .colorName(request.getColorName())
@@ -91,7 +92,12 @@ public class ProductService {
         saved.setStockQuantity(total);
         productRepository.save(saved);
 
-        return toResponse(saved);
+        productNestedRelationsService.linkNestedRelations(saved.getId(), request.getColorVariantIds(), request.getStores());
+
+        ProductResponse response = toResponse(saved);
+        response.setStores(storeLocationService.getAllStoresForProduct(saved.getId()));
+        response.setColorVariants(colorVariantService.getColorVariants(saved.getId()));
+        return response;
     }
 
     public ProductResponse getById(Long id) {
@@ -133,6 +139,7 @@ public class ProductService {
                                         String colorName,
                                         String material,
                                         String gender,
+                                        List<ProductSize> sizes,
                                         Pageable pageable) {
         String searchParam = (nonNull(search) && !search.isBlank()) ? search : null;
         String brandParam = (nonNull(brand) && !brand.isBlank()) ? brand : null;
@@ -141,7 +148,8 @@ public class ProductService {
         String genderParam = (nonNull(gender) && !gender.isBlank()) ? gender : null;
 
         return productRepository
-                .findByFilters(categoryId, searchParam, null, null, brandParam, colorParam, materialParam, active, genderParam, pageable)
+                .findByFilters(categoryId, searchParam, null, null, brandParam, colorParam, materialParam, active, genderParam,
+                        sizeNames(sizes), sizeCount(sizes), pageable)
                 .map(this::toResponse);
     }
 
@@ -153,6 +161,7 @@ public class ProductService {
                                                    String colorName,
                                                    String material,
                                                    String gender,
+                                                   List<ProductSize> sizes,
                                                    Pageable pageable) {
         String searchParam = (nonNull(search) && !search.isBlank()) ? search : null;
         String brandParam = (nonNull(brand) && !brand.isBlank()) ? brand : null;
@@ -165,8 +174,24 @@ public class ProductService {
                         minPrice, maxPrice,
                         brandParam, colorParam,
                         materialParam, TRUE,
-                        genderParam, pageable)
+                        genderParam,
+                        sizeNames(sizes), sizeCount(sizes), pageable)
                 .map(this::toResponse);
+    }
+
+    /** {@code null} / empty size list = no size filtering (matches the other filters). */
+    private static int sizeCount(List<ProductSize> sizes) {
+        return (sizes == null || sizes.isEmpty()) ? 0 : sizes.size();
+    }
+
+    /**
+     * Enum names for the native {@code IN (:sizes)} bind. Never empty (an empty list
+     * breaks the bind); the {@code :sizeCount = 0} guard makes the value irrelevant
+     * when no size filter is applied.
+     */
+    private static List<String> sizeNames(List<ProductSize> sizes) {
+        if (sizes == null || sizes.isEmpty()) return List.of("");
+        return sizes.stream().map(Enum::name).toList();
     }
 
     @Cacheable("productFilters")
@@ -186,8 +211,18 @@ public class ProductService {
                 })
                 .toList());
         filters.put("materials", materials);
+        filters.put("sizes", availableSizes());
 
         return filters;
+    }
+
+    /** Distinct in-stock sizes on active products, ordered by {@link ProductSize} declaration order. */
+    private List<String> availableSizes() {
+        return productRepository.findDistinctInStockSizes().stream()
+                .map(ProductSize::valueOf)
+                .sorted(Comparator.comparingInt(Enum::ordinal))
+                .map(Enum::name)
+                .toList();
     }
 
     @Cacheable(value = "featuredProducts", key = "#limit")

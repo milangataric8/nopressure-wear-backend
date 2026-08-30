@@ -13,6 +13,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import rs.nopressurewear.dto.product.ProductRequest;
 import rs.nopressurewear.dto.product.ProductResponse;
+import rs.nopressurewear.dto.store.ProductStoreRequest;
+import rs.nopressurewear.exception.FieldValidationException;
 import rs.nopressurewear.exception.ResourceNotFoundException;
 import rs.nopressurewear.model.Category;
 import rs.nopressurewear.model.Product;
@@ -21,6 +23,7 @@ import rs.nopressurewear.repository.ProductColorVariantRepository;
 import rs.nopressurewear.repository.ProductImageRepository;
 import rs.nopressurewear.repository.ProductRepository;
 import rs.nopressurewear.repository.ProductVariantRepository;
+import rs.nopressurewear.repository.StoreLocationRepository;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -48,6 +51,15 @@ class ProductServiceTest {
 
     @Mock
     private ProductVariantRepository productVariantRepository;
+
+    @Mock
+    private StoreLocationRepository storeLocationRepository;
+
+    @Mock
+    private ColorVariantService colorVariantService;
+
+    @Mock
+    private StoreLocationService storeLocationService;
 
     @InjectMocks
     private ProductService productService;
@@ -126,6 +138,125 @@ class ProductServiceTest {
         assertThatThrownBy(() -> productService.create(request))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Category not found");
+
+        verify(productRepository, never()).save(any());
+    }
+
+    // ---- nested relations on create ----
+
+    private ProductStoreRequest storeReq(Long storeLocationId, boolean inStock) {
+        ProductStoreRequest r = new ProductStoreRequest();
+        r.setStoreLocationId(storeLocationId);
+        r.setInStock(inStock);
+        return r;
+    }
+
+    @Test
+    void create_WithVariantsAndStores_PersistsAllRelationsInOneTransaction() {
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepository.save(any(Product.class))).thenReturn(product);
+        when(productRepository.existsById(2L)).thenReturn(true);
+        when(storeLocationRepository.existsById(3L)).thenReturn(true);
+
+        request.setColorVariantIds(List.of(2L));
+        request.setStores(List.of(storeReq(3L, true)));
+
+        productService.create(request);
+
+        verify(colorVariantService).linkColorVariant(1L, 2L);
+        ArgumentCaptor<ProductStoreRequest> storeCaptor = ArgumentCaptor.forClass(ProductStoreRequest.class);
+        verify(storeLocationService).addProductToStore(eq(1L), storeCaptor.capture());
+        assertThat(storeCaptor.getValue().getStoreLocationId()).isEqualTo(3L);
+        verify(storeLocationService).getAllStoresForProduct(1L);
+    }
+
+    @Test
+    void create_WithNullRelations_PersistsProductWithNoRelations() {
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepository.save(any(Product.class))).thenReturn(product);
+
+        request.setColorVariantIds(null);
+        request.setStores(null);
+
+        ProductResponse response = productService.create(request);
+
+        assertThat(response).isNotNull();
+        verify(colorVariantService, never()).linkColorVariant(any(), any());
+        verify(storeLocationService, never()).addProductToStore(any(), any());
+    }
+
+    @Test
+    void create_WithEmptyLists_BehavesSameAsNull() {
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepository.save(any(Product.class))).thenReturn(product);
+
+        request.setColorVariantIds(List.of());
+        request.setStores(List.of());
+
+        productService.create(request);
+
+        verify(colorVariantService, never()).linkColorVariant(any(), any());
+        verify(storeLocationService, never()).addProductToStore(any(), any());
+    }
+
+    @Test
+    void update_WithNullRelations_LeavesExistingRelationsUntouched() {
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepository.save(any(Product.class))).thenReturn(product);
+
+        request.setColorVariantIds(null);
+        request.setStores(null);
+
+        productService.update(1L, request);
+
+        verifyNoInteractions(colorVariantService, storeLocationService);
+    }
+
+    @Test
+    void create_WithInvalidVariantId_RollsBackWithNoProductSaved() {
+        when(productRepository.existsById(999L)).thenReturn(false);
+        request.setColorVariantIds(List.of(999L));
+
+        assertThatThrownBy(() -> productService.create(request))
+                .isInstanceOf(FieldValidationException.class)
+                .hasMessageContaining("999");
+
+        verify(productRepository, never()).save(any());
+        verifyNoInteractions(colorVariantService);
+    }
+
+    @Test
+    void create_WithInvalidStoreId_RollsBackWithNoProductSaved() {
+        when(storeLocationRepository.existsById(999L)).thenReturn(false);
+        request.setStores(List.of(storeReq(999L, true)));
+
+        assertThatThrownBy(() -> productService.create(request))
+                .isInstanceOf(FieldValidationException.class)
+                .hasMessageContaining("999");
+
+        verify(productRepository, never()).save(any());
+        verifyNoInteractions(storeLocationService);
+    }
+
+    @Test
+    void create_WithDuplicateVariantIds_ThrowsFieldValidation() {
+        request.setColorVariantIds(List.of(2L, 2L));
+
+        assertThatThrownBy(() -> productService.create(request))
+                .isInstanceOf(FieldValidationException.class)
+                .hasMessageContaining("Duplicate");
+
+        verify(productRepository, never()).save(any());
+    }
+
+    @Test
+    void create_WithDuplicateStoreIds_ThrowsFieldValidation() {
+        request.setStores(List.of(storeReq(3L, true), storeReq(3L, false)));
+
+        assertThatThrownBy(() -> productService.create(request))
+                .isInstanceOf(FieldValidationException.class)
+                .hasMessageContaining("Duplicate");
 
         verify(productRepository, never()).save(any());
     }
