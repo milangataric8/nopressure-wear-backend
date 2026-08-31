@@ -88,23 +88,19 @@ public class CartService {
     public CartResponse updateItem(Long userId, Long cartItemId, CartItemRequest request) {
         Cart cart = getOrCreateCart(userId);
 
-        CartItem item = cartItemRepository.findById(cartItemId)
+        CartItem item = cart.getCartItems().stream()
+                .filter(i -> i.getId().equals(cartItemId))
+                .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("Cart item not found"));
 
-        if (!item.getCart().getId().equals(cart.getId())) {
-            throw new RuntimeException("Cart item does not belong to this cart");
-        }
-
-        if (request.getQuantity() == 0) {
+        if (request.getQuantity() <= 0) {
             cart.getCartItems().remove(item);
-            cartItemRepository.delete(item);
         } else {
             item.setQuantity(request.getQuantity());
-            cartItemRepository.save(item);
         }
 
         touchCart(cart);
-        return toResponse(cartRepository.save(cart));
+        return toResponse(cart);
     }
 
     @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
@@ -112,18 +108,17 @@ public class CartService {
     public CartResponse removeItem(Long userId, Long cartItemId) {
         Cart cart = getOrCreateCart(userId);
 
-        CartItem item = cartItemRepository.findById(cartItemId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart item not found"));
+        CartItem item = cart.getCartItems().stream()
+                .filter(i -> i.getId().equals(cartItemId))
+                .findFirst()
+                .orElse(null);
 
-        if (!item.getCart().getId().equals(cart.getId())) {
-            throw new RuntimeException("Cart item does not belong to this cart");
+        if (item != null) {
+            cart.getCartItems().remove(item);
+            touchCart(cart);
         }
 
-        cart.getCartItems().remove(item);
-        cartItemRepository.delete(item);
-
-        touchCart(cart);
-        return toResponse(cartRepository.save(cart));
+        return toResponse(cart);
     }
 
     @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")

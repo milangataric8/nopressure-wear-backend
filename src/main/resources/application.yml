@@ -8,10 +8,10 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   flyway:
@@ -69,3 +69,8 @@ sentry:
   release: ${SENTRY_RELEASE:dev}
   traces-sample-rate: 0.0
   send-default-pii: false
+
+logging:
+  level:
+    org.hibernate.SQL: OFF
+    org.hibernate.orm.jdbc.bind: OFF
