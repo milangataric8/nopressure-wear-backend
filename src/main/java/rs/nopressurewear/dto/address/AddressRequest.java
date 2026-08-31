@@ -23,4 +23,7 @@ public class AddressRequest {
 
     @NotBlank(message = "validation.countryRequired")
     private String country;
+
+    /** Whether to make this the user's main address. No validation — {@code false} is the valid default. */
+    private boolean main;
 }

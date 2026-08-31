@@ -34,4 +34,12 @@ public class Address {
 
     @Column(nullable = false)
     private String country;
+
+    /**
+     * At most one per user (DB partial unique index {@code uk_address_one_main_per_user}).
+     * Named {@code main}, not {@code isMain}: Lombok's getter and Jackson's property name
+     * both come out as {@code main}, so the Java field and the JSON key agree.
+     */
+    @Column(name = "is_main", nullable = false)
+    private boolean main;
 }

@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.math.BigDecimal.ZERO;
 import static java.util.Objects.nonNull;
 
 @Service
@@ -143,13 +144,13 @@ public class EmailService {
                                      String lang) {
 
         Map<String, String> t = getEmailTranslations(lang);
-        BigDecimal delivery = nonNull(deliveryFee) ? deliveryFee : BigDecimal.ZERO;
+        BigDecimal delivery = nonNull(deliveryFee) ? deliveryFee : ZERO;
         BigDecimal subtotalBD = new BigDecimal(total).subtract(delivery);
         String subtotalDisplay = subtotalBD.toPlainString();
-        String deliveryDisplay = delivery.compareTo(BigDecimal.ZERO) == 0
+        String deliveryDisplay = delivery.compareTo(ZERO) == 0
                 ? t.get("orderFree")
                 : delivery.toPlainString() + " RSD";
-        String deliveryStyle = delivery.compareTo(BigDecimal.ZERO) == 0
+        String deliveryStyle = delivery.compareTo(ZERO) == 0
                 ? "color: #16a34a;"
                 : "";
 
@@ -244,11 +245,11 @@ public class EmailService {
                 t.get("orderTitle"), orderCode,
                 t.get("orderStatusUpdatedNote"),
                 greeting,
-                t.get("orderItems"),
+                t.get("orderItems "),
                 productRows,
-                t.get("orderSubtotal"), subtotalDisplay,
-                t.get("orderDelivery"), deliveryStyle, deliveryDisplay,
-                t.get("orderTotal"), total,
+                t.get("orderSubtotal "), subtotalDisplay,
+                t.get("orderDelivery "), deliveryStyle, deliveryDisplay,
+                t.get("orderTotal "), total,
                 shippingSection,
                 orderUrl,
                 t.get("orderViewButton"),

@@ -16,4 +16,5 @@ public class AddressResponse {
     private String city;
     private String postalCode;
     private String country;
+    private boolean main;
 }
