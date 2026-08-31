@@ -71,8 +71,10 @@ public class ReportService {
             t.put("size", "Veličina");
             t.put("brand", "Brend");
             t.put("color", "Boja");
+            t.put("gender", "Pol");
             t.put("material", "Materijal");
             t.put("category", "Kategorija");
+            t.put("parentCategory", "Nadkategorija");
             t.put("salesCount", "Prodato");
             t.put("avgRating", "Prosečna ocena");
             t.put("products", "proizvoda");
@@ -123,8 +125,10 @@ public class ReportService {
             t.put("size", "Size");
             t.put("brand", "Brand");
             t.put("color", "Color");
+            t.put("gender", "Gender");
             t.put("material", "Material");
             t.put("category", "Category");
+            t.put("parentCategory", "Parent Category");
             t.put("salesCount", "Sales Count");
             t.put("avgRating", "Avg Rating");
             t.put("products", "products");

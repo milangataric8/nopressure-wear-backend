@@ -39,6 +39,12 @@ public class ProductReportService {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
+    /** Renders a projection value for a report cell, using an em dash for null/blank. */
+    private static String text(Object value) {
+        String s = nonNull(value) ? value.toString().trim() : "";
+        return s.isEmpty() ? "—" : s;
+    }
+
     /** Total variant stock per product id, in one query (no per-row lookup). Missing product => 0. */
     private Map<Long, Integer> stockByProduct(List<Product> products) {
         Map<Long, Integer> map = new HashMap<>();
@@ -175,13 +181,16 @@ public class ProductReportService {
         reportService.addSubtitle(document, t.get("threshold") + ": " + threshold + " " + t.get("units")
                 + " | " + t.get("total") + ": " + rows.size());
 
-        // Column order: Product, Size, Stock
-        PdfPTable table = new PdfPTable(new float[]{1, 4, 1.5f, 1.5f});
+        // Column order: Product, Color, Gender, Size, Stock — rows already sorted by the query
+        // (stock ascending, then product name), so the export matches the on-screen report.
+        PdfPTable table = new PdfPTable(new float[]{1, 3.5f, 1.5f, 1.5f, 1.5f, 1.5f});
         table.setWidthPercentage(100);
         table.setSpacingBefore(15);
 
         reportService.addHeaderCell(table, "#");
         reportService.addHeaderCell(table, t.get("name"));
+        reportService.addHeaderCell(table, t.get("color"));
+        reportService.addHeaderCell(table, t.get("gender"));
         reportService.addHeaderCell(table, t.get("size"));
         reportService.addHeaderCell(table, t.get("stock"));
 
@@ -189,6 +198,8 @@ public class ProductReportService {
             Map<String, Object> r = rows.get(i);
             reportService.addCell(table, String.valueOf(i + 1));
             reportService.addCell(table, String.valueOf(r.get("name")));
+            reportService.addCell(table, text(r.get("colorName")));
+            reportService.addCell(table, text(r.get("gender")));
             reportService.addCell(table, String.valueOf(r.get("size")));
             reportService.addBoldCell(table, String.valueOf(r.get("stockQuantity")));
         }
@@ -209,7 +220,8 @@ public class ProductReportService {
         CellStyle headerStyle = reportService.createHeaderStyle(workbook);
 
         Row header = sheet.createRow(0);
-        String[] columns = {"#", t.get("name"), t.get("size"), t.get("stock")};
+        // Column order: Product, Color, Gender, Size, Stock — rows already sorted by the query.
+        String[] columns = {"#", t.get("name"), t.get("color"), t.get("gender"), t.get("size"), t.get("stock")};
         for (int i = 0; i < columns.length; i++) {
             Cell cell = header.createCell(i);
             cell.setCellValue(columns[i]);
@@ -221,8 +233,10 @@ public class ProductReportService {
             Row row = sheet.createRow(i + 1);
             row.createCell(0).setCellValue(i + 1);
             row.createCell(1).setCellValue(String.valueOf(r.get("name")));
-            row.createCell(2).setCellValue(String.valueOf(r.get("size")));
-            row.createCell(3).setCellValue(((Number) r.get("stockQuantity")).doubleValue());
+            row.createCell(2).setCellValue(text(r.get("colorName")));
+            row.createCell(3).setCellValue(text(r.get("gender")));
+            row.createCell(4).setCellValue(String.valueOf(r.get("size")));
+            row.createCell(5).setCellValue(((Number) r.get("stockQuantity")).doubleValue());
         }
 
         for (int i = 0; i < columns.length; i++) sheet.autoSizeColumn(i);

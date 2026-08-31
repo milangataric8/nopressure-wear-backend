@@ -8,6 +8,8 @@ import rs.nopressurewear.service.DashboardService;
 import java.util.List;
 import java.util.Map;
 
+import static rs.nopressurewear.constants.StockDefaults.LOW_STOCK_THRESHOLD;
+
 @RestController
 @RequestMapping("/api/dashboard")
 @RequiredArgsConstructor
@@ -44,7 +46,7 @@ public class DashboardController {
 
     @GetMapping("/low-stock")
     public ResponseEntity<List<Map<String, Object>>> getLowStock(
-            @RequestParam(defaultValue = "10") int threshold) {
+            @RequestParam(defaultValue = LOW_STOCK_THRESHOLD) int threshold) {
         return ResponseEntity.ok(dashboardService.getLowStockVariants(threshold));
     }
 

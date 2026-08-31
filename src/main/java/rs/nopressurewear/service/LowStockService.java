@@ -4,10 +4,13 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import rs.nopressurewear.constants.StockDefaults;
 import rs.nopressurewear.model.Product;
 import rs.nopressurewear.model.ProductVariant;
 import rs.nopressurewear.repository.ProductVariantRepository;
 import rs.nopressurewear.repository.StoreSettingsRepository;
+
+import static java.util.Objects.nonNull;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +30,9 @@ public class LowStockService {
 
             if (stock <= threshold && !variant.isLowStockAlerted()) {
                 String lang = defaultLanguage();
-                emailService.sendAdminLowStockAlert(product.getName(), product.getSku(), variant.getSize().name(), stock, threshold, lang);
+                String gender = nonNull(product.getGender()) ? product.getGender().name() : null;
+                emailService.sendAdminLowStockAlert(product.getName(), product.getSku(), product.getColorName(),
+                        gender, variant.getSize().name(), stock, threshold, lang);
                 variant.setLowStockAlerted(true);
                 productVariantRepository.save(variant);
             }
@@ -46,9 +51,9 @@ public class LowStockService {
         return settingsRepository.findByKey("low_stock_threshold")
                 .map(s -> {
                     try { return Integer.parseInt(s.getValue().trim()); }
-                    catch (Exception e) { return 5; }
+                    catch (Exception e) { return StockDefaults.LOW_STOCK_THRESHOLD_VALUE; }
                 })
-                .orElse(5);
+                .orElse(StockDefaults.LOW_STOCK_THRESHOLD_VALUE);
     }
 
     private String defaultLanguage() {

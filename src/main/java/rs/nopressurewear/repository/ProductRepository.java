@@ -217,9 +217,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     /**
      * One row per variant at or below the threshold. Stock lives on product_variant,
      * so a sold-out size shows up even when the product's other sizes are well stocked.
+     * Carries {@code colorName} and {@code gender} so the caller can tell apart products
+     * that share a name (e.g. "Signature" in White and Black).
      */
     @Query(value = """
     SELECT p.id AS "productId", p.name AS "name", p.image_url AS "imageUrl",
+           p.color_name AS "colorName", p.gender AS "gender",
            v.id AS "variantId", v.size AS "size", v.stock_quantity AS "stockQuantity"
       FROM product_variant v
       JOIN product p ON p.id = v.product_id

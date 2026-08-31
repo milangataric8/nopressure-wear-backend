@@ -57,11 +57,13 @@ public class RevenueReportService {
         reportService.addSubtitle(document, t.get("generated") + ": " + LocalDateTime.now().format(DATE_FORMAT)
                 + " | " + t.get("total") + ": " + rows.size() + " " + t.get("categories"));
 
-        PdfPTable table = new PdfPTable(new float[]{1, 4, 3, 2});
+        // Column order: #, Parent Category, Category, Revenue, Share %
+        PdfPTable table = new PdfPTable(new float[]{1, 4, 4, 3, 2});
         table.setWidthPercentage(100);
         table.setSpacingBefore(15);
 
         reportService.addHeaderCell(table, "#");
+        reportService.addHeaderCell(table, t.get("parentCategory"));
         reportService.addHeaderCell(table, t.get("category"));
         reportService.addHeaderCell(table, t.get("revenue"));
         reportService.addHeaderCell(table, t.get("sharePercent"));
@@ -70,6 +72,7 @@ public class RevenueReportService {
             Map<String, Object> row = rows.get(i);
             BigDecimal revenue = revenueOf(row);
             reportService.addCell(table, String.valueOf(i + 1));
+            reportService.addCell(table, parentNameOf(row));
             reportService.addCell(table, categoryOf(row));
             reportService.addBoldCell(table, reportService.formatPrice(revenue));
             reportService.addCell(table, formatShare(share(revenue, totalRevenue)));
@@ -98,7 +101,8 @@ public class RevenueReportService {
         CellStyle boldStyle = reportService.createBoldStyle(workbook);
 
         Row header = sheet.createRow(0);
-        String[] columns = {"#", t.get("category"), t.get("revenue"), t.get("sharePercent")};
+        // Column order: #, Parent Category, Category, Revenue, Share %
+        String[] columns = {"#", t.get("parentCategory"), t.get("category"), t.get("revenue"), t.get("sharePercent")};
         for (int i = 0; i < columns.length; i++) {
             Cell cell = header.createCell(i);
             cell.setCellValue(columns[i]);
@@ -110,17 +114,18 @@ public class RevenueReportService {
             BigDecimal revenue = revenueOf(row);
             Row excelRow = sheet.createRow(i + 1);
             excelRow.createCell(0).setCellValue(i + 1);
-            excelRow.createCell(1).setCellValue(categoryOf(row));
-            excelRow.createCell(2).setCellValue(revenue.doubleValue());
-            excelRow.createCell(3).setCellValue(share(revenue, totalRevenue).doubleValue());
+            excelRow.createCell(1).setCellValue(parentNameOf(row));
+            excelRow.createCell(2).setCellValue(categoryOf(row));
+            excelRow.createCell(3).setCellValue(revenue.doubleValue());
+            excelRow.createCell(4).setCellValue(share(revenue, totalRevenue).doubleValue());
         }
 
         if (!rows.isEmpty()) {
             Row summaryRow = sheet.createRow(rows.size() + 2);
-            Cell label = summaryRow.createCell(1);
+            Cell label = summaryRow.createCell(2);
             label.setCellValue(t.get("totalRevenue") + ":");
             label.setCellStyle(boldStyle);
-            Cell value = summaryRow.createCell(2);
+            Cell value = summaryRow.createCell(3);
             value.setCellValue(totalRevenue.doubleValue());
             value.setCellStyle(boldStyle);
         }
@@ -155,14 +160,26 @@ public class RevenueReportService {
         return share.toPlainString() + " %";
     }
 
+    /** Native-query aliases come back lowercased by PostgreSQL; tolerate camelCase too for mocked rows. */
+    private static Object lookup(Map<String, Object> row, String key) {
+        Object value = row.get(key.toLowerCase());
+        return nonNull(value) ? value : row.get(key);
+    }
+
     private static BigDecimal revenueOf(Map<String, Object> row) {
-        Object value = row.get("revenue");
+        Object value = lookup(row, "revenue");
         if (value == null) return ZERO;
         return value instanceof BigDecimal bd ? bd : new BigDecimal(value.toString());
     }
 
     private static String categoryOf(Map<String, Object> row) {
-        Object value = row.get("category");
+        Object value = lookup(row, "categoryName");
         return nonNull(value) ? value.toString() : "—";
+    }
+
+    /** Parent category name, or blank for a top-level category — never repeat the category name. */
+    private static String parentNameOf(Map<String, Object> row) {
+        Object value = lookup(row, "parentName");
+        return nonNull(value) ? value.toString() : "";
     }
 }

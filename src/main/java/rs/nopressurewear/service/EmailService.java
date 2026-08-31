@@ -348,11 +348,20 @@ public class EmailService {
         return "<span style=\"font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px; color: #111;\">NoPressure wear</span>";
     }
 
-    public void sendAdminLowStockAlert(String productName, String sku, String size, int stock, int threshold, String lang) {
+    public void sendAdminLowStockAlert(String productName, String sku, String colorName, String gender,
+                                      String size, int stock, int threshold, String lang) {
         Map<String, String> t = getEmailTranslations(lang);
-        String sizeRow = nonNull(size)
-                ? "<tr><td style=\"color:#999;padding:4px 0;\">%s</td><td style=\"padding:4px 0;\"><strong>%s</strong></td></tr>".formatted(t.get("lowStockSize"), size)
+        String detailRowTemplate = "<tr><td style=\"color:#999;padding:4px 0;\">%s</td><td style=\"padding:4px 0;\"><strong>%s</strong></td></tr>";
+        String colorRow = nonNull(colorName) && !colorName.isBlank()
+                ? detailRowTemplate.formatted(t.get("lowStockColor"), colorName)
                 : "";
+        String genderRow = nonNull(gender) && !gender.isBlank()
+                ? detailRowTemplate.formatted(t.get("lowStockGender"), gender)
+                : "";
+        String sizeRow = nonNull(size)
+                ? detailRowTemplate.formatted(t.get("lowStockSize"), size)
+                : "";
+        String identityRows = colorRow + genderRow + sizeRow;
         String subject = t.get("lowStockSubject").formatted(productName);
         String html = """
                 <!DOCTYPE html>
@@ -392,7 +401,7 @@ public class EmailService {
                 """.formatted(
                 t.get("lowStockIntro").formatted(productName),
                 stock,
-                sizeRow,
+                identityRows,
                 t.get("lowStockSku"), sku,
                 t.get("lowStockThresholdLabel"), threshold,
                 t.get("lowStockRestock"),
@@ -657,6 +666,8 @@ public class EmailService {
             t.put("verifyExpire", "Link ističe za 24 sata. Ako se niste registrovali, ignorišite ovaj email.");
             t.put("lowStockSubject", "Upozorenje o zalihama: %s");
             t.put("lowStockIntro", "Zalihe za proizvod <strong>%s</strong> su dostigle kritičan nivo.");
+            t.put("lowStockColor", "Boja");
+            t.put("lowStockGender", "Pol");
             t.put("lowStockSize", "Veličina");
             t.put("lowStockSku", "SKU");
             t.put("lowStockThresholdLabel", "Prag upozorenja ");
@@ -701,6 +712,8 @@ public class EmailService {
             t.put("verifyExpire", "This link expires in 24 hours. If you didn't sign up, ignore this email.");
             t.put("lowStockSubject", "Low stock alert: %s");
             t.put("lowStockIntro", "Stock for <strong>%s</strong> has reached a critical level.");
+            t.put("lowStockColor", "Color");
+            t.put("lowStockGender", "Gender");
             t.put("lowStockSize", "Size");
             t.put("lowStockSku", "SKU");
             t.put("lowStockThresholdLabel", "Alert threshold ");

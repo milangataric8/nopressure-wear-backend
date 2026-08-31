@@ -111,14 +111,30 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     nativeQuery = true)
     List<Map<String, Object>> findTopCustomers(@Param("limit") int limit);
 
+    /**
+     * Flat revenue per category, one row per category id (never aggregated into a tree here).
+     * Carries the category id and its parent so the frontend can group subcategories under
+     * their parent and key rows on a stable id rather than the name.
+     * <p>
+     * Attribution is per {@code product.category_id}: a product attached directly to a parent
+     * category contributes to that parent's own row, not to any subcategory. Every order item
+     * lands in exactly one row, so the rows sum to total revenue for the period.
+     * <p>
+     * {@code LEFT JOIN} on the parent — top-level categories have {@code parent_id IS NULL}
+     * and still appear, with {@code parentId}/{@code parentName} null.
+     */
     @Query(
     value = """
-        SELECT c.name AS category,
+        SELECT c.id        AS categoryId,
+               c.name      AS categoryName,
+               c.parent_id AS parentId,
+               parent.name AS parentName,
                COALESCE(SUM(oi.price_at_purchase * oi.quantity), 0) AS revenue
          FROM order_item oi
          JOIN product p ON p.id = oi.product_id
          JOIN category c ON c.id = p.category_id
-        GROUP BY c.id, c.name
+         LEFT JOIN category parent ON parent.id = c.parent_id
+        GROUP BY c.id, c.name, c.parent_id, parent.name
         ORDER BY revenue DESC
         """,
     nativeQuery = true)
