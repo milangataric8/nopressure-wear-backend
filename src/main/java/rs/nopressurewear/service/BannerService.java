@@ -29,19 +29,19 @@ public class BannerService {
                 .toList();
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<BannerResponse> getAll(Pageable pageable) {
         return bannerRepository.findAll(pageable)
                 .map(this::toResponse);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<BannerResponse> search(String query, Boolean active, Pageable pageable) {
         return bannerRepository.findByFilters(query, active, pageable)
                 .map(this::toResponse);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public BannerResponse create(BannerRequest request) {
         Banner banner = Banner.builder()
                 .title(request.getTitle())
@@ -60,7 +60,7 @@ public class BannerService {
         return toResponse(bannerRepository.save(banner));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public BannerResponse update(Long id, BannerRequest request) {
         Banner banner = bannerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Banner not found"));
@@ -81,7 +81,7 @@ public class BannerService {
         return toResponse(bannerRepository.save(banner));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public BannerResponse toggleActive(Long id) {
         Banner banner = bannerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Banner not found"));
@@ -89,7 +89,7 @@ public class BannerService {
         return toResponse(bannerRepository.save(banner));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public void delete(Long id) {
         Banner banner = bannerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Banner not found"));

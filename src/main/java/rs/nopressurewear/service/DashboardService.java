@@ -22,7 +22,7 @@ public class DashboardService {
     private final UserRepository userRepository;
     private final CouponRepository couponRepository;
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Map<String, Object> getOverview() {
         Map<String, Object> overview = new LinkedHashMap<>();
 
@@ -54,37 +54,37 @@ public class DashboardService {
         return overview;
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public List<Map<String, Object>> getRevenueByMonth() {
         return orderRepository.getRevenueByMonth();
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public List<Map<String, Object>> getOrdersByStatus() {
         return orderRepository.getOrderCountByStatus();
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public List<Map<String, Object>> getTopProducts(int limit) {
         return productRepository.findTopSellingProducts(limit);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public List<Map<String, Object>> getTopCustomers(int limit) {
         return orderRepository.findTopCustomers(limit);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public List<Map<String, Object>> getLowStockVariants(int threshold) {
         return productRepository.findLowStockVariants(threshold);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public List<Map<String, Object>> getRevenueByCategory() {
         return orderRepository.getRevenueByCategory();
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Map<String, Object> getPaymentMethodStats() {
         Map<String, Object> stats = new LinkedHashMap<>();
         stats.put("card", orderRepository.countByPaymentMethod("CARD"));
@@ -92,7 +92,7 @@ public class DashboardService {
         return stats;
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public List<Map<String, Object>> getRecentOrders(int limit) {
         return orderRepository.findRecentOrders(limit);
     }

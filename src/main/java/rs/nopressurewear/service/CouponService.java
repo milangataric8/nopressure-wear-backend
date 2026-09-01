@@ -29,7 +29,7 @@ public class CouponService {
     private final CouponRepository couponRepository;
     private final CartRepository cartRepository;
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public CouponResponse create(CouponRequest request) {
         if (couponRepository.existsByCode(request.getCode().toUpperCase())) {
             throw new DuplicateResourceException("Coupon with this code already exists");
@@ -48,26 +48,26 @@ public class CouponService {
         return toResponse(couponRepository.save(coupon));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<CouponResponse> getAll(Pageable pageable) {
         return couponRepository.findAll(pageable)
                 .map(this::toResponse);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<CouponResponse> search(String query, Boolean active, Pageable pageable) {
         return couponRepository.findByFilters(query, active, pageable)
                 .map(this::toResponse);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public void delete(Long id) {
         Coupon coupon = couponRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Coupon not found"));
         couponRepository.delete(coupon);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public CouponResponse toggleActive(Long id) {
         Coupon coupon = couponRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Coupon not found"));

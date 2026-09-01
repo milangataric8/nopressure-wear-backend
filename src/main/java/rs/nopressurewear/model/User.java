@@ -79,6 +79,11 @@ public class User implements UserDetails {
     @Column(name = "lock_until")
     private LocalDateTime lockUntil;
 
+    /** Bumped whenever this account's role changes; a JWT issued before the bump stops validating. */
+    @Builder.Default
+    @Column(name = "token_version", nullable = false)
+    private int tokenVersion = 0;
+
     @Transient
     public boolean isLocked() {
         return nonNull(lockUntil) && lockUntil.isAfter(LocalDateTime.now());

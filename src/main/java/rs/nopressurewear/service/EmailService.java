@@ -11,6 +11,8 @@ import rs.nopressurewear.service.email.EmailSender;
 
 import java.math.BigDecimal;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -432,6 +434,61 @@ public class EmailService {
         emailSender.send(NOPRESSURE_EMAIL, subject, applyLogoAndSignature(html, t.get("allRightsReserved")));
     }
 
+    /**
+     * The only defense if someone quietly gains SUPER_ADMIN access: every other active
+     * SUPER_ADMIN gets this, one email per recipient, naming who did it, to whom, and when.
+     */
+    public void sendSuperAdminRoleGrantAlert(String to, String targetEmail, String actorEmail, LocalDateTime when, String lang) {
+        Map<String, String> t = getEmailTranslations(lang);
+        String subject = t.get("superAdminGrantSubject");
+        String time = when.format(DateTimeFormatter.ofPattern("HH:mm"));
+        String html = """
+                <!DOCTYPE html>
+                <html>
+                <head><meta charset="UTF-8">
+                    <style>
+                        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
+                        .container { max-width: 560px; margin: 40px auto; background: #fff; border: 1px solid #e5e5e5; }
+                        .header { padding: 32px 40px; border-bottom: 1px solid #e5e5e5; text-align: center; }
+                        .header h1 { margin: 0; font-size: 20px; font-weight: 900; text-transform: uppercase; color: #111; }
+                        .body { padding: 40px; }
+                        .body p { font-size: 14px; color: #555; line-height: 1.6; margin: 0 0 16px; }
+                        .badge { display: inline-block; background: #dc2626; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 6px 14px; margin: 0 0 20px; }
+                        table { border-collapse: collapse; font-size: 14px; color: #555; }
+                        td { padding: 4px 16px 4px 0; vertical-align: top; }
+                        .footer { padding: 24px 40px; border-top: 1px solid #e5e5e5; text-align: center; }
+                        .footer p { font-size: 12px; color: #999; margin: 0; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header"><h1>NoPressure wear</h1></div>
+                        <div class="body">
+                            <div class="badge">%s</div>
+                            <p>%s</p>
+                            <table>
+                                <tr><td style="color:#999;">%s</td><td><strong>%s</strong></td></tr>
+                                <tr><td style="color:#999;">%s</td><td><strong>%s</strong></td></tr>
+                                <tr><td style="color:#999;">%s</td><td><strong>%s</strong></td></tr>
+                            </table>
+                            <p style="margin-top:24px;">%s</p>
+                        </div>
+                        <div class="footer">%s</div>
+                    </div>
+                </body>
+                </html>
+                """.formatted(
+                t.get("superAdminGrantBadge"),
+                t.get("superAdminGrantIntro").formatted(targetEmail),
+                t.get("superAdminGrantTarget"), targetEmail,
+                t.get("superAdminGrantActor"), actorEmail,
+                t.get("superAdminGrantTime"), time,
+                t.get("superAdminGrantWarning"),
+                copyrightLine(t.get("allRightsReserved"))
+        );
+        emailSender.send(to, subject, applyLogoAndSignature(html, t.get("allRightsReserved")));
+    }
+
     public void sendAbandonedCartEmail(String to, String firstName, List<rs.nopressurewear.model.CartItem> items, String lang) {
         Map<String, String> t = getEmailTranslations(lang);
         String cartUrl = frontendUrl + "/cart";
@@ -696,6 +753,13 @@ public class EmailService {
             t.put("lowStockSku", "SKU");
             t.put("lowStockThresholdLabel", "Prag upozorenja ");
             t.put("lowStockRestock", "Razmotrite dopunu zaliha što pre.");
+            t.put("superAdminGrantSubject", "Bezbednosno upozorenje: dodeljena SUPER_ADMIN rola");
+            t.put("superAdminGrantBadge", "Bezbednosno upozorenje");
+            t.put("superAdminGrantIntro", "Nalogu <strong>%s</strong> je dodeljena SUPER_ADMIN rola.");
+            t.put("superAdminGrantTarget", "Nalog");
+            t.put("superAdminGrantActor", "Izvršio");
+            t.put("superAdminGrantTime", "Vreme");
+            t.put("superAdminGrantWarning", "Ako ovo niste očekivali, odmah proverite pristup administratorskim nalozima.");
             t.put("cartSubject", "Ostavili ste nešto u korpi");
             t.put("cartHi", "Zdravo %s,");
             t.put("cartReminder", "Još uvek imate artikle u korpi. Završite porudžbinu pre nego što nestanu.");
@@ -742,6 +806,13 @@ public class EmailService {
             t.put("lowStockSku", "SKU");
             t.put("lowStockThresholdLabel", "Alert threshold ");
             t.put("lowStockRestock", "Consider restocking soon.");
+            t.put("superAdminGrantSubject", "Security alert: SUPER_ADMIN role granted");
+            t.put("superAdminGrantBadge", "Security Alert");
+            t.put("superAdminGrantIntro", "Account <strong>%s</strong> was granted the SUPER_ADMIN role.");
+            t.put("superAdminGrantTarget", "Account");
+            t.put("superAdminGrantActor", "Performed by");
+            t.put("superAdminGrantTime", "Time");
+            t.put("superAdminGrantWarning", "If you did not expect this, review admin account access immediately.");
             t.put("cartSubject", "You left something behind");
             t.put("cartHi", "Hi %s,");
             t.put("cartReminder", "You still have items waiting in your cart. Complete your order before they're gone.");

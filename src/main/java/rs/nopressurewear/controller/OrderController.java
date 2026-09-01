@@ -46,7 +46,7 @@ public class OrderController {
     }
 
     @GetMapping("/all")
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Page<OrderResponse>> getAll(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
@@ -58,7 +58,7 @@ public class OrderController {
     }
 
     @GetMapping("/user/{userId}/all")
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Page<OrderResponse>> getByUserId(
             @PathVariable Long userId,
             @PageableDefault() Pageable pageable) {
@@ -88,11 +88,13 @@ public class OrderController {
     }
 
     @GetMapping("/admin/{orderId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrderResponse> getByIdAdmin(@PathVariable Long orderId) {
         return ResponseEntity.ok(orderService.getByIdAdmin(orderId));
     }
 
     @PatchMapping("/{orderId}/status")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrderResponse> updateStatus(@PathVariable Long orderId,
                                                       @RequestParam OrderStatus status,
                                                       @RequestParam(defaultValue = "en") String lang) {

@@ -37,7 +37,7 @@ public class OrderReportService {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private static final DateTimeFormatter DATE_ONLY_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public byte[] generateOrdersPdf(String lang) throws DocumentException {
         Map<String, String> t = reportService.getTranslations(lang);
         List<Order> orders = orderRepository.findAllByOrderByCreatedAtDesc();
@@ -84,7 +84,7 @@ public class OrderReportService {
         return out.toByteArray();
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public byte[] generateOrdersExcel(String lang) throws IOException {
         Map<String, String> t = reportService.getTranslations(lang);
         List<Order> orders = orderRepository.findAllByOrderByCreatedAtDesc();

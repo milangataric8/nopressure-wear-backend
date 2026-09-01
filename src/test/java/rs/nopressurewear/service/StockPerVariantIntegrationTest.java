@@ -141,7 +141,7 @@ class StockPerVariantIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(roles = "SUPER_ADMIN")
     void lowStockExcelExport_containsColorAndGenderColumns() throws Exception {
         Product p = product("Row Polo", "RP", true, Gender.WOMEN, "White");
         variant(p, ProductSize.M, 1);
@@ -157,7 +157,7 @@ class StockPerVariantIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(roles = "SUPER_ADMIN")
     void lowStockPdfExport_isGenerated() throws Exception {
         Product p = product("Row Polo", "RP", true, Gender.WOMEN, "White");
         variant(p, ProductSize.M, 1);

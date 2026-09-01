@@ -42,7 +42,7 @@ public class RevenueReportService {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public byte[] generateRevenueByCategoryPdf(String lang) throws DocumentException {
         Map<String, String> t = reportService.getTranslations(lang);
         List<Map<String, Object>> rows = sortedByRevenueDesc(dashboardService.getRevenueByCategory());
@@ -88,7 +88,7 @@ public class RevenueReportService {
         return out.toByteArray();
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public byte[] generateRevenueByCategoryExcel(String lang) throws IOException {
         Map<String, String> t = reportService.getTranslations(lang);
         List<Map<String, Object>> rows = sortedByRevenueDesc(dashboardService.getRevenueByCategory());

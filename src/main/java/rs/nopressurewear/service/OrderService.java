@@ -303,13 +303,13 @@ public class OrderService {
         ));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<OrderResponse> getAll(Pageable pageable) {
         return orderRepository.findAll(pageable)
                 .map(this::toResponse);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<OrderResponse> search(String search, String status, Pageable pageable) {
         String orderStatus = (nonNull(status) && !status.isBlank())
                 ? status
@@ -324,26 +324,26 @@ public class OrderService {
                 .map(this::toResponse);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or @authUtil.getCurrentUserId().equals(#userId)")
+    @PreAuthorize("hasRole('ADMIN') or @authUtil.getCurrentUserId().equals(#userId)")
     public Page<OrderResponse> getByUser(Long userId, Pageable pageable) {
         return orderRepository.findByUserId(userId, pageable)
                 .map(this::toResponse);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<OrderResponse> getByUserId(Long userId, Pageable pageable) {
         return orderRepository.findByUserId(userId, pageable)
                 .map(this::toResponse);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public OrderResponse getByIdAdmin(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
         return toResponse(order);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or #userId == authentication.principal.id")
+    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
     public OrderResponse getById(Long userId, Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
@@ -355,7 +355,7 @@ public class OrderService {
         return toResponse(order);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public OrderResponse updateStatus(Long orderId, OrderStatus status, String lang) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));

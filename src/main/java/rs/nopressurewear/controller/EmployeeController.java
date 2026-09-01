@@ -7,18 +7,19 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.nopressurewear.dto.user.UserRequest;
 import rs.nopressurewear.dto.user.UserResponse;
 import rs.nopressurewear.dto.user.UserUpdateRequest;
 import rs.nopressurewear.service.EmployeeService;
-import rs.nopressurewear.service.UserService;
 
 import static java.util.Objects.nonNull;
 
 @RestController
 @RequestMapping("/api/employees")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('SUPER_ADMIN')")
 public class EmployeeController {
 
     private final EmployeeService employeeService;

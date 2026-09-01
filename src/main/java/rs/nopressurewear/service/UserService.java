@@ -54,7 +54,7 @@ public class UserService {
         return toResponse(userRepository.save(user));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or @authUtil.getCurrentUserId().equals(#id)")
+    @PreAuthorize("hasRole('ADMIN') or @authUtil.getCurrentUserId().equals(#id)")
     public UserResponse getById(Long id) {
         System.out.println("getCurrentUserId: " + authUtil.getCurrentUserId());
         System.out.println("requested id: " + id);
@@ -64,7 +64,7 @@ public class UserService {
         return toResponse(user);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public List<UserResponse> getAll() {
         return userRepository.findAll()
                 .stream()
@@ -79,7 +79,7 @@ public class UserService {
                 .toList();
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE') or @authUtil.getCurrentUserId().equals(#id)")
+    @PreAuthorize("hasRole('ADMIN') or @authUtil.getCurrentUserId().equals(#id)")
     public UserResponse update(Long id, UserUpdateRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -104,13 +104,13 @@ public class UserService {
         }
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<UserResponse> getAllByRole(Pageable pageable) {
         return userRepository.findByRole(CUSTOMER, pageable)
                 .map(this::toResponse);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<UserResponse> search(String search, Boolean active, Pageable pageable) {
         String searchParam = (nonNull(search) && !search.isBlank()) ? search : null;
 
@@ -118,7 +118,7 @@ public class UserService {
                 .map(this::toResponse);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public UserResponse deactivate(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -126,7 +126,7 @@ public class UserService {
         return toResponse(userRepository.save(user));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public UserResponse activate(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -134,7 +134,7 @@ public class UserService {
         return toResponse(userRepository.save(user));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public void delete(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));

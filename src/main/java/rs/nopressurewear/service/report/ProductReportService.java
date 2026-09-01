@@ -56,7 +56,7 @@ public class ProductReportService {
         return map;
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public byte[] generateProductsPdf(String lang) throws DocumentException {
         Map<String, String> t = reportService.getTranslations(lang);
         List<Product> products = productRepository.findAll();
@@ -107,7 +107,7 @@ public class ProductReportService {
         return out.toByteArray();
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public byte[] generateProductsExcel(String lang) throws IOException {
         Map<String, String> t = reportService.getTranslations(lang);
         List<Product> products = productRepository.findAll();
@@ -167,7 +167,7 @@ public class ProductReportService {
         return out.toByteArray();
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public byte[] generateLowStockPdf(int threshold, String lang) throws DocumentException {
         Map<String, String> t = reportService.getTranslations(lang);
         List<Map<String, Object>> rows = productRepository.findLowStockVariants(threshold);
@@ -209,7 +209,7 @@ public class ProductReportService {
         return out.toByteArray();
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public byte[] generateLowStockExcel(int threshold, String lang) throws IOException {
         Map<String, String> t = reportService.getTranslations(lang);
         List<Map<String, Object>> rows = productRepository.findLowStockVariants(threshold);

@@ -33,7 +33,7 @@ public class CustomerReportService {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public byte[] generateCustomersPdf(String lang) throws DocumentException {
         Map<String, String> t = reportService.getTranslations(lang);
         List<Map<String, Object>> customers = orderRepository.findAllCustomerStats();
@@ -71,7 +71,7 @@ public class CustomerReportService {
         return out.toByteArray();
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public byte[] generateCustomersExcel(String lang) throws IOException {
         Map<String, String> t = reportService.getTranslations(lang);
         List<Map<String, Object>> customers = orderRepository.findAllCustomerStats();

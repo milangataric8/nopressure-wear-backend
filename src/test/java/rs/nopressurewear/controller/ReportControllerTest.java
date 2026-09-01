@@ -52,7 +52,7 @@ class ReportControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(roles = "SUPER_ADMIN")
     void revenueByCategoryPdf_ShouldReturn200AndPdf_ForAdmin() throws Exception {
         when(revenueReportService.generateRevenueByCategoryPdf(anyString())).thenReturn(new byte[]{1, 2, 3});
 
@@ -62,7 +62,7 @@ class ReportControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(roles = "SUPER_ADMIN")
     void revenueByCategoryExcel_ShouldReturn200AndXlsx_ForAdmin() throws Exception {
         when(revenueReportService.generateRevenueByCategoryExcel(anyString())).thenReturn(new byte[]{1, 2, 3});
 

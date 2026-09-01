@@ -26,6 +26,37 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Page<User> findByRole(Role role, Pageable pageable);
 
+    Page<User> findByRoleIn(java.util.Collection<Role> roles, Pageable pageable);
+
+    /** Active accounts holding {@code role}, excluding one id — the "last active X" invariant check. */
+    long countByRoleAndIsActiveTrueAndIdNot(Role role, Long id);
+
+    /** Staff (EMPLOYEE + ADMIN + SUPER_ADMIN) with optional name/email search and active filter. */
+    @Query(value = """
+        SELECT * FROM users u
+        WHERE u.role IN ('EMPLOYEE', 'ADMIN', 'SUPER_ADMIN')
+        AND (:search IS NULL
+                    OR LOWER(u.first_name) LIKE LOWER(CONCAT('%', :search, '%'))
+                    OR LOWER(u.last_name) LIKE LOWER(CONCAT('%', :search, '%'))
+                    OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')))
+        AND (:active IS NULL OR u.is_active = :active)
+        ORDER BY u.first_name ASC
+        """,
+            countQuery = """
+        SELECT COUNT(*) FROM users u
+        WHERE u.role IN ('EMPLOYEE', 'ADMIN', 'SUPER_ADMIN')
+        AND (:search IS NULL
+                    OR LOWER(u.first_name) LIKE LOWER(CONCAT('%', :search, '%'))
+                    OR LOWER(u.last_name) LIKE LOWER(CONCAT('%', :search, '%'))
+                    OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')))
+        AND (:active IS NULL OR u.is_active = :active)
+        """,
+            nativeQuery = true)
+    Page<User> findStaffByFilters(
+            @Param("search") String search,
+            @Param("active") Boolean active,
+            Pageable pageable);
+
     @Query(value = """
         SELECT * FROM users u
         WHERE u.role = :role

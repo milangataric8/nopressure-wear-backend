@@ -2,6 +2,7 @@ package rs.nopressurewear.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rs.nopressurewear.service.DashboardService;
 
@@ -13,6 +14,7 @@ import static rs.nopressurewear.constants.StockDefaults.LOW_STOCK_THRESHOLD;
 @RestController
 @RequestMapping("/api/dashboard")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('SUPER_ADMIN')")
 public class DashboardController {
 
     private final DashboardService dashboardService;
