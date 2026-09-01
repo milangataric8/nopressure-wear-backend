@@ -28,7 +28,8 @@ public class ReviewController {
             @PathVariable Long productId,
             @PathVariable Long userId,
             @Valid @RequestBody ReviewRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
                 .body(reviewService.addReview(productId, userId, request));
     }
 

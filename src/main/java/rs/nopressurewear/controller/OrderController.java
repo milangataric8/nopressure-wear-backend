@@ -31,7 +31,8 @@ public class OrderController {
             @RequestParam(required = false) String paymentMethod,
             @RequestParam(required = false) String paymentIntentId,
             @RequestParam(defaultValue = "en") String lang) {
-        return ResponseEntity.status(CREATED)
+        return ResponseEntity
+                .status(CREATED)
                 .body(orderService.checkout(userId, couponCode, paymentMethod, paymentIntentId, lang));
     }
 
@@ -39,7 +40,9 @@ public class OrderController {
     public ResponseEntity<OrderResponse> guestCheckout(
             @Valid @RequestBody GuestOrderRequest request,
             @RequestParam(defaultValue = "en") String lang) {
-        return ResponseEntity.status(CREATED).body(orderService.guestCheckout(request, lang));
+        return ResponseEntity
+                .status(CREATED)
+                .body(orderService.guestCheckout(request, lang));
     }
 
     @GetMapping("/all")

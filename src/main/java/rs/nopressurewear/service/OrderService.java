@@ -280,15 +280,19 @@ public class OrderService {
                 : (nonNull(item.getProduct()) ? item.getProduct().getName() : "—");
 
         String sizeLabel = nonNull(item.getSize()) ? " | Size: " + item.getSize() : "";
+        // Table layout, not flexbox: the line-total must sit hard against the right edge in
+        // Outlook too, aligned with the amounts in the order-summary block below.
         productRows.append("""
-                <div class="item-row">
-                    %s
-                    <div>
-                        <p class="item-name">%s</p>
-                        <p class="item-qty">Qty: %d × %s RSD%s</p>
-                    </div>
-                    <span class="item-price">%s RSD</span>
-                </div>
+                <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" style="width:100%%; border-collapse:collapse; border-bottom:1px solid #f0f0f0;">
+                    <tr>
+                        <td style="padding:12px 16px 12px 0; vertical-align:top;">%s</td>
+                        <td align="left" style="text-align:left; padding:12px 0; vertical-align:top;">
+                            <p class="item-name">%s</p>
+                            <p class="item-qty">Qty: %d × %s RSD%s</p>
+                        </td>
+                        <td class="item-price" align="right" style="text-align:right; padding:12px 0; vertical-align:top; white-space:nowrap;">%s RSD</td>
+                    </tr>
+                </table>
                 """.formatted(
                 imageHtml,
                 productName,

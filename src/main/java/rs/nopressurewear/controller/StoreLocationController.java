@@ -17,6 +17,22 @@ public class StoreLocationController {
 
     private final StoreLocationService storeLocationService;
 
+    @PostMapping
+    public ResponseEntity<StoreLocationResponse> create(@Valid @RequestBody StoreLocationRequest request) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(storeLocationService.create(request));
+    }
+
+    @PostMapping("/product/{productId}")
+    public ResponseEntity<ProductStoreResponse> addProductToStore(
+            @PathVariable Long productId,
+            @Valid @RequestBody ProductStoreRequest request) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(storeLocationService.addProductToStore(productId, request));
+    }
+
     @GetMapping("/active")
     public ResponseEntity<List<StoreLocationResponse>> getActive() {
         return ResponseEntity.ok(storeLocationService.getActive());
@@ -25,11 +41,6 @@ public class StoreLocationController {
     @GetMapping
     public ResponseEntity<List<StoreLocationResponse>> getAll() {
         return ResponseEntity.ok(storeLocationService.getAll());
-    }
-
-    @PostMapping
-    public ResponseEntity<StoreLocationResponse> create(@Valid @RequestBody StoreLocationRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(storeLocationService.create(request));
     }
 
     @PutMapping("/{id}")
@@ -58,14 +69,6 @@ public class StoreLocationController {
     @GetMapping("/product/{productId}/all")
     public ResponseEntity<List<ProductStoreResponse>> getAllStoresForProduct(@PathVariable Long productId) {
         return ResponseEntity.ok(storeLocationService.getAllStoresForProduct(productId));
-    }
-
-    @PostMapping("/product/{productId}")
-    public ResponseEntity<ProductStoreResponse> addProductToStore(
-            @PathVariable Long productId,
-            @Valid @RequestBody ProductStoreRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(storeLocationService.addProductToStore(productId, request));
     }
 
     @PatchMapping("/product-store/{id}/toggle")

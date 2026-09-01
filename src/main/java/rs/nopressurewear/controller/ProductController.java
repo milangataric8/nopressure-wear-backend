@@ -27,14 +27,17 @@ public class ProductController {
 
     @PostMapping
     public ResponseEntity<ProductResponse> create(@Valid @RequestBody ProductRequest request) {
-        return ResponseEntity.status(CREATED).body(productService.create(request));
+        return ResponseEntity
+                .status(CREATED)
+                .body(productService.create(request));
     }
 
     @PostMapping("/{id}/images")
     public ResponseEntity<ProductImageResponse> addImage(
             @PathVariable Long id,
             @Valid @RequestBody ProductImageRequest request) {
-        return ResponseEntity.status(CREATED)
+        return ResponseEntity
+                .status(CREATED)
                 .body(productService.addImage(id, request));
     }
 

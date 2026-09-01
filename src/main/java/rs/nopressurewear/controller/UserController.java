@@ -26,7 +26,9 @@ public class UserController {
 
     @PostMapping
     public ResponseEntity<UserResponse> create(@Valid @RequestBody UserRequest request) {
-        return ResponseEntity.status(CREATED).body(userService.create(request));
+        return ResponseEntity
+                .status(CREATED)
+                .body(userService.create(request));
     }
 
     @GetMapping("/{id}")

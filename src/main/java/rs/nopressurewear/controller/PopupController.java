@@ -20,20 +20,24 @@ public class PopupController {
 
     private final PopupService popupService;
 
+    @PostMapping
+    public ResponseEntity<PopupResponse> create(@Valid @RequestBody PopupRequest request) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(popupService.create(request));
+    }
+
     @GetMapping("/active")
     public ResponseEntity<PopupResponse> getActive() {
         PopupResponse popup = popupService.getActive();
-        return nonNull(popup) ? ResponseEntity.ok(popup) : ResponseEntity.noContent().build();
+        return nonNull(popup)
+                ? ResponseEntity.ok(popup)
+                : ResponseEntity.noContent().build();
     }
 
     @GetMapping
     public ResponseEntity<List<PopupResponse>> getAll() {
         return ResponseEntity.ok(popupService.getAll());
-    }
-
-    @PostMapping
-    public ResponseEntity<PopupResponse> create(@Valid @RequestBody PopupRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(popupService.create(request));
     }
 
     @PutMapping("/{id}")

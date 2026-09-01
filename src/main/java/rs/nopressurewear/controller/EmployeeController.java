@@ -22,11 +22,12 @@ import static java.util.Objects.nonNull;
 public class EmployeeController {
 
     private final EmployeeService employeeService;
-    private final UserService userService;
 
     @PostMapping
     public ResponseEntity<UserResponse> create(@Valid @RequestBody UserRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(employeeService.create(request));
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(employeeService.create(request));
     }
 
     @PutMapping("/{id}")

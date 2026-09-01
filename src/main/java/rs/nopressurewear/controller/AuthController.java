@@ -19,7 +19,9 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request,
                                                  @RequestParam(defaultValue = "en") String lang) {
-        return ResponseEntity.status(CREATED).body(authService.register(request, lang));
+        return ResponseEntity
+                .status(CREATED)
+                .body(authService.register(request, lang));
     }
 
     @GetMapping("/verify-email")

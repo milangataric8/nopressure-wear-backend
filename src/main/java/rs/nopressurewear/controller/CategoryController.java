@@ -25,7 +25,9 @@ public class CategoryController {
 
     @PostMapping
     public ResponseEntity<CategoryResponse> create(@Valid @RequestBody CategoryRequest request) {
-        return ResponseEntity.status(CREATED).body(categoryService.create(request));
+        return ResponseEntity
+                .status(CREATED)
+                .body(categoryService.create(request));
     }
 
     @GetMapping("/{id}")

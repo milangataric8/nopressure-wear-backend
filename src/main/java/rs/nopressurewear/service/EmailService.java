@@ -156,6 +156,34 @@ public class EmailService {
 
         String orderUrl = frontendUrl + "/orders/" + orderId;
 
+        // Order summary as a two-cell table (label left, amount right). No flexbox/float —
+        // Outlook's Word engine drops both, which is why the amounts used to stick to the
+        // label on the left. align="right" is set as an HTML attribute as well as CSS
+        // because some Outlook builds ignore text-align on <td>.
+        String summaryTable = """
+            <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" style="width:100%%; border-collapse:collapse;">
+                <tr>
+                    <td width="60%%" align="left" style="text-align:left; padding:6px 0; color:#555; font-size:14px;">%s</td>
+                    <td width="40%%" align="right" style="text-align:right; padding:6px 0; color:#555; font-size:14px; white-space:nowrap;">%s RSD</td>
+                </tr>
+                <tr>
+                    <td align="left" style="text-align:left; padding:6px 0; color:#555; font-size:14px;">%s</td>
+                    <td align="right" style="text-align:right; padding:6px 0; color:#555; font-size:14px; white-space:nowrap; %s">%s</td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="border-top:1px solid #e5e5e5; font-size:0; line-height:0; height:1px;">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td align="left" style="text-align:left; padding:10px 0; font-weight:bold; font-size:16px; color:#111;">%s</td>
+                    <td align="right" style="text-align:right; padding:10px 0; font-weight:bold; font-size:16px; color:#111; white-space:nowrap;">%s RSD</td>
+                </tr>
+            </table>
+            """.formatted(
+                t.get("orderSubtotal"), subtotalDisplay,
+                t.get("orderDelivery"), deliveryStyle, deliveryDisplay,
+                t.get("orderTotal"), total
+            );
+
         String statusColor = switch (status) {
             case "CONFIRMED" -> "#2563eb";
             case "SHIPPED"   -> "#7c3aed";
@@ -200,13 +228,10 @@ public class EmailService {
                     .order-title { font-size: 24px; font-weight: 900; text-transform: uppercase; color: #111; margin: 0 0 4px; }
                     .order-date { font-size: 13px; color: #999; margin: 0 0 15px; }
                     .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #111; margin: 15px 0 16px; }
-                    .item-row { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
                     .item-img { width: 56px; height: 56px; background: #f5f5f5; object-fit: contain; }
                     .item-name { font-size: 13px; font-weight: 600; color: #111; margin: 0 0 4px; }
                     .item-qty { font-size: 12px; color: #999; margin: 0; }
-                    .item-price { font-size: 13px; font-weight: 700; color: #111; margin-left: auto; }
-                    .summary-row { display: flex; justify-content: space-between; font-size: 13px; color: #555; margin-bottom: 8px; }
-                    .summary-total { display: flex; justify-content: space-between; font-size: 15px; font-weight: 700; color: #111; padding-top: 12px; border-top: 1px solid #e5e5e5; margin-top: 12px; }
+                    .item-price { font-size: 13px; font-weight: 700; color: #111; }
                     .button { display: inline-block; background: #111; color: #fff !important; text-decoration: none; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; padding: 14px 32px; margin-top: 32px; }
                     .footer { padding: 24px 40px; border-top: 1px solid #e5e5e5; text-align: center; }
                     .footer p { font-size: 12px; color: #999; margin: 0; }
@@ -225,9 +250,7 @@ public class EmailService {
                         %s
 
                         <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e5e5;">
-                            <div class="summary-row"><span>%s</span><span>%s RSD</span></div>
-                            <div class="summary-row"><span>%s</span><span style="%s">%s</span></div>
-                            <div class="summary-total"><span>%s</span><span>%s RSD</span></div>
+                            %s
                         </div>
 
                         %s
@@ -245,11 +268,9 @@ public class EmailService {
                 t.get("orderTitle"), orderCode,
                 t.get("orderStatusUpdatedNote"),
                 greeting,
-                t.get("orderItems "),
+                t.get("orderItems"),
                 productRows,
-                t.get("orderSubtotal "), subtotalDisplay,
-                t.get("orderDelivery "), deliveryStyle, deliveryDisplay,
-                t.get("orderTotal "), total,
+                summaryTable,
                 shippingSection,
                 orderUrl,
                 t.get("orderViewButton"),
@@ -426,13 +447,15 @@ public class EmailService {
                     : "<div style=\"width:56px;height:56px;background:#f5f5f5;\"></div>";
             String price = item.getProduct() != null ? item.getProduct().getPrice().toPlainString() : "—";
             itemRows.append("""
-                    <div style="display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid #f0f0f0;">
-                        %s
-                        <div style="flex:1;">
-                            <p style="margin:0 0 4px;font-size:14px;font-weight:600;color:#111;">%s%s</p>
-                            <p style="margin:0;font-size:13px;color:#999;">%s: %d &times; %s RSD</p>
-                        </div>
-                    </div>
+                    <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" style="width:100%%;border-collapse:collapse;border-bottom:1px solid #f0f0f0;">
+                        <tr>
+                            <td width="56" style="padding:12px 16px 12px 0;vertical-align:top;">%s</td>
+                            <td align="left" style="text-align:left;padding:12px 0;vertical-align:top;">
+                                <p style="margin:0 0 4px;font-size:14px;font-weight:600;color:#111;">%s%s</p>
+                                <p style="margin:0;font-size:13px;color:#999;">%s: %d &times; %s RSD</p>
+                            </td>
+                        </tr>
+                    </table>
                     """.formatted(imgHtml, name, sizeLabel, t.get("cartQty"), item.getQuantity(), price));
         }
 

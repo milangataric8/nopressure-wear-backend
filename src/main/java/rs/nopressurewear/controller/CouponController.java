@@ -22,7 +22,9 @@ public class CouponController {
 
     @PostMapping
     public ResponseEntity<CouponResponse> create(@Valid @RequestBody CouponRequest request) {
-        return ResponseEntity.status(CREATED).body(couponService.create(request));
+        return ResponseEntity
+                .status(CREATED)
+                .body(couponService.create(request));
     }
 
     @GetMapping

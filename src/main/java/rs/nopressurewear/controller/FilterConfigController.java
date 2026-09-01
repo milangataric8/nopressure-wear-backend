@@ -21,7 +21,8 @@ public class FilterConfigController {
 
     @PostMapping
     public ResponseEntity<FilterConfigResponse> create(@RequestBody Map<String, String> request) {
-        return ResponseEntity.status(CREATED)
+        return ResponseEntity
+                .status(CREATED)
                 .body(filterConfigService.create(
                         request.get("fieldName"),
                         request.get("displayName"),

@@ -23,6 +23,13 @@ public class BannerController {
 
     private final BannerService bannerService;
 
+    @PostMapping
+    public ResponseEntity<BannerResponse> create(@Valid @RequestBody BannerRequest request) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(bannerService.create(request));
+    }
+
     @GetMapping("/active")
     public ResponseEntity<List<BannerResponse>> getActive() {
         return ResponseEntity.ok(bannerService.getActive());
@@ -38,11 +45,6 @@ public class BannerController {
             return ResponseEntity.ok(bannerService.search(search, active, pageable));
         }
         return ResponseEntity.ok(bannerService.getAll(pageable));
-    }
-
-    @PostMapping
-    public ResponseEntity<BannerResponse> create(@Valid @RequestBody BannerRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(bannerService.create(request));
     }
 
     @PutMapping("/{id}")

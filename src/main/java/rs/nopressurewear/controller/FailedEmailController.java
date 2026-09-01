@@ -12,6 +12,9 @@ import rs.nopressurewear.repository.FailedEmailRepository;
 import java.util.List;
 import java.util.Map;
 
+import static rs.nopressurewear.model.FailedEmail.ABANDONED;
+import static rs.nopressurewear.model.FailedEmail.PENDING;
+
 /**
  * Read-only admin visibility into the email retry queue. An abandoned email means a
  * customer paid or registered and never got the mail — worth resending manually or
@@ -27,20 +30,20 @@ public class FailedEmailController {
     @GetMapping("/abandoned")
     public ResponseEntity<List<FailedEmailResponse>> abandoned() {
         return ResponseEntity.ok(
-                repository.findByStatusOrderByCreatedAtDesc(FailedEmail.ABANDONED).stream()
+                repository.findByStatusOrderByCreatedAtDesc(ABANDONED).stream()
                         .map(FailedEmailResponse::from)
                         .toList());
     }
 
     @GetMapping("/abandoned/count")
     public ResponseEntity<Map<String, Long>> abandonedCount() {
-        return ResponseEntity.ok(Map.of("count", repository.countByStatus(FailedEmail.ABANDONED)));
+        return ResponseEntity.ok(Map.of("count", repository.countByStatus(ABANDONED)));
     }
 
     @GetMapping("/pending")
     public ResponseEntity<List<FailedEmailResponse>> pending() {
         return ResponseEntity.ok(
-                repository.findByStatusOrderByCreatedAtDesc(FailedEmail.PENDING).stream()
+                repository.findByStatusOrderByCreatedAtDesc(PENDING).stream()
                         .map(FailedEmailResponse::from)
                         .toList());
     }
