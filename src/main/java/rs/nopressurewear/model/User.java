@@ -84,6 +84,27 @@ public class User implements UserDetails {
     @Column(name = "token_version", nullable = false)
     private int tokenVersion = 0;
 
+    /**
+     * True whenever someone other than the account owner set its current password (SUPER_ADMIN
+     * creating an employee, or resetting another staff member's password) — that person now
+     * knows it too. Cleared once the owner changes it themselves via {@code /api/auth/change-password}.
+     * Enforced request-by-request by {@link rs.nopressurewear.security.PasswordChangeRequiredFilter}.
+     */
+    @Builder.Default
+    @Column(name = "password_change_required", nullable = false)
+    private boolean passwordChangeRequired = false;
+
+    /**
+     * ISO language tag ({@code "sr"}, {@code "en"}) the UI was set to when this account last
+     * expressed a preference (registration, or a later language switch). Transactional emails
+     * read this instead of {@code Accept-Language} — see {@code backend-message-i18n-spec.md}
+     * section 4.3: an email is often sent async, or triggered by someone other than the
+     * recipient, so there's no request-scoped language signal to use at send time.
+     */
+    @Builder.Default
+    @Column(name = "preferred_locale", nullable = false)
+    private String preferredLocale = "sr";
+
     @Transient
     public boolean isLocked() {
         return nonNull(lockUntil) && lockUntil.isAfter(LocalDateTime.now());

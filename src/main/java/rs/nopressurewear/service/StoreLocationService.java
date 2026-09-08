@@ -114,7 +114,7 @@ public class StoreLocationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Store location not found"));
 
         if (productStoreRepository.existsByProductIdAndStoreLocationId(productId, request.getStoreLocationId())) {
-            throw new DuplicateResourceException("Product already linked to this store");
+            throw new DuplicateResourceException("errors.storeLocation.productAlreadyLinked");
         }
 
         ProductStore productStore = ProductStore.builder()

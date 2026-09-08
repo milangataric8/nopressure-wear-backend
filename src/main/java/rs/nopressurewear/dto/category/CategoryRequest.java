@@ -9,11 +9,11 @@ import lombok.Setter;
 @Setter
 public class CategoryRequest {
 
-    @NotBlank(message = "Name is required")
-    @Size(max = 100, message = "Name must be less than 100 characters")
+    @NotBlank(message = "validation.name.required")
+    @Size(max = 100, message = "validation.name.maxLength")
     private String name;
 
-    @Size(max = 5000, message = "Description must be less than 5000 characters")
+    @Size(max = 5000, message = "validation.description.maxLength")
     private String description;
 
     private Long parentId;

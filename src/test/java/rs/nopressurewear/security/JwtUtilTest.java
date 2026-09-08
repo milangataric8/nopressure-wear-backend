@@ -57,4 +57,30 @@ class JwtUtilTest {
 
         assertThat(jwtUtil.isTokenValid(freshToken, afterChange)).isTrue();
     }
+
+    // ---------- pwdChange claim (backend-forced-password-change.md section 3) ----------
+
+    @Test
+    void tokenCarriesPasswordChangeRequiredClaim_whenFlagIsSet() {
+        User account = user(1, Role.EMPLOYEE, 0);
+        account.setPasswordChangeRequired(true);
+
+        String token = jwtUtil.generateToken(account);
+
+        assertThat(jwtUtil.isPasswordChangeRequired(token)).isTrue();
+    }
+
+    @Test
+    void tokenDoesNotCarryPasswordChangeRequiredClaim_whenFlagIsClear() {
+        User account = user(1, Role.EMPLOYEE, 0);
+
+        String token = jwtUtil.generateToken(account);
+
+        assertThat(jwtUtil.isPasswordChangeRequired(token)).isFalse();
+    }
+
+    @Test
+    void isPasswordChangeRequired_returnsFalse_forAGarbageToken() {
+        assertThat(jwtUtil.isPasswordChangeRequired("not-a-real-token")).isFalse();
+    }
 }

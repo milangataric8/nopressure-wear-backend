@@ -10,14 +10,14 @@ import lombok.Setter;
 @Setter
 public class ResetPasswordRequest {
 
-    @NotBlank(message = "validation.required")
+    @NotBlank(message = "validation.token.required")
     private String token;
 
-    @NotBlank(message = "validation.passwordRequired")
-    @Size(min = 8, message = "validation.passwordTooShort")
+    @NotBlank(message = "validation.newPassword.required")
+    @Size(min = 8, message = "validation.newPassword.minLength")
     @Pattern(
             regexp = "^(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).*$",
-            message = "validation.passwordWeak"
+            message = "validation.newPassword.format"
     )
     private String newPassword;
 }

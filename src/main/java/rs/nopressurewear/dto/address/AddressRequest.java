@@ -9,19 +9,19 @@ import lombok.Setter;
 @Setter
 public class AddressRequest {
 
-    @NotNull(message = "validation.required")
+    @NotNull(message = "validation.userId.required")
     private Long userId;
 
-    @NotBlank(message = "validation.streetRequired")
+    @NotBlank(message = "validation.street.required")
     private String street;
 
-    @NotBlank(message = "validation.cityRequired")
+    @NotBlank(message = "validation.city.required")
     private String city;
 
-    @NotBlank(message = "validation.postalCodeRequired")
+    @NotBlank(message = "validation.postalCode.required")
     private String postalCode;
 
-    @NotBlank(message = "validation.countryRequired")
+    @NotBlank(message = "validation.country.required")
     private String country;
 
     /** Whether to make this the user's main address. No validation — {@code false} is the valid default. */

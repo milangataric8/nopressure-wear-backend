@@ -14,19 +14,19 @@ import java.util.List;
 @Setter
 public class ProductRequest {
 
-    @NotBlank(message = "validation.nameRequired")
-    @Size(max = 255, message = "validation.nameTooLong")
+    @NotBlank(message = "validation.name.required")
+    @Size(max = 255, message = "validation.name.maxLength")
     private String name;
 
     private String description;
 
-    @NotNull(message = "validation.priceRequired")
-    @DecimalMin(value = "0.01", message = "validation.priceInvalid")
+    @NotNull(message = "validation.price.required")
+    @DecimalMin(value = "0.01", message = "validation.price.invalid")
     private BigDecimal price;
 
     // Stock is per-variant only (see ProductVariantRequest); product-level stock no longer exists.
 
-    @NotBlank(message = "validation.skuRequired")
+    @NotBlank(message = "validation.sku.required")
     private String sku;
 
     private String imageUrl;

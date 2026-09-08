@@ -10,19 +10,20 @@ import lombok.Setter;
 @Setter
 public class ChangePasswordRequest {
 
-    @NotBlank(message = "validation.currentPasswordRequired")
-    @Size(min = 8, message = "validation.passwordTooShort")
-    @Pattern(
-            regexp = "^(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).*$",
-            message = "validation.passwordWeak"
-    )
+    // No @Size/@Pattern here on purpose: this is the caller proving they know the *existing*
+    // password, which may predate today's strength rules (or be a temp password an admin typed
+    // in) — it only ever needs to match what's stored, checked in AuthService.
+    @NotBlank(message = "validation.currentPassword.required")
     private String currentPassword;
 
-    @NotBlank(message = "validation.passwordRequired")
-    @Size(min = 8, message = "validation.passwordTooShort")
+    @NotBlank(message = "validation.newPassword.required")
+    @Size(min = 8, message = "validation.newPassword.minLength")
     @Pattern(
             regexp = "^(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).*$",
-            message = "validation.passwordWeak"
+            message = "validation.newPassword.format"
     )
     private String newPassword;
+
+    @NotBlank(message = "validation.confirmPassword.required")
+    private String confirmPassword;
 }

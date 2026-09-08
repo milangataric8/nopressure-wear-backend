@@ -31,7 +31,7 @@ public class CategoryService {
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public CategoryResponse create(CategoryRequest request) {
         if (categoryRepository.existsByName(request.getName())) {
-            throw new DuplicateResourceException("Category with this name already exists");
+            throw new DuplicateResourceException("errors.category.nameTaken");
         }
 
         Category category = Category.builder()

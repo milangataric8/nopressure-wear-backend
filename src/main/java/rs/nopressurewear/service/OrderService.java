@@ -19,6 +19,7 @@ import rs.nopressurewear.exception.FieldValidationException;
 import rs.nopressurewear.exception.ResourceNotFoundException;
 import rs.nopressurewear.model.*;
 import rs.nopressurewear.repository.*;
+import rs.nopressurewear.util.LocaleResolver;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -258,7 +259,7 @@ public class OrderService {
                     postalCode,
                     country,
                     order.getDeliveryFee(),
-                    lang
+                    LocaleResolver.of(order.getUser(), lang)
             );
         } catch (Exception e) {
             log.error("Failed to send order confirmation email: " + e.getMessage());
@@ -391,7 +392,9 @@ public class OrderService {
                     shippingPostalCode,
                     shippingCountry,
                     order.getDeliveryFee(),
-                    lang
+                    // the customer's own language, not whichever admin triggered this status
+                    // change — see backend-message-i18n-spec.md section 4.3.
+                    LocaleResolver.of(order.getUser(), lang)
             );
         } catch (Exception e) {
             log.error("Failed to send email: " + e.getMessage());

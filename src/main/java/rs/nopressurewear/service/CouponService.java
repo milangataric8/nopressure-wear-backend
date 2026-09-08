@@ -32,7 +32,7 @@ public class CouponService {
     @PreAuthorize("hasRole('ADMIN')")
     public CouponResponse create(CouponRequest request) {
         if (couponRepository.existsByCode(request.getCode().toUpperCase())) {
-            throw new DuplicateResourceException("Coupon with this code already exists");
+            throw new DuplicateResourceException("errors.coupon.codeTaken");
         }
 
         Coupon coupon = Coupon.builder()

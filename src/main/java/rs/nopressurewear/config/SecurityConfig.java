@@ -21,7 +21,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import rs.nopressurewear.constants.ErrorCode;
+import rs.nopressurewear.exception.ApiError;
 import rs.nopressurewear.security.*;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
@@ -33,28 +36,34 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
+    private final PasswordChangeRequiredFilter passwordChangeRequiredFilter;
     private final UserDetailsServiceImpl userDetailsService;
     private final OAuth2UserService oAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler;
     private final JwtAuthEntryPoint jwtAuthEntryPoint;
+    private final ObjectMapper objectMapper;
     private final String frontendUrl;
 
     public SecurityConfig(JwtFilter jwtFilter,
+                          PasswordChangeRequiredFilter passwordChangeRequiredFilter,
                           UserDetailsServiceImpl userDetailsService,
                           OAuth2UserService oAuth2UserService,
                           OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler,
                           JwtAuthEntryPoint jwtAuthEntryPoint,
+                          ObjectMapper objectMapper,
                           @Value("${app.frontend-url}") String frontendUrl) {
         this.jwtFilter = jwtFilter;
+        this.passwordChangeRequiredFilter = passwordChangeRequiredFilter;
         this.userDetailsService = userDetailsService;
         this.oAuth2UserService = oAuth2UserService;
         this.oAuth2SuccessHandler = oAuth2SuccessHandler;
         this.jwtAuthEntryPoint = jwtAuthEntryPoint;
+        this.objectMapper = objectMapper;
         this.frontendUrl = frontendUrl;
     }
     @Bean
     @Order(1)
-    public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain apiFilterChain(HttpSecurity http) {
         http
                 .securityMatcher("/api/**")
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -66,6 +75,11 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // --- must precede the broader /api/auth/** permitAll below: these two
+                        // derive "who" from the caller's own token, so they require one ---
+                        .requestMatchers(POST, "/api/auth/change-password").authenticated()
+                        .requestMatchers(GET, "/api/auth/me").authenticated()
+
                         // --- public shop endpoints ---
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
@@ -138,14 +152,15 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(passwordChangeRequiredFilter, JwtFilter.class);
 
         return http.build();
     }
 
     @Bean
     @Order(2)
-    public SecurityFilterChain sitemapFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain sitemapFilterChain(HttpSecurity http) {
         http
                 .securityMatcher("/sitemap.xml")
                 .csrf(AbstractHttpConfigurer::disable)
@@ -155,7 +170,7 @@ public class SecurityConfig {
 
     @Bean
     @Order(3)
-    public SecurityFilterChain oauth2FilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain oauth2FilterChain(HttpSecurity http) {
         http
                 .securityMatcher("/oauth2/**", "/login/oauth2/**")
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -191,14 +206,16 @@ public class SecurityConfig {
                 .build();
     }
 
-    /** 403 as JSON, not an HTML error page — the frontend expects JSON. */
+    /** 403 as JSON, not an HTML error page — the frontend expects JSON, in the same {@link ApiError}
+     * shape as {@link rs.nopressurewear.exception.GlobalExceptionHandler}'s AccessDeniedException handler. */
     @Bean
     public AccessDeniedHandler jsonAccessDeniedHandler() {
         return (request, response, ex) -> {
             response.setStatus(403);
             response.setContentType("application/json");
             response.setCharacterEncoding("UTF-8");
-            response.getWriter().write("{\"status\":403,\"message\":\"Nemate ovlašćenje za ovu akciju.\"}");
+            objectMapper.writeValue(response.getWriter(),
+                    new ApiError(403, ErrorCode.ACCESS_DENIED, "errors.accessDenied"));
         };
     }
 

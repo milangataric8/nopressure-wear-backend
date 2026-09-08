@@ -20,6 +20,7 @@ import rs.nopressurewear.repository.EmailVerificationTokenRepository;
 import rs.nopressurewear.repository.StoreSettingsRepository;
 import rs.nopressurewear.repository.UserRepository;
 import rs.nopressurewear.security.JwtUtil;
+import rs.nopressurewear.util.LocaleResolver;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -64,7 +65,7 @@ public class AuthService {
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("validation.emailTaken", "email");
+            throw new DuplicateResourceException("validation.email.taken", "email");
         }
 
         User user = User.builder()
@@ -75,6 +76,9 @@ public class AuthService {
                 .role(CUSTOMER)
                 .isActive(true)
                 .emailVerified(false)
+                // the UI language at signup time, persisted so later async emails (verification
+                // resend, order updates, ...) land in it regardless of who/what triggers them.
+                .preferredLocale(nonNull(lang) && !lang.isBlank() ? lang : "sr")
                 .build();
 
         User saved = userRepository.save(user);
@@ -98,6 +102,13 @@ public class AuthService {
                 .build();
     }
 
+    /**
+     * {@code lang} is accepted for backward compatibility with the register/resend request
+     * params but no longer decides the email's language: the recipient's own persisted
+     * {@code preferredLocale} does (backend-message-i18n-spec.md section 4.3) — set once at
+     * registration ({@link #register}), read from here on every resend, regardless of what
+     * language the resend request happened to carry.
+     */
     public void sendVerificationEmail(User user, String lang) {
         tokenRepository.invalidatePreviousTokens(user);
         String token = UUID.randomUUID().toString();
@@ -108,7 +119,7 @@ public class AuthService {
                 .used(false)
                 .build();
         tokenRepository.save(vt);
-        emailService.sendVerificationEmail(user.getEmail(), token, lang);
+        emailService.sendVerificationEmail(user.getEmail(), token, LocaleResolver.of(user, lang));
     }
 
     @Transactional
@@ -186,6 +197,24 @@ public class AuthService {
                 .email(user.getEmail())
                 .role(user.getRole().name())
                 .emailVerified(user.isEmailVerified())
+                .passwordChangeRequired(user.isPasswordChangeRequired())
+                .build();
+    }
+
+    /** Backs {@code GET /api/auth/me} — the frontend relies on this, not just the login response, to
+     * know whether to redirect on a page refresh. No token in the response; the caller's own is still good. */
+    public AuthResponse me(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        return AuthResponse.builder()
+                .id(user.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .emailVerified(user.isEmailVerified())
+                .passwordChangeRequired(user.isPasswordChangeRequired())
                 .build();
     }
 
@@ -244,15 +273,60 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    public void changePassword(Long userId, ChangePasswordRequest request) {
+    /**
+     * The self-service counterpart to a forced password change (and an ordinary voluntary
+     * change): always operates on the caller's own account ({@code userId} comes from the JWT,
+     * never a path parameter), so this can never be used to change someone else's password.
+     * Covered by the same lockout mechanism as login, since {@code currentPassword} is otherwise
+     * brute-forceable here with no limit.
+     */
+    @Transactional
+    public AuthResponse changePassword(Long userId, ChangePasswordRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        resetCounterIfLockExpired(user);
+
+        if (user.isLocked()) {
+            long minutesLeft = Duration.between(LocalDateTime.now(), user.getLockUntil()).toMinutes() + 1;
+            throw new AccountLockedException("Account locked. Try again in " + minutesLeft + " minute(s).");
+        }
+
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-            throw new FieldValidationException("validation.currentPasswordWrong", "currentPassword");
+            loginAttemptService.registerFailedAttempt(user);
+            // message is dev-facing only now (GlobalExceptionHandler maps BadCredentialsException
+            // to a fixed "errors.invalidCredentials" regardless of content) — kept for logs.
+            throw new BadCredentialsException("Current password is incorrect");
+        }
+
+        resetFailedAttempts(user);
+
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new FieldValidationException("validation.confirmPassword.mismatch", "confirmPassword");
+        }
+
+        if (request.getNewPassword().equals(request.getCurrentPassword())) {
+            throw new FieldValidationException("validation.newPassword.sameAsCurrent", "newPassword");
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        userRepository.save(user);
+        user.setPasswordChangeRequired(false);
+        user.setTokenVersion(user.getTokenVersion() + 1);
+        User saved = userRepository.save(user);
+
+        log.info("PASSWORD_CHANGED user={}", saved.getEmail());
+
+        String token = jwtUtil.generateToken(saved);
+
+        return AuthResponse.builder()
+                .id(saved.getId())
+                .token(token)
+                .firstName(saved.getFirstName())
+                .lastName(saved.getLastName())
+                .email(saved.getEmail())
+                .role(saved.getRole().name())
+                .emailVerified(saved.isEmailVerified())
+                .passwordChangeRequired(false)
+                .build();
     }
 }

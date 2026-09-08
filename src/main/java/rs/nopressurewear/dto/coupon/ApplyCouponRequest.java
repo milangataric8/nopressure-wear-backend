@@ -8,6 +8,6 @@ import lombok.Setter;
 @Setter
 public class ApplyCouponRequest {
 
-    @NotBlank(message = "validation.couponInvalid")
+    @NotBlank(message = "validation.code.required")
     private String code;
 }

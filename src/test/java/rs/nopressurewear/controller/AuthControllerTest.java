@@ -13,9 +13,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.ConfigurableMockMvcBuilder;
 import rs.nopressurewear.dto.auth.AuthResponse;
+import rs.nopressurewear.dto.auth.ChangePasswordRequest;
 import rs.nopressurewear.dto.auth.LoginRequest;
 import rs.nopressurewear.dto.auth.RegisterRequest;
 import rs.nopressurewear.repository.StoreSettingsRepository;
+import rs.nopressurewear.security.AuthUtil;
 import rs.nopressurewear.security.JwtUtil;
 import rs.nopressurewear.security.UserDetailsServiceImpl;
 import rs.nopressurewear.service.AuthService;
@@ -23,9 +25,11 @@ import tools.jackson.databind.ObjectMapper;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -50,6 +54,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private StoreSettingsRepository storeSettingsRepository;
+
+    @MockitoBean
+    private AuthUtil authUtil;
 
     @TestConfiguration
     static class SecurityMockMvcConfig implements MockMvcBuilderCustomizer {
@@ -100,6 +107,24 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    /** backend-message-i18n-spec.md 3.2/3.3: DTO annotations carry i18n keys, and
+     * MethodArgumentNotValidException surfaces them as fieldErrors — never literal text. */
+    @Test
+    @WithMockUser
+    void register_ShouldReturnDottedI18nKeysInFieldErrors_WhenInvalidRequest() throws Exception {
+        RegisterRequest request = new RegisterRequest();
+
+        mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.firstName").value("validation.firstName.required"))
+                .andExpect(jsonPath("$.fieldErrors.email").value("validation.email.required"))
+                .andExpect(jsonPath("$.fieldErrors.password").value("validation.password.required"))
+                .andExpect(jsonPath("$.message").doesNotExist());
+    }
+
     @Test
     @WithMockUser
     void login_ShouldReturn200_WhenValidCredentials() throws Exception {
@@ -136,5 +161,44 @@ class AuthControllerTest {
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser
+    void changePassword_ShouldOperateOnTheCallersOwnAccount_NotAPathParameter() throws Exception {
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setCurrentPassword("OldPass1!");
+        request.setNewPassword("NewPass1!");
+        request.setConfirmPassword("NewPass1!");
+
+        AuthResponse response = AuthResponse.builder()
+                .id(1L).token("new-jwt-token").email("milan@nopressurewear.com")
+                .role("EMPLOYEE").passwordChangeRequired(false).build();
+
+        when(authUtil.getCurrentUserId()).thenReturn(1L);
+        when(authService.changePassword(eq(1L), any())).thenReturn(response);
+
+        mockMvc.perform(post("/api/auth/change-password")
+                        .with(csrf())
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("new-jwt-token"))
+                .andExpect(jsonPath("$.passwordChangeRequired").value(false));
+    }
+
+    @Test
+    @WithMockUser
+    void me_ShouldReturnTheCallersOwnInfo_IncludingPasswordChangeRequired() throws Exception {
+        AuthResponse response = AuthResponse.builder()
+                .id(1L).email("milan@nopressurewear.com").role("EMPLOYEE")
+                .passwordChangeRequired(true).build();
+
+        when(authUtil.getCurrentUserId()).thenReturn(1L);
+        when(authService.me(1L)).thenReturn(response);
+
+        mockMvc.perform(get("/api/auth/me"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.passwordChangeRequired").value(true));
     }
 }

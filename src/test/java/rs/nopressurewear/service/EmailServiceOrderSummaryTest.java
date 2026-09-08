@@ -6,11 +6,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.test.util.ReflectionTestUtils;
 import rs.nopressurewear.repository.StoreSettingsRepository;
 import rs.nopressurewear.service.email.EmailSender;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,7 +33,12 @@ class EmailServiceOrderSummaryTest {
 
     @BeforeEach
     void setUp() {
-        emailService = new EmailService(emailSender, storeSettingsRepository);
+        ReloadableResourceBundleMessageSource messageSource = new ReloadableResourceBundleMessageSource();
+        messageSource.setBasename("classpath:messages");
+        messageSource.setDefaultEncoding("UTF-8");
+        messageSource.setFallbackToSystemLocale(false);
+
+        emailService = new EmailService(emailSender, storeSettingsRepository, messageSource);
         ReflectionTestUtils.setField(emailService, "frontendUrl", "https://shop.test");
         ReflectionTestUtils.setField(emailService, "baseUrl", "https://api.test");
         lenient().when(storeSettingsRepository.findByKey(anyString())).thenReturn(Optional.empty());
@@ -43,7 +50,7 @@ class EmailServiceOrderSummaryTest {
                 "<table><tr><td>item</td></tr></table>",
                 "3000.00",
                 "Main St 1", "Novi Sad", "21000", "Serbia",
-                new BigDecimal("400.00"), "sr");
+                new BigDecimal("400.00"), Locale.forLanguageTag("sr"));
 
         ArgumentCaptor<String> html = ArgumentCaptor.forClass(String.class);
         verify(emailSender).send(eq("customer@test.com"), anyString(), html.capture());
@@ -102,7 +109,7 @@ class EmailServiceOrderSummaryTest {
                 "c@test.com", 1L, "CODE", "CONFIRMED", "Ana",
                 "<table></table>", "1500.00",
                 "S 1", "NS", "21000", "RS",
-                BigDecimal.ZERO, "sr");
+                BigDecimal.ZERO, Locale.forLanguageTag("sr"));
 
         ArgumentCaptor<String> html = ArgumentCaptor.forClass(String.class);
         verify(emailSender).send(eq("c@test.com"), anyString(), html.capture());

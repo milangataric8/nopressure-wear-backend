@@ -10,7 +10,7 @@ import lombok.Setter;
 @Setter
 public class PopupRequest {
 
-    @NotBlank(message = "Title is required")
+    @NotBlank(message = "validation.title.required")
     private String title;
 
     private String subtitle;
@@ -23,7 +23,7 @@ public class PopupRequest {
     private String textColor;
     private Boolean showOnce;
 
-    @Min(value = 0, message = "Duration cannot be negative")
-    @Max(value = 120, message = "Duration cannot exceed 120 seconds")
+    @Min(value = 0, message = "validation.displayDuration.invalid")
+    @Max(value = 120, message = "validation.displayDuration.invalid")
     private Integer displayDuration;
 }

@@ -55,10 +55,10 @@ public class EmployeeService {
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public UserResponse create(UserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("validation.emailTaken", "email");
+            throw new DuplicateResourceException("validation.email.taken", "email");
         }
         if (request.getRole() == null || !CREATABLE_ROLES.contains(request.getRole())) {
-            throw new FieldValidationException("Only EMPLOYEE and ADMIN can be assigned", "role");
+            throw new FieldValidationException("validation.role.notAssignable", "role");
         }
 
         User user = User.builder()
@@ -68,6 +68,9 @@ public class EmployeeService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(request.getRole())
                 .isActive(true)
+                // SUPER_ADMIN just typed this password in, so it knows it — the new hire must
+                // change it before doing anything else. See PasswordChangeRequiredFilter.
+                .passwordChangeRequired(true)
                 .build();
 
         return toResponse(userRepository.save(user));
@@ -80,6 +83,10 @@ public class EmployeeService {
      * we accept, then the last-active-SUPER_ADMIN invariant. A role change also bumps
      * {@code tokenVersion} (any token issued before this stops validating) and is logged at WARN;
      * granting SUPER_ADMIN additionally emails every other active SUPER_ADMIN.
+     * <p>
+     * Setting a new password here for someone else's account is the same danger as creating one
+     * (SUPER_ADMIN now knows it too) and forces the same password change on next login; changing
+     * one's own password through this endpoint does not, same as any self-service change.
      */
     @Transactional
     @PreAuthorize("hasRole('SUPER_ADMIN')")
@@ -88,18 +95,24 @@ public class EmployeeService {
 
         Role newRole = request.getRole();
         boolean roleChanging = nonNull(newRole) && newRole != target.getRole();
+        boolean resettingSomeoneElsesPassword = nonNull(request.getPassword())
+                && !request.getPassword().isBlank()
+                && !target.getId().equals(authUtil.getCurrentUserId());
 
         if (roleChanging) {
             if (target.getId().equals(authUtil.getCurrentUserId())) {
                 throw new AccessDeniedException("You cannot change your own role");
             }
             if (!UPDATE_ASSIGNABLE_ROLES.contains(newRole)) {
-                throw new FieldValidationException("Unknown role", "role");
+                throw new FieldValidationException("validation.role.unknown", "role");
             }
             assertNotLastActiveSuperAdmin(target);
         }
 
         userService.setUserData(request, target);
+        if (resettingSomeoneElsesPassword) {
+            target.setPasswordChangeRequired(true);
+        }
 
         Role oldRole = target.getRole();
         if (roleChanging) {
@@ -163,7 +176,7 @@ public class EmployeeService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
         if (!STAFF_ROLES.contains(user.getRole())) {
-            throw new FieldValidationException("User is not a staff member", "id");
+            throw new FieldValidationException("validation.id.notStaff", "id");
         }
         return user;
     }

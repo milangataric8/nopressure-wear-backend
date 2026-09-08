@@ -1,6 +1,8 @@
 package rs.nopressurewear.service;
 
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rs.nopressurewear.dto.store.ProductStoreRequest;
@@ -22,6 +24,8 @@ import static org.springframework.transaction.annotation.Propagation.MANDATORY;
 @Service
 @RequiredArgsConstructor
 public class ProductNestedRelationsService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProductNestedRelationsService.class);
 
     private final ColorVariantService colorVariantService;
     private final StoreLocationService storeLocationService;
@@ -62,10 +66,10 @@ public class ProductNestedRelationsService {
     private void colorVariantsExists(List<Long> colorVariantIds) {
         if (nonNull(colorVariantIds) && !colorVariantIds.isEmpty()) {
             if (colorVariantIds.stream().anyMatch(Objects::isNull)) {
-                throw new FieldValidationException("Color variant id must not be null", "colorVariantIds");
+                throw new FieldValidationException("validation.colorVariantIds.required", "colorVariantIds");
             }
             if (new HashSet<>(colorVariantIds).size() != colorVariantIds.size()) {
-                throw new FieldValidationException("Duplicate color variant ids", "colorVariantIds");
+                throw new FieldValidationException("validation.colorVariantIds.duplicate", "colorVariantIds");
             }
 
             Set<Long> found = productRepository.findAllById(colorVariantIds).stream()
@@ -73,7 +77,10 @@ public class ProductNestedRelationsService {
                     .collect(Collectors.toSet());
             List<Long> missing = colorVariantIds.stream().filter(id -> !found.contains(id)).toList();
             if (!missing.isEmpty()) {
-                throw new FieldValidationException("Color variant products not found: " + missing, "colorVariantIds");
+                // the specific missing ids are dev-facing detail only now; log them, don't try to
+                // squeeze a dynamic list into an i18n key.
+                log.warn("Color variant products not found: {}", missing);
+                throw new FieldValidationException("validation.colorVariantIds.notFound", "colorVariantIds");
             }
         }
     }
@@ -82,10 +89,10 @@ public class ProductNestedRelationsService {
         if (nonNull(stores) && !stores.isEmpty()) {
             List<Long> storeIds = stores.stream().map(ProductStoreRequest::getStoreLocationId).toList();
             if (storeIds.stream().anyMatch(Objects::isNull)) {
-                throw new FieldValidationException("Store location id must not be null", "stores");
+                throw new FieldValidationException("validation.stores.required", "stores");
             }
             if (new HashSet<>(storeIds).size() != storeIds.size()) {
-                throw new FieldValidationException("Duplicate store location ids", "stores");
+                throw new FieldValidationException("validation.stores.duplicate", "stores");
             }
 
             Set<Long> found = storeLocationRepository.findAllById(storeIds).stream()
@@ -93,7 +100,8 @@ public class ProductNestedRelationsService {
                     .collect(Collectors.toSet());
             List<Long> missing = storeIds.stream().filter(id -> !found.contains(id)).toList();
             if (!missing.isEmpty()) {
-                throw new FieldValidationException("Store location not found: " + missing, "stores");
+                log.warn("Store locations not found: {}", missing);
+                throw new FieldValidationException("validation.stores.notFound", "stores");
             }
         }
     }

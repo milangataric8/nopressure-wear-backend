@@ -9,24 +9,24 @@ import rs.nopressurewear.constants.Role;
 @Setter
 public class UserRequest {
 
-    @NotBlank(message = "First name is required")
+    @NotBlank(message = "validation.firstName.required")
     private String firstName;
 
-    @NotBlank(message = "Last name is required")
+    @NotBlank(message = "validation.lastName.required")
     private String lastName;
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email is not valid")
+    @NotBlank(message = "validation.email.required")
+    @Email(message = "validation.email.invalid")
     private String email;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 8, message = "Password must be at least 8 characters")
+    @NotBlank(message = "validation.password.required")
+    @Size(min = 8, message = "validation.password.minLength")
     @Pattern(
             regexp = "^(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).*$",
-            message = "Password must contain at least one number and one special character"
+            message = "validation.password.format"
     )
     private String password;
 
-    @NotNull(message = "Role is required")
+    @NotNull(message = "validation.role.required")
     private Role role;
 }

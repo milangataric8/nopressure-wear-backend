@@ -40,7 +40,7 @@ public class ReviewService {
     @Transactional
     public ReviewResponse addReview(Long productId, Long userId, ReviewRequest request) {
         if (reviewRepository.existsByProductIdAndUserId(productId, userId)) {
-            throw new DuplicateResourceException("You already reviewed this product");
+            throw new DuplicateResourceException("errors.review.alreadyReviewed");
         }
 
         Product product = productRepository.findById(productId)

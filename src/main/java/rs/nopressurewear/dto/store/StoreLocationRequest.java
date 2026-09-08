@@ -8,18 +8,18 @@ import lombok.Setter;
 @Setter
 public class StoreLocationRequest {
 
-    @NotBlank(message = "Name is required")
+    @NotBlank(message = "validation.name.required")
     private String name;
 
-    @NotBlank(message = "Street is required")
+    @NotBlank(message = "validation.street.required")
     private String street;
 
-    @NotBlank(message = "City is required")
+    @NotBlank(message = "validation.city.required")
     private String city;
 
     private String postalCode;
 
-    @NotBlank(message = "Country is required")
+    @NotBlank(message = "validation.country.required")
     private String country;
 
     private String phone;

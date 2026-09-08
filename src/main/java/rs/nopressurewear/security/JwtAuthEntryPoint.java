@@ -2,20 +2,24 @@ package rs.nopressurewear.security;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
+import rs.nopressurewear.constants.ErrorCode;
+import rs.nopressurewear.exception.ApiError;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 import static jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @Component
+@RequiredArgsConstructor
 public class JwtAuthEntryPoint implements AuthenticationEntryPoint {
+
+    private final ObjectMapper objectMapper;
 
     @Override
     public void commence(HttpServletRequest request,
@@ -24,10 +28,7 @@ public class JwtAuthEntryPoint implements AuthenticationEntryPoint {
         response.setContentType(APPLICATION_JSON_VALUE);
         response.setStatus(SC_UNAUTHORIZED);
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("status", 401);
-        body.put("message", "Unauthorized");
-
-        new ObjectMapper().writeValue(response.getOutputStream(), body);
+        objectMapper.writeValue(response.getOutputStream(),
+                new ApiError(SC_UNAUTHORIZED, ErrorCode.INVALID_CREDENTIALS, "errors.unauthorized"));
     }
 }

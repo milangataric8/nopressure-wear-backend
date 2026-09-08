@@ -14,17 +14,17 @@ import java.time.LocalDateTime;
 @Setter
 public class CouponRequest {
 
-    @NotBlank(message = "validation.codeRequired")
+    @NotBlank(message = "validation.code.required")
     private String code;
 
-    @NotNull(message = "validation.required")
+    @NotNull(message = "validation.discountType.required")
     private DiscountType discountType;
 
-    @NotNull(message = "validation.required")
+    @NotNull(message = "validation.discountValue.required")
     private BigDecimal discountValue;
 
-    @NotNull(message = "validation.required")
-    @Min(value = 1, message = "validation.usageLimitInvalid")
+    @NotNull(message = "validation.usageLimit.required")
+    @Min(value = 1, message = "validation.usageLimit.invalid")
     private Integer usageLimit;
 
     private LocalDateTime expiresAt;

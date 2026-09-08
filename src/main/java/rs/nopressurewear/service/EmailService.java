@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
 import rs.nopressurewear.model.StoreSettings;
 import rs.nopressurewear.repository.StoreSettingsRepository;
@@ -15,6 +16,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static java.math.BigDecimal.ZERO;
@@ -30,6 +32,7 @@ public class EmailService {
 
     private final EmailSender emailSender;
     private final StoreSettingsRepository storeSettingsRepository;
+    private final MessageSource messageSource;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -37,9 +40,15 @@ public class EmailService {
     @Value("${app.base-url}")
     private String baseUrl;
 
-    public void sendVerificationEmail(String to, String token, String lang) {
-        Map<String, String> t = getEmailTranslations(lang);
+    /** Strategy B of backend-message-i18n-spec.md — resolved from the recipient's own persisted
+     * preference (see {@link rs.nopressurewear.util.LocaleResolver}), never the caller's UI language. */
+    private String msg(String key, Locale locale, Object... args) {
+        return messageSource.getMessage(key, args, locale);
+    }
+
+    public void sendVerificationEmail(String to, String token, Locale locale) {
         String verifyUrl = frontendUrl + "/verify-email?token=" + token;
+        String allRightsReserved = msg("email.common.allRightsReserved", locale);
 
         String html = """
             <!DOCTYPE html>
@@ -70,14 +79,14 @@ public class EmailService {
             </body>
             </html>
             """.formatted(
-                t.get("verifyText"),
+                msg("email.verification.text", locale),
                 verifyUrl,
-                t.get("verifyButton"),
-                t.get("verifyExpire"),
-                copyrightLine(t.get("allRightsReserved"))
+                msg("email.verification.button", locale),
+                msg("email.verification.expire", locale),
+                copyrightLine(allRightsReserved)
             );
 
-        sendHtmlEmail(to, t.get("verifySubject"), html, t.get("allRightsReserved"));
+        sendHtmlEmail(to, msg("email.verification.subject", locale), html, allRightsReserved);
     }
 
     public void sendPasswordResetEmail(String to, String token, String lang) {
@@ -143,14 +152,14 @@ public class EmailService {
                                      String shippingPostalCode,
                                      String shippingCountry,
                                      BigDecimal deliveryFee,
-                                     String lang) {
+                                     Locale locale) {
 
-        Map<String, String> t = getEmailTranslations(lang);
+        String allRightsReserved = msg("email.common.allRightsReserved", locale);
         BigDecimal delivery = nonNull(deliveryFee) ? deliveryFee : ZERO;
         BigDecimal subtotalBD = new BigDecimal(total).subtract(delivery);
         String subtotalDisplay = subtotalBD.toPlainString();
         String deliveryDisplay = delivery.compareTo(ZERO) == 0
-                ? t.get("orderFree")
+                ? msg("email.order.free", locale)
                 : delivery.toPlainString() + " RSD";
         String deliveryStyle = delivery.compareTo(ZERO) == 0
                 ? "color: #16a34a;"
@@ -181,9 +190,9 @@ public class EmailService {
                 </tr>
             </table>
             """.formatted(
-                t.get("orderSubtotal"), subtotalDisplay,
-                t.get("orderDelivery"), deliveryStyle, deliveryDisplay,
-                t.get("orderTotal"), total
+                msg("email.order.subtotal", locale), subtotalDisplay,
+                msg("email.order.delivery", locale), deliveryStyle, deliveryDisplay,
+                msg("email.order.total", locale), total
             );
 
         String statusColor = switch (status) {
@@ -193,7 +202,8 @@ public class EmailService {
             case "CANCELLED" -> "#dc2626";
             default          -> "#d97706";
         };
-        String statusLabel = t.getOrDefault(status, status);
+        // default (3rd) argument returned as-is if the status has no translated label
+        String statusLabel = messageSource.getMessage("email.order.status." + status, null, status, locale);
 
         String greeting = """
             <p class="status-badge" style="color: #111; margin: 10px 0 10px;">
@@ -202,8 +212,8 @@ public class EmailService {
                 <span style="font-weight: 700; color: %s;">%s</span>.
             </p>
             """.formatted(
-                t.get("orderHi").formatted(customerFirstName),
-                t.get("orderStatusUpdate").formatted(orderCode),
+                msg("email.order.hi", locale, customerFirstName),
+                msg("email.order.statusUpdate", locale, orderCode),
                 statusColor,
                 statusLabel
             );
@@ -213,7 +223,7 @@ public class EmailService {
                 <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #111; margin: 0 0 8px;">%s</p>
                 <p style="font-size: 13px; color: #555; margin: 0; line-height: 1.6;">%s<br>%s, %s<br>%s</p>
             </div>
-            """.formatted(t.get("orderShipping"), shippingStreet, shippingCity, shippingPostalCode, shippingCountry) : "";
+            """.formatted(msg("email.order.shipping", locale), shippingStreet, shippingCity, shippingPostalCode, shippingCountry) : "";
 
         String html = """
             <!DOCTYPE html>
@@ -267,20 +277,20 @@ public class EmailService {
             </html>
             """.formatted(
                 statusColor, statusColor,
-                t.get("orderTitle"), orderCode,
-                t.get("orderStatusUpdatedNote"),
+                msg("email.order.title", locale), orderCode,
+                msg("email.order.statusUpdatedNote", locale),
                 greeting,
-                t.get("orderItems"),
+                msg("email.order.items", locale),
                 productRows,
                 summaryTable,
                 shippingSection,
                 orderUrl,
-                t.get("orderViewButton"),
-                copyrightLine(t.get("allRightsReserved"))
+                msg("email.order.viewButton", locale),
+                copyrightLine(allRightsReserved)
         );
 
-        String subject = t.get("orderSubject").formatted(orderCode, statusLabel);
-        emailSender.send(to, subject, applyLogoAndSignature(html, t.get("allRightsReserved")));
+        String subject = msg("email.order.subject", locale, orderCode, statusLabel);
+        emailSender.send(to, subject, applyLogoAndSignature(html, allRightsReserved));
     }
 
     /**

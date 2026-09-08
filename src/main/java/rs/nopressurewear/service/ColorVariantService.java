@@ -45,7 +45,7 @@ public class ColorVariantService {
                 .orElseThrow(() -> new ResourceNotFoundException("Variant product not found"));
 
         if (variantRepository.existsByProductIdAndVariantId(productId, variantProductId)) {
-            throw new DuplicateResourceException("Variant already linked");
+            throw new DuplicateResourceException("errors.colorVariant.alreadyLinked");
         }
 
         linkColorVariants(product, variant);

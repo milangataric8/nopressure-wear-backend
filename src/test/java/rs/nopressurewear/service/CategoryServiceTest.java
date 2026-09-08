@@ -68,7 +68,7 @@ class CategoryServiceTest {
 
         assertThatThrownBy(() -> categoryService.create(request))
                 .isInstanceOf(DuplicateResourceException.class)
-                .hasMessageContaining("already exists");
+                .hasMessageContaining("errors.category.nameTaken");
 
         verify(categoryRepository, never()).save(any());
     }
