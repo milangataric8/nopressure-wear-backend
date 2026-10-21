@@ -1,0 +1,35 @@
+package rs.nopressurewear.notifications.internal.channel;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+@Component
+@Slf4j
+public class ViberNotificationChannel implements NotificationChannel {
+
+    @Value("${app.viber.enabled:false}")
+    private boolean enabled;
+
+    @Value("${app.viber.auth-token:}")
+    private String authToken;
+
+    @Override
+    public String getName() {
+        return "VIBER";
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return enabled && !authToken.isBlank();
+    }
+
+    @Override
+    public void send(String recipient, String subject, String message, String imageUrl, String bgColor, String textColor, String lang) {
+        if (!isEnabled()) {
+            log.warn("Viber channel not configured — skipping message to {}", recipient);
+            return;
+        }
+        log.info("[Viber STUB] Would send to {} with image {}: {}", recipient, imageUrl, message);
+    }
+}

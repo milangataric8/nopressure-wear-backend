@@ -1,0 +1,60 @@
+package rs.nopressurewear.storefront.internal.domain;
+
+import jakarta.persistence.*;
+import lombok.*;
+import rs.nopressurewear.storefront.api.MediaType;
+
+import static jakarta.persistence.EnumType.STRING;
+import static jakarta.persistence.GenerationType.IDENTITY;
+
+@Entity
+@Table(name = "banner")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Banner {
+
+    @Id
+    @GeneratedValue(strategy = IDENTITY)
+    private Long id;
+
+    @Column
+    private String title;
+
+    @Column
+    private String subtitle;
+
+    @Column
+    private String mediaUrl;
+
+    @Enumerated(STRING)
+    @Column(nullable = false)
+    private MediaType mediaType;
+
+    @Column(name = "mobile_media_url")
+    private String mobileMediaUrl;
+
+    @Enumerated(STRING)
+    @Column(name = "mobile_media_type", length = 20)
+    private MediaType mobileMediaType;
+
+    @Column
+    private String buttonText;
+
+    @Column
+    private String buttonLink;
+
+    @Column(nullable = false)
+    private Integer displayOrder = 0;
+
+    @Column(nullable = false)
+    private boolean isActive = true;
+
+    @Column(name = "display_title")
+    private Boolean displayTitle = true;
+
+    @Column(name = "display_duration")
+    private Integer displayDuration = 5;
+}

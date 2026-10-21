@@ -1,0 +1,33 @@
+package rs.nopressurewear.storefront.api.dto.banner;
+
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
+import lombok.Setter;
+import rs.nopressurewear.storefront.api.MediaType;
+
+@Getter
+@Setter
+public class BannerRequest {
+
+    private String title;
+
+    private String subtitle;
+    private String mediaUrl;
+
+    @NotNull(message = "validation.mediaType.required")
+    private MediaType mediaType;
+
+    private String mobileMediaUrl;
+    private MediaType mobileMediaType;
+
+    private String buttonText;
+    private String buttonLink;
+    private Integer displayOrder;
+    private Boolean displayTitle;
+
+    @Min(value = 0, message = "validation.displayDuration.invalid")
+    @Max(value = 60, message = "validation.displayDuration.invalid")
+    private Integer displayDuration;
+}

@@ -1,0 +1,17 @@
+package rs.nopressurewear.catalog.api.dto.product;
+
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+import rs.nopressurewear.catalog.api.ProductSize;
+
+@Getter
+@Setter
+@Builder
+public class ProductVariantResponse {
+    private Long id;
+    private ProductSize size;
+    private Integer stockQuantity;
+    private String sku;
+    private boolean inStock;
+}

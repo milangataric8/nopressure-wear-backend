@@ -1,0 +1,259 @@
+package rs.nopressurewear.catalog.internal.application;
+import rs.nopressurewear.storefront.internal.application.StoreLocationService;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import rs.nopressurewear.catalog.api.dto.product.ProductRequest;
+import rs.nopressurewear.catalog.api.dto.product.ProductResponse;
+import rs.nopressurewear.storefront.api.dto.store.ProductStoreRequest;
+import rs.nopressurewear.platform.error.FieldValidationException;
+import rs.nopressurewear.platform.error.ResourceNotFoundException;
+import rs.nopressurewear.catalog.internal.domain.Category;
+import rs.nopressurewear.catalog.internal.domain.Product;
+import rs.nopressurewear.catalog.internal.persistence.CategoryRepository;
+import rs.nopressurewear.catalog.internal.persistence.ProductColorVariantRepository;
+import rs.nopressurewear.catalog.internal.persistence.ProductImageRepository;
+import rs.nopressurewear.catalog.internal.persistence.ProductRepository;
+import rs.nopressurewear.catalog.internal.persistence.ProductVariantRepository;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.atLeastOnce;
+
+@ExtendWith(MockitoExtension.class)
+class ProductServiceTest {
+
+    @Mock
+    private ProductRepository productRepository;
+
+    @Mock
+    private CategoryRepository categoryRepository;
+
+    @Mock
+    private ProductImageRepository productImageRepository;
+
+    @Mock
+    private ProductColorVariantRepository colorVariantRepository;
+
+    @Mock
+    private ProductVariantRepository productVariantRepository;
+
+    @Mock
+    private ColorVariantService colorVariantService;
+
+    @Mock
+    private StoreLocationService storeLocationService;
+
+    @Mock
+    private ProductNestedRelationsService productNestedRelationsService;
+
+    @InjectMocks
+    private ProductService productService;
+
+    private Product product;
+    private ProductRequest request;
+    private Category category;
+
+    @BeforeEach
+    void setUp() {
+        category = Category.builder()
+                .id(1L)
+                .name("Electronics")
+                .build();
+
+        product = Product.builder()
+                .id(1L)
+                .name("iPhone 15 Pro")
+                .description("Latest Apple smartphone")
+                .price(new BigDecimal("999.99"))
+                .sku("APPL-IPH15PRO")
+                .isActive(true)
+                .category(category)
+                .build();
+
+        request = new ProductRequest();
+        request.setName("iPhone 15 Pro");
+        request.setDescription("Latest Apple smartphone");
+        request.setPrice(new BigDecimal("999.99"));
+        request.setSku("APPL-IPH15PRO");
+        request.setCategoryId(1L);
+
+        lenient().when(productImageRepository.findByProductIdOrderByDisplayOrderAsc(anyLong())).thenReturn(List.of());
+        lenient().when(colorVariantRepository.findByProductId(anyLong())).thenReturn(List.of());
+        lenient().when(productRepository.findBySkuContainingAndIdNot(anyString(), anyLong())).thenReturn(List.of());
+        lenient().when(productVariantRepository.findByProductId(anyLong())).thenReturn(List.of());
+        lenient().when(productVariantRepository.saveAll(any())).thenReturn(List.of());
+    }
+
+    @Test
+    void create_ShouldReturnProductResponse_WhenValidRequest() {
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepository.save(any(Product.class))).thenReturn(product);
+
+        ProductResponse response = productService.create(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getName()).isEqualTo("iPhone 15 Pro");
+        assertThat(response.getPrice()).isEqualTo(new BigDecimal("999.99"));
+        verify(productRepository, atLeastOnce()).save(any(Product.class));
+    }
+
+    @Test
+    void create_ShouldNormalizeWhitespaceInDescription() {
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepository.save(any(Product.class))).thenReturn(product);
+        request.setDescription("izaberes&nbsp;svedenu&nbsp;belu&nbsp;polo&nbsp;majicu, ostalo 10 kg");
+
+        productService.create(request);
+
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepository, atLeastOnce()).save(captor.capture());
+        // first save() receives the freshly built entity with the sanitized description
+        String saved = captor.getAllValues().get(0).getDescription();
+        assertThat(saved).doesNotContain("&nbsp;svedenu");
+        assertThat(saved).contains("izaberes svedenu belu polo majicu");
+        assertThat(saved).contains("10&nbsp;kg");
+    }
+
+    @Test
+    void create_ShouldThrowNotFoundException_WhenCategoryNotFound() {
+        when(categoryRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.create(request))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Category not found");
+
+        verify(productRepository, never()).save(any());
+    }
+
+    // ---- nested relations on create: ProductService delegates to ProductNestedRelationsService ----
+
+    private ProductStoreRequest storeReq(Long storeLocationId, boolean inStock) {
+        ProductStoreRequest r = new ProductStoreRequest();
+        r.setStoreLocationId(storeLocationId);
+        r.setInStock(inStock);
+        return r;
+    }
+
+    @Test
+    void create_WithVariantsAndStores_ValidatesAndLinksThroughNestedRelationsService() {
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepository.save(any(Product.class))).thenReturn(product);
+
+        request.setColorVariantIds(List.of(2L));
+        List<ProductStoreRequest> stores = List.of(storeReq(3L, true));
+        request.setStores(stores);
+
+        productService.create(request);
+
+        verify(productNestedRelationsService).validateNestedRelations(List.of(2L), stores);
+        verify(productNestedRelationsService).linkNestedRelations(1L, List.of(2L), stores);
+        verify(storeLocationService).getAllStoresForProduct(1L);
+        verify(colorVariantService).getColorVariants(1L);
+    }
+
+    @Test
+    void create_WithNullRelations_StillDelegatesButLinksNothing() {
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepository.save(any(Product.class))).thenReturn(product);
+
+        request.setColorVariantIds(null);
+        request.setStores(null);
+
+        ProductResponse response = productService.create(request);
+
+        assertThat(response).isNotNull();
+        verify(productNestedRelationsService).linkNestedRelations(1L, null, null);
+    }
+
+    @Test
+    void create_PropagatesValidationFailureAndDoesNotPersist() {
+        doThrow(new FieldValidationException("Color variant products not found: [999]", "colorVariantIds"))
+                .when(productNestedRelationsService).validateNestedRelations(any(), any());
+        request.setColorVariantIds(List.of(999L));
+
+        assertThatThrownBy(() -> productService.create(request))
+                .isInstanceOf(FieldValidationException.class)
+                .hasMessageContaining("999");
+
+        verify(productRepository, never()).save(any());
+        verify(productNestedRelationsService, never()).linkNestedRelations(any(), any(), any());
+    }
+
+    @Test
+    void update_DoesNotTouchNestedRelations() {
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepository.save(any(Product.class))).thenReturn(product);
+
+        request.setColorVariantIds(null);
+        request.setStores(null);
+
+        productService.update(1L, request);
+
+        verifyNoInteractions(productNestedRelationsService);
+    }
+
+    @Test
+    void getById_ShouldReturnProduct_WhenExists() {
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+
+        ProductResponse response = productService.getById(1L);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getSku()).isEqualTo("APPL-IPH15PRO");
+    }
+
+    @Test
+    void getById_ShouldThrowNotFoundException_WhenNotExists() {
+        when(productRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.getById(99L))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void getAll_ShouldReturnPagedProducts() {
+        Page<Product> page = new PageImpl<>(List.of(product));
+        when(productRepository.findAll(any(Pageable.class))).thenReturn(page);
+
+        Page<ProductResponse> responses = productService.getAll(PageRequest.of(0, 10));
+
+        assertThat(responses).isNotNull();
+        assertThat(responses.getContent()).hasSize(1);
+    }
+
+    @Test
+    void toggleActive_ShouldSetInactive_WhenProductIsActive() {
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepository.save(any(Product.class))).thenReturn(product);
+
+        productService.toggleActive(1L);
+
+        assertThat(product.isActive()).isFalse();
+        verify(productRepository, times(1)).save(product);
+    }
+
+    @Test
+    void delete_ShouldDelete_WhenExists() {
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+
+        productService.delete(1L);
+
+        verify(productRepository, times(1)).delete(product);
+    }
+}

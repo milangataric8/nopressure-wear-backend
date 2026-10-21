@@ -1,0 +1,102 @@
+package rs.nopressurewear.reporting.internal.application;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Service;
+import rs.nopressurewear.promotions.internal.persistence.CouponRepository;
+import rs.nopressurewear.ordering.internal.persistence.OrderRepository;
+import rs.nopressurewear.catalog.internal.persistence.ProductRepository;
+import rs.nopressurewear.identity.internal.persistence.UserRepository;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.*;
+
+import static java.math.BigDecimal.ZERO;
+import static java.math.RoundingMode.HALF_UP;
+import static java.util.Objects.nonNull;
+
+@Service
+@RequiredArgsConstructor
+public class DashboardService {
+
+    private final OrderRepository orderRepository;
+    private final ProductRepository productRepository;
+    private final UserRepository userRepository;
+    private final CouponRepository couponRepository;
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public Map<String, Object> getOverview() {
+        Map<String, Object> overview = new LinkedHashMap<>();
+
+        // Key metrics
+        overview.put("totalRevenue", orderRepository.getTotalRevenue());
+        overview.put("totalOrders", orderRepository.count());
+        overview.put("totalCustomers", userRepository.countCustomers());
+        overview.put("totalProducts", productRepository.countActiveProducts());
+
+        // This month
+        LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+        overview.put("monthlyRevenue", orderRepository.getRevenueSince(startOfMonth));
+        overview.put("monthlyOrders", orderRepository.countOrdersSince(startOfMonth));
+        overview.put("monthlyCustomers", userRepository.countCustomersSince(startOfMonth));
+
+        // Today
+        LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        overview.put("todayRevenue", orderRepository.getRevenueSince(startOfDay));
+        overview.put("todayOrders", orderRepository.countOrdersSince(startOfDay));
+
+        // Average order value
+        BigDecimal totalRevenue = (BigDecimal) overview.get("totalRevenue");
+        Long totalOrders = (Long) overview.get("totalOrders");
+        overview.put("averageOrderValue",
+                totalOrders > 0 && nonNull(totalRevenue)
+                        ? totalRevenue.divide(BigDecimal.valueOf(totalOrders), 2, HALF_UP)
+                        : ZERO);
+
+        return overview;
+    }
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public List<Map<String, Object>> getRevenueByMonth() {
+        return orderRepository.getRevenueByMonth();
+    }
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public List<Map<String, Object>> getOrdersByStatus() {
+        return orderRepository.getOrderCountByStatus();
+    }
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public List<Map<String, Object>> getTopProducts(int limit) {
+        return productRepository.findTopSellingProducts(limit);
+    }
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public List<Map<String, Object>> getTopCustomers(int limit) {
+        return orderRepository.findTopCustomers(limit);
+    }
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public List<Map<String, Object>> getLowStockVariants(int threshold) {
+        return productRepository.findLowStockVariants(threshold);
+    }
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public List<Map<String, Object>> getRevenueByCategory() {
+        return orderRepository.getRevenueByCategory();
+    }
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public Map<String, Object> getPaymentMethodStats() {
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("card", orderRepository.countByPaymentMethod("CARD"));
+        stats.put("cod", orderRepository.countByPaymentMethod("COD"));
+        return stats;
+    }
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public List<Map<String, Object>> getRecentOrders(int limit) {
+        return orderRepository.findRecentOrders(limit);
+    }
+}

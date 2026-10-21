@@ -1,0 +1,116 @@
+package rs.nopressurewear.storefront.internal.application;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Service;
+import rs.nopressurewear.storefront.api.dto.banner.BannerRequest;
+import rs.nopressurewear.storefront.api.dto.banner.BannerResponse;
+import rs.nopressurewear.platform.error.ResourceNotFoundException;
+import rs.nopressurewear.storefront.internal.domain.Banner;
+import rs.nopressurewear.storefront.internal.persistence.BannerRepository;
+
+import java.util.List;
+
+import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
+
+@Service
+@RequiredArgsConstructor
+public class BannerService {
+
+    private final BannerRepository bannerRepository;
+
+    public List<BannerResponse> getActive() {
+        return bannerRepository.findByIsActiveTrueOrderByDisplayOrderAsc()
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public Page<BannerResponse> getAll(Pageable pageable) {
+        return bannerRepository.findAll(pageable)
+                .map(this::toResponse);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public Page<BannerResponse> search(String query, Boolean active, Pageable pageable) {
+        return bannerRepository.findByFilters(query, active, pageable)
+                .map(this::toResponse);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public BannerResponse create(BannerRequest request) {
+        Banner banner = Banner.builder()
+                .title(request.getTitle())
+                .subtitle(request.getSubtitle())
+                .mediaUrl(request.getMediaUrl())
+                .mediaType(request.getMediaType())
+                .mobileMediaUrl(request.getMobileMediaUrl())
+                .mobileMediaType(request.getMobileMediaType())
+                .buttonText(request.getButtonText())
+                .buttonLink(request.getButtonLink())
+                .displayOrder(nonNull(request.getDisplayOrder()) ? request.getDisplayOrder() : 0)
+                .isActive(true)
+                .displayTitle(isNull(request.getDisplayTitle()) || request.getDisplayTitle())
+                .displayDuration(nonNull(request.getDisplayDuration()) ? request.getDisplayDuration() : 5)
+                .build();
+        return toResponse(bannerRepository.save(banner));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public BannerResponse update(Long id, BannerRequest request) {
+        Banner banner = bannerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Banner not found"));
+
+        banner.setTitle(request.getTitle());
+        banner.setSubtitle(request.getSubtitle());
+        banner.setMediaUrl(request.getMediaUrl());
+        banner.setMediaType(request.getMediaType());
+        banner.setMobileMediaUrl(request.getMobileMediaUrl());
+        banner.setMobileMediaType(request.getMobileMediaType());
+        banner.setButtonText(request.getButtonText());
+        banner.setButtonLink(request.getButtonLink());
+        if (nonNull(request.getDisplayOrder())) {
+            banner.setDisplayOrder(request.getDisplayOrder());
+        }
+        banner.setDisplayTitle(isNull(request.getDisplayTitle()) || request.getDisplayTitle());
+        banner.setDisplayDuration(nonNull(request.getDisplayDuration()) ? request.getDisplayDuration() : 5);
+        return toResponse(bannerRepository.save(banner));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public BannerResponse toggleActive(Long id) {
+        Banner banner = bannerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Banner not found"));
+        banner.setActive(!banner.isActive());
+        return toResponse(bannerRepository.save(banner));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public void delete(Long id) {
+        Banner banner = bannerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Banner not found"));
+        bannerRepository.delete(banner);
+    }
+
+    private BannerResponse toResponse(Banner banner) {
+        return BannerResponse.builder()
+                .id(banner.getId())
+                .title(banner.getTitle())
+                .subtitle(banner.getSubtitle())
+                .mediaUrl(banner.getMediaUrl())
+                .mediaType(banner.getMediaType())
+                .mobileMediaUrl(banner.getMobileMediaUrl())
+                .mobileMediaType(banner.getMobileMediaType())
+                .buttonText(banner.getButtonText())
+                .buttonLink(banner.getButtonLink())
+                .displayOrder(banner.getDisplayOrder())
+                .active(banner.isActive())
+                .displayTitle(isNull(banner.getDisplayTitle()) || banner.getDisplayTitle())
+                .displayDuration(nonNull(banner.getDisplayDuration()) ? banner.getDisplayDuration() : 5)
+                .build();
+    }
+}

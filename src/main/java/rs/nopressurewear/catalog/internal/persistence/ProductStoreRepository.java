@@ -1,0 +1,19 @@
+package rs.nopressurewear.catalog.internal.persistence;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import rs.nopressurewear.catalog.internal.domain.ProductStore;
+
+import java.util.List;
+
+@Repository
+public interface ProductStoreRepository extends JpaRepository<ProductStore, Long> {
+
+    List<ProductStore> findByProductId(Long productId);
+
+    List<ProductStore> findByProductIdAndInStockTrue(Long productId);
+
+    boolean existsByProductIdAndStoreLocationId(Long productId, Long storeLocationId);
+
+    void deleteByProductIdAndStoreLocationId(Long productId, Long storeLocationId);
+}
