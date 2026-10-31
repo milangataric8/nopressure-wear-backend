@@ -1,5 +1,6 @@
 app:
   frontend-url: ${FRONTEND_URL}
+  frontend-allowed-origins: ${FRONTEND_ALLOWED_ORIGINS:${FRONTEND_URL},https://nopressurewear.rs,https://www.nopressurewear.rs}
   base-url: ${BASE_URL}
   upload:
     dir: ${UPLOAD_DIR:/data/uploads/products}

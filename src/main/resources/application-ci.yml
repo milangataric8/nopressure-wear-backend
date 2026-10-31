@@ -19,7 +19,8 @@ app:
 
 spring:
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/nopressure_wear}
+    # Keep create-drop tests isolated from the local development database.
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/nopressure_wear_ci}
     username: ${DATABASE_USERNAME:postgres}
     password: ${DATABASE_PASSWORD:No.Pressure8!}
     driver-class-name: org.postgresql.Driver

@@ -262,8 +262,11 @@ public class AuthService {
     }
 
     public void forgotPassword(ForgotPasswordRequest request, String lang) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        // Do not disclose whether an email address belongs to an account.
+        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+        if (user == null) {
+            return;
+        }
 
         String token = UUID.randomUUID().toString();
         user.setResetToken(token);

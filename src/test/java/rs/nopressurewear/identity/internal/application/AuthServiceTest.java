@@ -267,4 +267,26 @@ class AuthServiceTest {
 
         verify(passwordEncoder, never()).matches(any(), any());
     }
+    @Test
+    void forgotPasswordDoesNotDiscloseUnknownAddress() {
+        var request = new rs.nopressurewear.identity.api.dto.auth.ForgotPasswordRequest();
+        request.setEmail("missing@example.invalid");
+        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
+        assertThatCode(() -> authService.forgotPassword(request, "en")).doesNotThrowAnyException();
+        verifyNoInteractions(emailService);
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void forgotPasswordPersistsValidTokenBeforeSendingEmail() {
+        var request = new rs.nopressurewear.identity.api.dto.auth.ForgotPasswordRequest();
+        request.setEmail(user.getEmail());
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        authService.forgotPassword(request, "en");
+        assertThat(user.getResetToken()).isNotBlank();
+        assertThat(user.getResetTokenExpiry()).isAfter(LocalDateTime.now());
+        var order = inOrder(userRepository, emailService);
+        order.verify(userRepository).save(user);
+        order.verify(emailService).sendPasswordResetEmail(user.getEmail(), user.getResetToken(), "en");
+    }
 }

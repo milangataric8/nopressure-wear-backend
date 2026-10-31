@@ -31,6 +31,7 @@ import rs.nopressurewear.identity.internal.security.PasswordChangeRequiredFilter
 import rs.nopressurewear.identity.internal.security.UserDetailsServiceImpl;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.springframework.http.HttpMethod.*;
@@ -47,7 +48,7 @@ public class SecurityConfig {
     private final OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler;
     private final JwtAuthEntryPoint jwtAuthEntryPoint;
     private final ObjectMapper objectMapper;
-    private final String frontendUrl;
+    private final List<String> frontendAllowedOrigins;
 
     public SecurityConfig(JwtFilter jwtFilter,
                           PasswordChangeRequiredFilter passwordChangeRequiredFilter,
@@ -56,7 +57,7 @@ public class SecurityConfig {
                           OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler,
                           JwtAuthEntryPoint jwtAuthEntryPoint,
                           ObjectMapper objectMapper,
-                          @Value("${app.frontend-url}") String frontendUrl) {
+                          @Value("${app.frontend-allowed-origins:${app.frontend-url}}") String frontendAllowedOrigins) {
         this.jwtFilter = jwtFilter;
         this.passwordChangeRequiredFilter = passwordChangeRequiredFilter;
         this.userDetailsService = userDetailsService;
@@ -64,7 +65,11 @@ public class SecurityConfig {
         this.oAuth2SuccessHandler = oAuth2SuccessHandler;
         this.jwtAuthEntryPoint = jwtAuthEntryPoint;
         this.objectMapper = objectMapper;
-        this.frontendUrl = frontendUrl;
+        this.frontendAllowedOrigins = Arrays.stream(frontendAllowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isBlank())
+                .distinct()
+                .toList();
     }
     @Bean
     @Order(1)
@@ -244,7 +249,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(frontendUrl));
+        configuration.setAllowedOrigins(frontendAllowedOrigins);
         configuration.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
         ));
