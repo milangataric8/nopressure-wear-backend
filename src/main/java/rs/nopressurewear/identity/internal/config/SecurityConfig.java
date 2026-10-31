@@ -56,7 +56,7 @@ public class SecurityConfig {
                           OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler,
                           JwtAuthEntryPoint jwtAuthEntryPoint,
                           ObjectMapper objectMapper,
-                          @Value("${app.frontend-url}") String frontendUrl) {
+                          @Value("${app.frontend-allowed-origins:${FRONTEND_ALLOWED_ORIGINS:${app.frontend-url}}}") String frontendUrl) {
         this.jwtFilter = jwtFilter;
         this.passwordChangeRequiredFilter = passwordChangeRequiredFilter;
         this.userDetailsService = userDetailsService;
@@ -244,7 +244,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(frontendUrl));
+        configuration.setAllowedOrigins(java.util.Arrays.stream(frontendUrl.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isBlank())
+                .distinct()
+                .toList());
         configuration.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
         ));
