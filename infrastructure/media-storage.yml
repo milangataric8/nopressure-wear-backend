@@ -1,0 +1,166 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Dedicated private NoPressureWear media bucket with CloudFront OAC and EC2 role access
+Parameters:
+  BackendRoleName:
+    Type: String
+    Default: nopressurewear-ec2-ssm-role
+  MediaPrefix:
+    Type: String
+    Default: products
+    AllowedPattern: '[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*'
+  MediaDomainName:
+    Type: String
+    Default: ''
+    Description: Optional media.nopressurewear.rs alias; configure DNS after creation
+  CertificateArn:
+    Type: String
+    Default: ''
+    Description: Optional issued ACM certificate in us-east-1, required with MediaDomainName
+Rules:
+  CustomDomainNeedsCertificate:
+    Assertions:
+      - Assert: !Or
+          - !And
+            - !Equals [!Ref MediaDomainName, '']
+            - !Equals [!Ref CertificateArn, '']
+          - !And
+            - !Not [!Equals [!Ref MediaDomainName, '']]
+            - !Not [!Equals [!Ref CertificateArn, '']]
+        AssertDescription: Supply both MediaDomainName and CertificateArn, or neither
+Conditions:
+  HasCustomDomain: !Not [!Equals [!Ref MediaDomainName, '']]
+Resources:
+  MediaBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub 'nopressurewear-media-${AWS::AccountId}-${AWS::Region}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+  MediaOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub '${AWS::StackName}-media-oac'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+  MediaDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: NoPressureWear production media
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        PriceClass: PriceClass_100
+        Aliases: !If [HasCustomDomain, [!Ref MediaDomainName], !Ref 'AWS::NoValue']
+        ViewerCertificate: !If
+          - HasCustomDomain
+          - AcmCertificateArn: !Ref CertificateArn
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1.2_2021
+          - CloudFrontDefaultCertificate: true
+        Origins:
+          - Id: media-s3
+            DomainName: !GetAtt MediaBucket.RegionalDomainName
+            OriginAccessControlId: !Ref MediaOAC
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: media-s3
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+  MediaBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MediaBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: CloudFrontReadOnly
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${MediaBucket.Arn}/${MediaPrefix}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${MediaDistribution}'
+          - Sid: DenyNonTLS
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource: [!GetAtt MediaBucket.Arn, !Sub '${MediaBucket.Arn}/*']
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+  BackendMediaPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: nopressurewear-media-storage
+      Roles: [!Ref BackendRoleName]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: [s3:PutObject, s3:GetObject, s3:DeleteObject]
+            Resource: !Sub '${MediaBucket.Arn}/${MediaPrefix}/*'
+  CloudinaryFlag:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /nopressure/prod/CLOUDINARY_ENABLED
+      Type: String
+      Value: 'false'
+  S3Flag:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /nopressure/prod/S3_STORAGE_ENABLED
+      Type: String
+      Value: 'true'
+  BucketParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /nopressure/prod/S3_MEDIA_BUCKET
+      Type: String
+      Value: !Ref MediaBucket
+  PrefixParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /nopressure/prod/S3_MEDIA_PREFIX
+      Type: String
+      Value: !Ref MediaPrefix
+  PublicBaseParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /nopressure/prod/S3_PUBLIC_BASE_URL
+      Type: String
+      Value: !If
+        - HasCustomDomain
+        - !Sub 'https://${MediaDomainName}'
+        - !Sub 'https://${MediaDistribution.DomainName}'
+Outputs:
+  MediaBucketName:
+    Value: !Ref MediaBucket
+  MediaDistributionId:
+    Value: !Ref MediaDistribution
+  CloudFrontDomain:
+    Value: !GetAtt MediaDistribution.DomainName
+  MediaPublicBaseUrl:
+    Value: !GetAtt PublicBaseParameter.Value

@@ -35,6 +35,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ImportAutoConfiguration(ServletWebSecurityAutoConfiguration.class)
 class CategoryControllerTest {
 
+    @MockitoBean
+    private rs.nopressurewear.identity.internal.security.JwtAuthEntryPoint jwtAuthEntryPoint;
+
     @Autowired
     private MockMvc mockMvc;
 

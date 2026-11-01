@@ -3,20 +3,23 @@ package rs.nopressurewear.media.internal.storage;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import rs.nopressurewear.media.internal.application.RemoveBgService;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
 @Profile("prod")
+@ConditionalOnProperty(name = "app.storage.cloudinary-enabled", havingValue = "true")
 @RequiredArgsConstructor
+@Slf4j
 public class CloudinaryStorageService implements StorageProvider {
 
     private final Cloudinary cloudinary;
@@ -43,8 +46,10 @@ public class CloudinaryStorageService implements StorageProvider {
                     )
             );
             return (String) result.get("secure_url");
-        } catch (IOException e) {
-            throw new RuntimeException("Upload failed: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Media storage provider=Cloudinary operation=store exception={} reason=upload_failed",
+                    e.getClass().getSimpleName());
+            throw new IllegalStateException("Cloudinary media upload failed", e);
         }
     }
 
@@ -56,8 +61,9 @@ public class CloudinaryStorageService implements StorageProvider {
             if (publicId != null) {
                 cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
             }
-        } catch (Exception ignored) {
-            // deletion failure should not break the app
+        } catch (Exception e) {
+            log.warn("Media storage provider=Cloudinary operation=delete exception={} reason=delete_failed",
+                    e.getClass().getSimpleName());
         }
     }
 

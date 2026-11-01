@@ -1,4 +1,12 @@
 app:
+  storage:
+    cloudinary-enabled: ${CLOUDINARY_ENABLED:false}
+    s3-enabled: ${S3_STORAGE_ENABLED:true}
+  s3:
+    bucket: ${S3_MEDIA_BUCKET:}
+    region: ${AWS_REGION:eu-north-1}
+    public-base-url: ${S3_PUBLIC_BASE_URL:}
+    prefix: ${S3_MEDIA_PREFIX:products}
   frontend-url: ${FRONTEND_URL}
   frontend-allowed-origins: ${FRONTEND_ALLOWED_ORIGINS:${FRONTEND_URL},https://nopressurewear.rs,https://www.nopressurewear.rs}
   base-url: ${BASE_URL}
