@@ -29,7 +29,7 @@ public class CloudinaryStorageService implements StorageProvider {
     public String store(MultipartFile file, boolean removeBg) {
         try {
             byte[] bytes;
-            if (removeBg) {
+            if (removeBg && removeBgService.isEnabled()) {
                 bytes = removeBgService.removeBackground(file);
             } else {
                 bytes = file.getBytes();

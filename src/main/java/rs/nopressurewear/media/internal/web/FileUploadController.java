@@ -6,6 +6,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import rs.nopressurewear.media.internal.storage.StorageProvider;
+import rs.nopressurewear.media.internal.application.RemoveBgService;
 
 import java.util.Map;
 import java.util.Set;
@@ -18,6 +19,13 @@ import static java.util.Objects.nonNull;
 public class FileUploadController {
 
     private final StorageProvider storageProvider;
+    private final RemoveBgService removeBgService;
+
+    @GetMapping("/features")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public ResponseEntity<Map<String, Boolean>> features() {
+        return ResponseEntity.ok(Map.of("removeBackgroundEnabled", removeBgService.isEnabled()));
+    }
 
     private static final Set<String> ALLOWED_IMAGE_EXTENSIONS = Set.of(
             "jpg", "jpeg", "png", "gif", "webp", "bmp"

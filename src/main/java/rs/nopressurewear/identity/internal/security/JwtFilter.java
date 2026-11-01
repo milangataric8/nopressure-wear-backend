@@ -1,5 +1,6 @@
 package rs.nopressurewear.identity.internal.security;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -7,8 +8,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -28,6 +31,7 @@ public class JwtFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
     private final SettingsQuery storeSettingsRepository;
+    private final JwtAuthEntryPoint jwtAuthEntryPoint;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -43,6 +47,19 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
+        try {
+            authenticate(request, token);
+        } catch (JwtException | IllegalArgumentException | UsernameNotFoundException ex) {
+            SecurityContextHolder.clearContext();
+            jwtAuthEntryPoint.commence(request, response,
+                    new BadCredentialsException("Invalid or expired bearer token", ex));
+            return;
+        }
+
+        filterChain.doFilter(request, response);
+    }
+
+    private void authenticate(HttpServletRequest request, String token) {
         String username = jwtUtil.extractUsername(token);
 
         if (nonNull(username) && isNull(SecurityContextHolder.getContext().getAuthentication())) {
@@ -54,7 +71,6 @@ public class JwtFilter extends OncePerRequestFilter {
                             .map(s -> !"false".equalsIgnoreCase(s))
                             .orElse(true);
                     if (!loginEnabled) {
-                        filterChain.doFilter(request, response);
                         return;
                     }
                 }
@@ -70,6 +86,5 @@ public class JwtFilter extends OncePerRequestFilter {
             }
         }
 
-        filterChain.doFilter(request, response);
     }
 }

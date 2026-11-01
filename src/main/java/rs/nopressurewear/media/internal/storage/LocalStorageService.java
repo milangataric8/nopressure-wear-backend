@@ -26,7 +26,7 @@ public class LocalStorageService implements StorageProvider {
 
     @Override
     public String store(MultipartFile file, boolean removeBg) {
-        if (removeBg) {
+        if (removeBg && removeBgService.isEnabled()) {
             try {
                 byte[] processedBytes = removeBgService.removeBackground(file);
                 String fileName = UUID.randomUUID() + ".png";

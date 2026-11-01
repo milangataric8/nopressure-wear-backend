@@ -1,3 +1,7 @@
+app:
+  removebg:
+    enabled: ${REMOVEBG_ENABLED:false}
+
 spring:
   application:
     name: nopressure-wear-webshop

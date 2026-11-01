@@ -16,13 +16,28 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class RemoveBgService {
 
-    @Value("${app.removebg.api-key}")
+    @Value("${app.removebg.api-key:}")
     private String apiKey;
 
+    @Value("${app.removebg.enabled:false}")
+    private boolean enabled;
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
     public byte[] removeBackground(MultipartFile file) {
+        if (!enabled) {
+            throw new IllegalStateException("Background removal is disabled");
+        }
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IllegalStateException("Background removal API key is not configured");
+        }
         try {
             WebClient client = WebClient.builder()
                     .baseUrl("https://api.remove.bg/v1.0")
+                    // Processed PNGs routinely exceed WebClient's default 256 KiB limit.
+                    .codecs(codecs -> codecs.defaultCodecs().maxInMemorySize(20 * 1024 * 1024))
                     .build();
 
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
@@ -44,7 +59,7 @@ public class RemoveBgService {
                     .timeout(Duration.ofSeconds(30))
                     .block();
         } catch (Exception e) {
-            throw new RuntimeException("Failed to remove background: " + e.getMessage());
+            throw new RuntimeException("Failed to remove background", e);
         }
     }
 }

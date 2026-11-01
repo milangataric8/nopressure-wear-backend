@@ -5,6 +5,7 @@ app:
   upload:
     dir: uploads/products
   removebg:
+    enabled: ${REMOVEBG_ENABLED:false}
     api-key: CHANGE_ME
   stripe:
     secret-key: sk_test_CHANGE_ME

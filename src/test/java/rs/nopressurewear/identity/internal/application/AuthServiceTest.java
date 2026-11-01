@@ -112,6 +112,36 @@ class AuthServiceTest {
     }
 
     @Test
+    void verifyEmailAcceptsValidUnusedTokenAndMarksItConsumed() {
+        user.setEmailVerified(false);
+        var token = rs.nopressurewear.identity.internal.domain.EmailVerificationToken.builder()
+                .token("test-verification-token").user(user).used(false)
+                .expiresAt(LocalDateTime.now().plusHours(1)).build();
+        when(tokenRepository.findByToken(token.getToken())).thenReturn(Optional.of(token));
+
+        authService.verifyEmail(token.getToken());
+
+        assertThat(user.isEmailVerified()).isTrue();
+        assertThat(token.isUsed()).isTrue();
+        verify(userRepository).save(user);
+        verify(tokenRepository).save(token);
+    }
+
+    @Test
+    void verifyEmailRejectsExpiredTokenWithoutVerifyingAccount() {
+        user.setEmailVerified(false);
+        var token = rs.nopressurewear.identity.internal.domain.EmailVerificationToken.builder()
+                .token("expired-test-token").user(user).used(false)
+                .expiresAt(LocalDateTime.now().minusHours(1)).build();
+        when(tokenRepository.findByToken(token.getToken())).thenReturn(Optional.of(token));
+
+        assertThatThrownBy(() -> authService.verifyEmail(token.getToken()))
+                .isInstanceOf(rs.nopressurewear.platform.error.InvalidTokenException.class);
+        assertThat(user.isEmailVerified()).isFalse();
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
     void register_ShouldPersistTheUisLanguageAsPreferredLocale() {
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
