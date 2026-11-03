@@ -13,6 +13,8 @@ import rs.nopressurewear.catalog.api.dto.product.ProductImageResponse;
 import rs.nopressurewear.catalog.api.dto.product.ProductRequest;
 import rs.nopressurewear.catalog.api.dto.product.ProductResponse;
 import rs.nopressurewear.catalog.internal.application.ProductService;
+import rs.nopressurewear.catalog.internal.application.CatalogModelService;
+import rs.nopressurewear.catalog.api.dto.product.CatalogModelResponse;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -27,6 +29,23 @@ import static org.springframework.http.HttpStatus.CREATED;
 public class ProductController {
 
     private final ProductService productService;
+    private final CatalogModelService catalogModelService;
+
+    @GetMapping("/catalog")
+    public ResponseEntity<Page<CatalogModelResponse>> catalog(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) String colorName,
+            @RequestParam(required = false) String material,
+            @RequestParam(required = false) String gender,
+            @RequestParam(required = false) List<ProductSize> sizes,
+            @PageableDefault(sort = "name") Pageable pageable) {
+        return ResponseEntity.ok(catalogModelService.search(categoryId, search, minPrice, maxPrice,
+                brand, colorName, material, gender, sizes, pageable));
+    }
 
     @PostMapping
     public ResponseEntity<ProductResponse> create(@Valid @RequestBody ProductRequest request) {

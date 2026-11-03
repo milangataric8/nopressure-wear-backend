@@ -26,6 +26,18 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findByIsActiveTrueOrderByIdAsc();
 
+    @Query("SELECT DISTINCT p.category.id FROM Product p WHERE p.isActive = true AND p.category IS NOT NULL")
+    List<Long> findActiveCategoryIds();
+
+    @Query("SELECT DISTINCT p.gender FROM Product p WHERE p.isActive = true")
+    List<rs.nopressurewear.catalog.api.Gender> findActiveGenders();
+
+    @Query("SELECT DISTINCT p.price FROM Product p WHERE p.isActive = true")
+    List<BigDecimal> findActivePrices();
+
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category WHERE p.id IN :ids AND p.isActive = true")
+    List<Product> findCatalogOptions(@Param("ids") List<Long> ids);
+
     List<Product> findByCategoryId(Long categoryId);
 
     Page<Product> findByCategoryId(Long categoryId, Pageable pageable);

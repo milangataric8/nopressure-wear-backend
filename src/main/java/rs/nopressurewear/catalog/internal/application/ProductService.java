@@ -202,14 +202,14 @@ public class ProductService {
         return sizes.stream().map(Enum::name).toList();
     }
 
-    @Cacheable("productFilters")
+    // Availability must reflect current active products, including local data imports.
     public Map<String, Object> getAvailableFilters() {
         List<String> brands = productRepository.findDistinctBrands();
         List<Object[]> colors = productRepository.findDistinctColors();
         List<String> materials = productRepository.findDistinctMaterials();
 
         Map<String, Object> filters = new HashMap<>();
-        filters.put("brands", brands);
+        filters.put("brands", brands.stream().filter(v -> !v.isBlank()).toList());
         filters.put("colors", colors.stream()
                 .map(c -> {
                     Map<String, String> color = new HashMap<>();
@@ -218,7 +218,10 @@ public class ProductService {
                     return color;
                 })
                 .toList());
-        filters.put("materials", materials);
+        filters.put("materials", materials.stream().filter(v -> !v.isBlank()).toList());
+        filters.put("categoryIds", productRepository.findActiveCategoryIds());
+        filters.put("genders", productRepository.findActiveGenders());
+        filters.put("priceRangeAvailable", productRepository.findActivePrices().size() > 1);
         filters.put("sizes", availableSizes());
 
         return filters;
