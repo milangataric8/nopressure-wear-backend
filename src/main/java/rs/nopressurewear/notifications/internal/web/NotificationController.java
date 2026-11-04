@@ -23,7 +23,7 @@ public class NotificationController {
     @PostMapping("/notification")
     public ResponseEntity<Map<String, Object>> notification(
             @Valid @RequestBody rs.nopressurewear.notifications.api.dto.notification.NotificationRequest request,
-            @RequestParam(defaultValue = "en") String lang) {
+            @RequestParam(defaultValue = "sr") String lang) {
         String sentBy = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(notificationService.notification(request, sentBy, lang));
     }

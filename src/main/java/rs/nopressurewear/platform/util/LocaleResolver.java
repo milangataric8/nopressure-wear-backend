@@ -19,6 +19,12 @@ public final class LocaleResolver {
 
     public static Locale of(LocalizedRecipient user, String fallbackLang) {
         String tag = nonNull(user) ? user.getPreferredLocale() : fallbackLang;
-        return Locale.forLanguageTag(nonNull(tag) && !tag.isBlank() ? tag : "sr");
+        return normalize(tag);
+    }
+
+    /** Only supported languages are accepted; regional tags share the base translation. */
+    public static Locale normalize(String tag) {
+        String language = tag == null ? "" : Locale.forLanguageTag(tag.trim()).getLanguage();
+        return Locale.forLanguageTag("en".equals(language) ? "en" : "sr");
     }
 }

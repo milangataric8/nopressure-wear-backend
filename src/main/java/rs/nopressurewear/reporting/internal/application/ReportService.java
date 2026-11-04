@@ -1,5 +1,7 @@
 package rs.nopressurewear.reporting.internal.application;
 
+import rs.nopressurewear.platform.util.LocaleResolver;
+
 import com.lowagie.text.*;
 import com.lowagie.text.Font;
 import com.lowagie.text.pdf.PdfPCell;
@@ -33,7 +35,7 @@ public class ReportService {
 
     Map<String, String> getTranslations(String lang) {
         Map<String, String> t = new HashMap<>();
-        if ("sr".equals(lang)) {
+        if ("sr".equals(LocaleResolver.normalize(lang).getLanguage())) {
             t.put("ordersReport", "Izveštaj porudžbina");
             t.put("productsReport", "Izveštaj proizvoda");
             t.put("customersReport", "Izveštaj kupaca");

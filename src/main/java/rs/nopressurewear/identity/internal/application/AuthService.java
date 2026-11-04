@@ -92,7 +92,7 @@ public class AuthService {
                 .emailVerified(false)
                 // the UI language at signup time, persisted so later async emails (verification
                 // resend, order updates, ...) land in it regardless of who/what triggers them.
-                .preferredLocale(nonNull(lang) && !lang.isBlank() ? lang : "sr")
+                .preferredLocale(LocaleResolver.normalize(lang).getLanguage())
                 .build();
 
         User saved = userRepository.save(user);

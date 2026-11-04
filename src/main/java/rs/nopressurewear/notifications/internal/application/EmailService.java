@@ -1,5 +1,7 @@
 package rs.nopressurewear.notifications.internal.application;
 
+import rs.nopressurewear.platform.util.LocaleResolver;
+
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -614,11 +616,11 @@ public class EmailService implements rs.nopressurewear.notifications.api.EmailOp
     public void sendContactConfirmation(String to, String name, String lang) {
         try {
             Map<String, String> t = getEmailTranslations(lang);
-            String greeting = "sr".equals(lang) ? "Zdravo" : "Hi";
-            String body = "sr".equals(lang)
+            String greeting = "sr".equals(LocaleResolver.normalize(lang).getLanguage()) ? "Zdravo" : "Hi";
+            String body = "sr".equals(LocaleResolver.normalize(lang).getLanguage())
                     ? "Hvala Vam što ste nas kontaktirali. Primili smo vašu poruku i odgovorićemo Vam u najkraćem roku."
                     : "Thank you for reaching out. We received your message and will get back to you as soon as possible.";
-            String team = "sr".equals(lang) ? "Vaš tim" : "The Team";
+            String team = "sr".equals(LocaleResolver.normalize(lang).getLanguage()) ? "Vaš tim" : "The Team";
 
             String html = """
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 0;">
@@ -637,11 +639,11 @@ public class EmailService implements rs.nopressurewear.notifications.api.EmailOp
                 </div>
             </div>
             """.formatted(
-                    "sr".equals(lang) ? "Hvala Vam!" : "Thank You!",
+                    "sr".equals(LocaleResolver.normalize(lang).getLanguage()) ? "Hvala Vam!" : "Thank You!",
                     greeting, name, body, team,
                     copyrightLine(t.get("allRightsReserved")));
 
-            String subject = "sr".equals(lang) ? "Primili smo vašu poruku" : "We received your message";
+            String subject = "sr".equals(LocaleResolver.normalize(lang).getLanguage()) ? "Primili smo vašu poruku" : "We received your message";
             emailSender.send(to, subject, applyLogoAndSignature(html, t.get("allRightsReserved")));
         } catch (Exception e) {
             log.error("Failed to send contact confirmation: " + e.getMessage());
@@ -720,7 +722,7 @@ public class EmailService implements rs.nopressurewear.notifications.api.EmailOp
 
     private Map<String, String> getEmailTranslations(String lang) {
         Map<String, String> t = new HashMap<>();
-        if ("sr".equals(lang)) {
+        if ("sr".equals(LocaleResolver.normalize(lang).getLanguage())) {
             t.put("resetSubject", "Zahtev za resetovanje lozinke");
             t.put("resetTitle", "Resetovanje lozinke");
             t.put("resetHi", "Zdravo");

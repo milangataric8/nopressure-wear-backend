@@ -19,7 +19,7 @@ public class ContactController {
     @PostMapping
     public ResponseEntity<Map<String, String>> sendContact(
             @Valid @RequestBody ContactRequest request,
-            @RequestParam(defaultValue = "en") String lang) {
+            @RequestParam(defaultValue = "sr") String lang) {
 
         emailService.sendContactEmail(
                 request.getName(),

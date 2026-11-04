@@ -26,7 +26,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request,
-                                                 @RequestParam(defaultValue = "en") String lang) {
+                                                 @RequestParam(defaultValue = "sr") String lang) {
         return ResponseEntity
                 .status(CREATED)
                 .body(authService.register(request, lang));
@@ -40,7 +40,7 @@ public class AuthController {
 
     @PostMapping("/resend-verification")
     public ResponseEntity<Void> resendVerification(@RequestBody ResendRequest req,
-                                                   @RequestParam(defaultValue = "en") String lang) {
+                                                   @RequestParam(defaultValue = "sr") String lang) {
         authService.resendVerification(req.getEmail(), lang);
         return ResponseEntity.ok().build();
     }
@@ -52,7 +52,7 @@ public class AuthController {
 
     @PostMapping("/forgot-password")
     public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request,
-                                               @RequestParam(defaultValue = "en") String lang) {
+                                               @RequestParam(defaultValue = "sr") String lang) {
         authService.forgotPassword(request, lang);
         return ResponseEntity.ok().build();
     }

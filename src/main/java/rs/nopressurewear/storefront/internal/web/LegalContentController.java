@@ -1,5 +1,7 @@
 package rs.nopressurewear.storefront.internal.web;
 
+import rs.nopressurewear.platform.util.LocaleResolver;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,8 +19,8 @@ public class LegalContentController {
     @GetMapping("/{type}")
     public ResponseEntity<LegalContentResponse> get(
             @PathVariable String type,
-            @RequestParam(defaultValue = "en") String lang) {
-        return ResponseEntity.ok(service.get(type, lang));
+            @RequestParam(defaultValue = "sr") String lang) {
+        return ResponseEntity.ok(service.get(type, LocaleResolver.normalize(lang).getLanguage()));
     }
 
     @PutMapping("/{type}")

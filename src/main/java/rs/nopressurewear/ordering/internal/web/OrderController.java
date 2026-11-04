@@ -30,7 +30,7 @@ public class OrderController {
             @RequestParam(required = false) String couponCode,
             @RequestParam(required = false) String paymentMethod,
             @RequestParam(required = false) String paymentIntentId,
-            @RequestParam(defaultValue = "en") String lang) {
+            @RequestParam(defaultValue = "sr") String lang) {
         return ResponseEntity
                 .status(CREATED)
                 .body(orderService.checkout(userId, couponCode, paymentMethod, paymentIntentId, lang));
@@ -39,7 +39,7 @@ public class OrderController {
     @PostMapping("/guest-checkout")
     public ResponseEntity<OrderResponse> guestCheckout(
             @Valid @RequestBody GuestOrderRequest request,
-            @RequestParam(defaultValue = "en") String lang) {
+            @RequestParam(defaultValue = "sr") String lang) {
         return ResponseEntity
                 .status(CREATED)
                 .body(orderService.guestCheckout(request, lang));
@@ -97,7 +97,7 @@ public class OrderController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrderResponse> updateStatus(@PathVariable Long orderId,
                                                       @RequestParam OrderStatus status,
-                                                      @RequestParam(defaultValue = "en") String lang) {
+                                                      @RequestParam(defaultValue = "sr") String lang) {
         return ResponseEntity.ok(orderService.updateStatus(orderId, status, lang));
     }
 }

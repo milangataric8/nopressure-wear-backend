@@ -26,4 +26,19 @@ class LocaleResolverTest {
     void noUserAndNoFallback_defaultsToSerbian() {
         assertThat(LocaleResolver.of(null, null)).isEqualTo(Locale.forLanguageTag("sr"));
     }
+
+    @Test
+    void unsupportedAndEmptyLanguages_defaultToSerbian() {
+        for (String tag : new String[] {"de", "", "   ", "invalid!"}) {
+            assertThat(LocaleResolver.normalize(tag).getLanguage()).isEqualTo("sr");
+        }
+        User user = User.builder().preferredLocale("de").build();
+        assertThat(LocaleResolver.of(user, "en").getLanguage()).isEqualTo("sr");
+    }
+
+    @Test
+    void regionalTags_useSupportedBaseLanguage() {
+        assertThat(LocaleResolver.normalize("en-US").getLanguage()).isEqualTo("en");
+        assertThat(LocaleResolver.normalize("sr-Latn-RS").getLanguage()).isEqualTo("sr");
+    }
 }
